@@ -1,16 +1,17 @@
-// src/components/Sidebar.tsx - 深色模式版本
+// src/components/Sidebar.tsx
 import React, { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { motion } from 'framer-motion'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { 
-  faTachometerAlt, 
-  faChartBar, 
-  faShieldAlt, 
-  faRobot, 
-  faBars,
-  faHome
+import {
+    faTachometerAlt,
+    faChartBar,
+    faShieldAlt,
+    faRobot,
+    faBars,
+    faHome,
+    faMapMarkedAlt
 } from '@fortawesome/free-solid-svg-icons'
 import { useTheme } from '../providers/ThemeProvider'
 import ThemeToggle from './ThemeToggle'
@@ -22,9 +23,9 @@ interface MenuItem {
 }
 
 const menuItems: MenuItem[] = [
-  { 
-    href: '/', 
-    icon: faHome, 
+  {
+    href: '/',
+    icon: faHome,
     label: 'Home'
   },
   { 
@@ -37,16 +38,21 @@ const menuItems: MenuItem[] = [
     icon: faChartBar, 
     label: 'Statistics'
   },
+  {
+    href: '/traffic-map',
+    icon: faMapMarkedAlt,
+    label: 'Traffic Map'
+  },
   { 
     href: '/access-control', 
     icon: faShieldAlt, 
     label: 'Access Control'
   },
-  // { 
-  //   href: '/ai-detection', 
-  //   icon: faRobot, 
-  //   label: 'AI Detection'
-  // }
+  {
+    href: '/detection',
+    icon: faRobot,
+    label: 'Detection'
+  }
 ]
 
 interface SidebarProps {

@@ -20,28 +20,28 @@ const Custom404: React.FC = () => {
       href: "/dashboard",
       icon: faTachometerAlt,
       title: "Dashboard",
-      description: "系統儀表板總覽",
+      description: "System Dashboard Overview",
       color: "blue"
     },
     {
       href: "/statistics",
       icon: faChartBar,
       title: "Statistics",
-      description: "數據統計與分析",
+      description: "Data Statistics and Analysis",
       color: "green"
     },
     {
       href: "/access_control",
       icon: faShieldAlt,
       title: "Access Control",
-      description: "存取控制管理",
+      description: "Access Control Management",
       color: "red"
     },
     {
       href: "/detection",
       icon: faRobot,
       title: "Detection",
-      description: "威脅檢測系統",
+      description: "Threat Detection System",
       color: "purple"
     }
   ];
@@ -87,8 +87,8 @@ const Custom404: React.FC = () => {
   return (
     <>
       <Head>
-        <title>404 - 頁面未找到 | NetGuardia</title>
-        <meta name="description" content="您要找的頁面不存在。" />
+        <title>404 - Page Not Found | NetGuardia</title>
+        <meta name="description" content="The page you are looking for does not exist." />
       </Head>
 
       <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100">
@@ -107,12 +107,12 @@ const Custom404: React.FC = () => {
               </h1>
               
               <h2 className="text-3xl font-semibold text-gray-800 mb-4">
-                頁面未找到
+                Page Not Found
               </h2>
               
               <p className="text-lg text-gray-600 max-w-lg mx-auto leading-relaxed">
-                抱歉，您要訪問的頁面不存在或已被移動。<br />
-                請選擇以下選項繼續使用 NetGuardia 系統。
+                Sorry, the page you are looking for does not exist or has been moved.<br />
+                Please choose from the options below to continue using the NetGuardia system.
               </p>
             </motion.div>
 
@@ -124,7 +124,7 @@ const Custom404: React.FC = () => {
               className="mb-12"
             >
               <h3 className="text-xl font-semibold text-gray-800 mb-6 text-center">
-                快速導航到主要功能
+                Quick Navigation to Main Features
               </h3>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -175,7 +175,7 @@ const Custom404: React.FC = () => {
                   className="w-full sm:w-auto bg-gradient-to-r from-blue-600 to-blue-700 text-white px-8 py-4 rounded-lg font-semibold hover:from-blue-700 hover:to-blue-800 transition-all duration-300 flex items-center justify-center gap-3 shadow-lg"
                 >
                   <FontAwesomeIcon icon={faHome} />
-                  返回首頁
+                  Back to Home
                 </motion.button>
               </Link>
               
@@ -186,7 +186,7 @@ const Custom404: React.FC = () => {
                 className="w-full sm:w-auto bg-gray-600 text-white px-8 py-4 rounded-lg font-semibold hover:bg-gray-700 transition-all duration-300 flex items-center justify-center gap-3 shadow-lg"
               >
                 <FontAwesomeIcon icon={faArrowLeft} />
-                返回上一頁
+                Back to Previous Page
               </motion.button>
             </motion.div>
 
@@ -199,10 +199,10 @@ const Custom404: React.FC = () => {
             >
               <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
                 <p className="text-gray-600 mb-2">
-                  <strong>需要幫助？</strong>
+                  <strong>Need Help?</strong>
                 </p>
                 <p className="text-sm text-gray-500">
-                  如果您認為這是一個系統錯誤，請聯繫技術支援團隊或系統管理員。
+                  If you believe this is a system error, please contact the technical support team or system administrator.
                 </p>
               </div>
             </motion.div>

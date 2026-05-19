@@ -2,12 +2,12 @@ import React, { useState, useEffect, useContext, useCallback, useMemo } from 're
 import Head from 'next/head'
 import { motion, AnimatePresence } from 'framer-motion'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { 
-    faPlus, 
-    faTrash, 
-    faSearch, 
-    faFilter, 
-    faCheck, 
+import {
+    faPlus,
+    faTrash,
+    faSearch,
+    faFilter,
+    faCheck,
     faShieldAlt,
     faNetworkWired,
     faGlobe,
@@ -18,38 +18,18 @@ import {
     faClock
 } from '@fortawesome/free-solid-svg-icons'
 import { AccessControlContext } from '../providers/AccessControlProvider'
+import { useTheme } from '../providers/ThemeProvider'
 import { putData, deleteData } from '../utils/connectionUtils'
 import { urls } from '../config'
 import Layout from '../components/Layout'
 import LoadingSpinner from '../components/LoadingSpinner'
-
-// 接口定義
-interface AccessControlItem {
-    ip: string
-    ports: (string | number)[]
-}
-
-interface NotificationProps {
-    message: string
-    type: 'success' | 'error' | 'warning' | 'info'
-    onClose: () => void
-}
-
-interface ModalProps {
-    title: string
-    children: React.ReactNode
-    onClose: () => void
-    onSubmit?: () => void
-    submitLabel?: string
-    submitDisabled?: boolean
-}
-
-interface ToggleButtonProps {
-    isActive: boolean
-    onClick: () => void
-    children: React.ReactNode
-    className?: string
-}
+import {
+    AccessControlItem,
+    NotificationProps,
+    ModalProps,
+    ToggleButtonProps,
+    StatsCardProps
+} from '../types/AccessControlTypes'
 
 // 通知組件
 const Notification: React.FC<NotificationProps> = ({ message, type, onClose }) => {
@@ -89,115 +69,119 @@ const Notification: React.FC<NotificationProps> = ({ message, type, onClose }) =
 }
 
 // 模態框組件
-const Modal: React.FC<ModalProps> = ({ 
-    title, 
-    children, 
-    onClose, 
-    onSubmit, 
-    submitLabel = 'Submit',
-    submitDisabled = false 
-}) => (
-    <AnimatePresence>
-        <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
-            onClick={onClose}
-        >
+const Modal: React.FC<ModalProps> = ({
+                                         title,
+                                         children,
+                                         onClose,
+                                         onSubmit,
+                                         submitLabel = 'Submit',
+                                         submitDisabled = false
+                                     }) => {
+    const { actualTheme } = useTheme()
+    const isDark = actualTheme === 'dark'
+
+    return (
+        <AnimatePresence>
             <motion.div
-                initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto"
-                onClick={(e) => e.stopPropagation()}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm bg-black/30 p-4"
+                onClick={onClose}
             >
-                <div className="px-6 py-4 border-b border-gray-200">
-                    <div className="flex items-center justify-between">
-                        <h2 className="text-xl font-semibold text-gray-900">{title}</h2>
+                <motion.div
+                    initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                    className={`rounded-lg shadow-xl max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto ${isDark ? 'bg-gray-800' : 'bg-white'}`}
+                    onClick={(e) => e.stopPropagation()}
+                >
+                    <div className={`px-6 py-4 border-b ${isDark ? 'border-gray-700' : 'border-gray-200'}`}>
+                        <div className="flex items-center justify-between">
+                            <h2 className={`text-xl font-semibold ${isDark ? 'text-gray-300' : 'text-gray-900'}`}>{title}</h2>
+                            <button
+                                onClick={onClose}
+                                className={`transition-colors ${isDark ? 'text-gray-400 hover:text-gray-200' : 'text-gray-400 hover:text-gray-600'}`}
+                            >
+                                <FontAwesomeIcon icon={faTimes} />
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="px-6 py-4">
+                        {children}
+                    </div>
+
+                    <div className={`px-6 py-4 border-t flex justify-end space-x-3 ${isDark ? 'border-gray-700' : 'border-gray-200'}`}>
                         <button
                             onClick={onClose}
-                            className="text-gray-400 hover:text-gray-600 transition-colors"
-                        >
-                            <FontAwesomeIcon icon={faTimes} />
-                        </button>
-                    </div>
-                </div>
-                
-                <div className="px-6 py-4">
-                    {children}
-                </div>
-                
-                <div className="px-6 py-4 border-t border-gray-200 flex justify-end space-x-3">
-                    <button
-                        onClick={onClose}
-                        className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-                    >
-                        取消
-                    </button>
-                    {onSubmit && (
-                        <button
-                            onClick={onSubmit}
-                            disabled={submitDisabled}
                             className={`px-4 py-2 rounded-lg transition-colors ${
-                                submitDisabled
-                                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                                    : 'bg-blue-600 text-white hover:bg-blue-700'
+                                isDark ? 'text-gray-300 bg-gray-700 hover:bg-gray-600' : 'text-gray-700 bg-gray-100 hover:bg-gray-200'
                             }`}
                         >
-                            {submitLabel}
+                            Cancel
                         </button>
-                    )}
-                </div>
+                        {onSubmit && (
+                            <button
+                                onClick={onSubmit}
+                                disabled={submitDisabled}
+                                className={`px-4 py-2 rounded-lg transition-colors ${
+                                    submitDisabled
+                                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                        : 'bg-blue-600 text-white hover:bg-blue-700'
+                                }`}
+                            >
+                                {submitLabel}
+                            </button>
+                        )}
+                    </div>
+                </motion.div>
             </motion.div>
-        </motion.div>
-    </AnimatePresence>
-)
-
-// 切換按鈕組件
-const ToggleButton: React.FC<ToggleButtonProps> = ({ 
-    isActive, 
-    onClick, 
-    children, 
-    className = "" 
-}) => (
-    <button
-        className={`px-4 py-2 rounded-lg transition-all duration-200 font-medium ${className} ${
-            isActive 
-                ? "bg-blue-600 text-white shadow-lg" 
-                : "bg-white text-gray-700 border border-gray-300 hover:bg-gray-50"
-        }`}
-        onClick={onClick}
-    >
-        {children}
-    </button>
-)
-
-// 統計卡片組件
-interface StatsCardProps {
-    title: string
-    value: number
-    icon: any
-    color: string
+        </AnimatePresence>
+    )
 }
 
-const StatsCard: React.FC<StatsCardProps> = ({ title, value, icon, color }) => (
-    <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="bg-white rounded-lg shadow-md p-6"
-    >
-        <div className="flex items-center justify-between">
-            <div>
-                <p className="text-sm font-medium text-gray-600 mb-1">{title}</p>
-                <p className="text-2xl font-bold text-gray-900">{value.toLocaleString()}</p>
+// 切換按鈕組件
+const ToggleButton: React.FC<ToggleButtonProps> = ({ isActive, onClick, children, className = "" }) => {
+    const { actualTheme } = useTheme()
+    const isDark = actualTheme === 'dark'
+
+    return (
+        <button
+            className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${className} ${
+                isActive
+                    ? "bg-blue-600 text-white"
+                    : `${isDark ? 'bg-gray-700 text-gray-300 hover:bg-gray-650' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`
+            }`}
+            onClick={onClick}
+        >
+            {children}
+        </button>
+    )
+}
+
+const StatsCard: React.FC<StatsCardProps> = ({ title, value, icon, color }) => {
+    const { actualTheme } = useTheme()
+    const isDark = actualTheme === 'dark'
+
+    return (
+        <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className={`rounded-lg shadow-md p-6 ${isDark ? 'bg-gray-600' : 'bg-white'}`}
+        >
+            <div className="flex items-center justify-between">
+                <div>
+                    <p className={`text-sm font-medium mb-1 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>{title}</p>
+                    <p className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{value.toLocaleString()}</p>
+                </div>
+                <div className={`${color} p-3 rounded-lg`}>
+                    <FontAwesomeIcon icon={icon} className="text-white text-xl" />
+                </div>
             </div>
-            <div className={`${color} p-3 rounded-lg`}>
-                <FontAwesomeIcon icon={icon} className="text-white text-xl" />
-            </div>
-        </div>
-    </motion.div>
-)
+        </motion.div>
+    )
+}
 
 // 主要組件
 const AccessControl: React.FC = () => {
@@ -210,6 +194,9 @@ const AccessControl: React.FC = () => {
         refreshData,
         getCacheStatus
     } = useContext(AccessControlContext)
+
+    const { actualTheme } = useTheme()
+    const isDark = actualTheme === 'dark'
 
     // 狀態管理
     const [isIPv6, setIsIPv6] = useState(false)
@@ -246,7 +233,7 @@ const AccessControl: React.FC = () => {
         setNewPort('')
         setBlockAllPorts(false)
     }, [])
-    
+
     const handleModalClose = useCallback(() => {
         setIsModalOpen(false)
         setNewIp('')
@@ -267,9 +254,9 @@ const AccessControl: React.FC = () => {
     const handleRefresh = useCallback(async () => {
         try {
             await refreshData(isIPv6, listType)
-            showNotification('資料已更新', 'success')
+            showNotification('Data updated', 'success')
         } catch (error) {
-            showNotification('更新失敗', 'error')
+            showNotification('Update failed', 'error')
         }
     }, [isIPv6, listType, refreshData, showNotification])
 
@@ -294,9 +281,9 @@ const AccessControl: React.FC = () => {
 
     // 展平資料，便於表格顯示
     const flatData = useMemo(() =>
-        filteredData.flatMap(({ ip, ports }) =>
-            ports.map((port) => ({ ip, port }))
-        ),
+            filteredData.flatMap(({ ip, ports }) =>
+                ports.map((port) => ({ ip, port }))
+            ),
         [filteredData]
     )
 
@@ -305,7 +292,7 @@ const AccessControl: React.FC = () => {
         const uniqueIPs = new Set(filteredData.map(item => item.ip)).size
         const totalEntries = flatData.length
         const allPortsEntries = flatData.filter(item => item.port === "0" || item.port === 0).length
-        
+
         return {
             uniqueIPs,
             totalEntries,
@@ -324,7 +311,7 @@ const AccessControl: React.FC = () => {
             // IPv4 驗證
             const ipv4Regex = /^(\d{1,3}\.){3}\d{1,3}$/
             if (!ipv4Regex.test(ip)) return false
-            
+
             const parts = ip.split('.')
             return parts.every(part => {
                 const num = parseInt(part, 10)
@@ -343,17 +330,17 @@ const AccessControl: React.FC = () => {
     // 添加項目
     const handleAddItemSubmit = useCallback(async () => {
         if (!newIp.trim()) {
-            showNotification('請輸入有效的 IP 地址', 'error')
+            showNotification('Please enter a valid IP address', 'error')
             return
         }
 
         if (!validateIP(newIp.trim(), isIPv6)) {
-            showNotification(`請輸入有效的 ${isIPv6 ? 'IPv6' : 'IPv4'} 地址`, 'error')
+            showNotification(`Please enter a valid ${isIPv6 ? 'IPv6' : 'IPv4'} address`, 'error')
             return
         }
 
         if (!blockAllPorts && !validatePort(newPort)) {
-            showNotification('請輸入有效的端口號 (1-65535)', 'error')
+            showNotification('Please enter a valid port number (1-65535)', 'error')
             return
         }
 
@@ -371,7 +358,7 @@ const AccessControl: React.FC = () => {
                     `${newIp.trim()}:${portToSend}`,
                     () => {
                         showNotification(
-                            `成功添加: ${newIp.trim()}:${blockAllPorts ? '*' : portToSend}`, 
+                            `Successfully added: ${newIp.trim()}:${blockAllPorts ? '*' : portToSend}`,
                             'success'
                         )
                         setIsModalOpen(false)
@@ -383,7 +370,7 @@ const AccessControl: React.FC = () => {
                         resolve()
                     },
                     (error) => {
-                        showNotification(`添加失敗: ${error.message}`, 'error')
+                        showNotification(`Failed to add: ${error.message}`, 'error')
                         reject(error)
                     }
                 )
@@ -424,7 +411,7 @@ const AccessControl: React.FC = () => {
                     `${formattedIp}:${port}`,
                     () => {
                         showNotification(
-                            `成功刪除: ${formattedIp}:${port === "0" || port === 0 ? "*" : port}`, 
+                            `Successfully deleted: ${formattedIp}:${port === "0" || port === 0 ? "*" : port}`,
                             'success'
                         )
                         // 更新当前資料
@@ -434,7 +421,7 @@ const AccessControl: React.FC = () => {
                         resolve()
                     },
                     (error) => {
-                        showNotification(`刪除失敗: ${error.message}`, 'error')
+                        showNotification(`Failed to delete: ${error.message}`, 'error')
                         setIsConfirmModalOpen(false)
                         setItemToDelete(null)
                         reject(error)
@@ -467,8 +454,8 @@ const AccessControl: React.FC = () => {
     return (
         <>
             <Head>
-                <title>存取控制 - NetGuardia</title>
-                <meta name="description" content="NetGuardia 存取控制管理 - IP 白名單與黑名單" />
+                <title>Access Control - NetGuardia</title>
+                <meta name="description" content="NetGuardia Access Control Management - IP Whitelist and Blacklist" />
             </Head>
 
             <Layout>
@@ -491,12 +478,12 @@ const AccessControl: React.FC = () => {
                 >
                     <div className="flex items-center justify-between">
                         <div>
-                            <h1 className="text-3xl font-bold text-gray-900 mb-2 flex items-center">
+                            <h1 className={`text-3xl font-bold mb-2 flex items-center ${isDark ? 'text-white' : 'text-gray-900'}`}>
                                 <FontAwesomeIcon icon={faShieldAlt} className="mr-3 text-blue-600" />
-                                存取控制管理
+                                Access Control Management
                             </h1>
-                            <p className="text-gray-600">
-                                管理 IPv4 和 IPv6 網路存取白名單與黑名單
+                            <p className={isDark ? 'text-gray-400' : 'text-gray-600'}>
+                                Manage IPv4 and IPv6 network access whitelists and blacklists
                             </p>
                         </div>
                     </div>
@@ -505,25 +492,25 @@ const AccessControl: React.FC = () => {
                 {/* 統計卡片 */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                     <StatsCard
-                        title="唯一 IP 數"
+                        title="Unique IPs"
                         value={stats.uniqueIPs}
                         icon={faGlobe}
                         color="bg-blue-500"
                     />
                     <StatsCard
-                        title="總規則數"
+                        title="Total Rules"
                         value={stats.totalEntries}
                         icon={faNetworkWired}
                         color="bg-green-500"
                     />
                     <StatsCard
-                        title="全端口規則"
+                        title="All Ports Rules"
                         value={stats.allPortsEntries}
                         icon={faFilter}
                         color="bg-purple-500"
                     />
                     <StatsCard
-                        title="特定端口規則"
+                        title="Specific Port Rules"
                         value={stats.specificPortEntries}
                         icon={faCheck}
                         color="bg-orange-500"
@@ -531,42 +518,44 @@ const AccessControl: React.FC = () => {
                 </div>
 
                 {/* 控制面板 */}
-                <motion.div 
+                <motion.div
                     initial={{ opacity: 0, y: -20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="bg-white rounded-lg shadow-md p-6 mb-6"
+                    className={`rounded-lg shadow-md p-6 mb-6 ${isDark ? 'bg-gray-600' : 'bg-white'}`}
                 >
                     <div className="flex flex-wrap items-center gap-4">
                         {/* 搜索框 */}
                         <div className="flex-1 min-w-64">
                             <div className="relative">
-                                <FontAwesomeIcon 
-                                    icon={faSearch} 
-                                    className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" 
+                                <FontAwesomeIcon
+                                    icon={faSearch}
+                                    className={`absolute left-2.5 top-1/2 transform -translate-y-1/2 text-sm ${isDark ? 'text-gray-400' : 'text-gray-400'}`}
                                 />
                                 <input
                                     type="text"
                                     value={searchTerm}
-                                    onChange={handleSearchChange}
-                                    placeholder="搜索 IP 地址..."
-                                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    placeholder="Search IP Address..."
+                                    className={`w-full pl-8 pr-3 py-1 text-sm border rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 ${
+                                        isDark ? 'bg-gray-700 border-gray-500 text-gray-300 placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400'
+                                    }`}
                                 />
                             </div>
                         </div>
 
                         {/* IP 版本選擇 */}
                         <div className="flex items-center space-x-2">
-                            <span className="text-sm font-medium text-gray-600">IP 版本:</span>
+                            <span className={`text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>IP Version:</span>
                             <div className="flex space-x-1">
                                 <ToggleButton
                                     isActive={!isIPv6}
-                                    onClick={() => handleIPVersionChange(false)}
+                                    onClick={() => setIsIPv6(false)}
                                 >
                                     IPv4
                                 </ToggleButton>
                                 <ToggleButton
                                     isActive={isIPv6}
-                                    onClick={() => handleIPVersionChange(true)}
+                                    onClick={() => setIsIPv6(true)}
                                 >
                                     IPv6
                                 </ToggleButton>
@@ -575,65 +564,67 @@ const AccessControl: React.FC = () => {
 
                         {/* 列表類型選擇 */}
                         <div className="flex items-center space-x-2">
-                            <span className="text-sm font-medium text-gray-600">列表類型:</span>
+                            <span className={`text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>List Type:</span>
                             <div className="flex space-x-1">
                                 <ToggleButton
                                     isActive={listType === "black_list"}
                                     onClick={() => handleListTypeChange("black_list")}
                                 >
                                     <FontAwesomeIcon icon={faFilter} className="mr-1" />
-                                    黑名單
+                                    Blacklist
                                 </ToggleButton>
                                 <ToggleButton
                                     isActive={listType === "white_list"}
                                     onClick={() => handleListTypeChange("white_list")}
                                 >
                                     <FontAwesomeIcon icon={faCheck} className="mr-1" />
-                                    白名單
+                                    Whitelist
                                 </ToggleButton>
                             </div>
                         </div>
 
                         {/* 操作按鈕 */}
-                        <div className="flex items-center space-x-2">
-                            <button 
-                                className="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors flex items-center space-x-2"
+                        <div className="flex items-center space-x-2 ml-auto">
+                            <button
+                                className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors flex items-center space-x-1 ${
+                                    isDark ? 'bg-gray-700 text-gray-300 hover:bg-gray-650' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                }`}
                                 onClick={handleRefresh}
-                                title="更新資料"
+                                title="Update"
                             >
-                                <FontAwesomeIcon icon={faRefresh} />
-                                <span>更新</span>
+                                <FontAwesomeIcon icon={faRefresh} className="text-xs" />
+                                <span>Update</span>
                             </button>
-                            
-                            <button 
-                                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2" 
+
+                            <button
+                                className="px-3 py-1 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors flex items-center space-x-1"
                                 onClick={handleAddItemClick}
                             >
-                                <FontAwesomeIcon icon={faPlus} />
-                                <span>添加規則</span>
+                                <FontAwesomeIcon icon={faPlus} className="text-xs" />
+                                <span>Add Rule</span>
                             </button>
                         </div>
                     </div>
                 </motion.div>
 
                 {/* 資料表格 */}
-                <motion.div 
+                <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="bg-white rounded-lg shadow-md overflow-hidden"
+                    className={`rounded-lg shadow-md overflow-hidden ${isDark ? 'bg-gray-600' : 'bg-white'}`}
                 >
-                    <div className="px-6 py-4 border-b border-gray-200">
+                    <div className={`px-6 py-4 border-b ${isDark ? 'border-gray-700' : 'border-gray-200'}`}>
                         <div className="flex justify-between items-center">
-                            <h2 className="text-xl font-semibold text-gray-900 flex items-center">
-                                {isIPv6 ? 'IPv6' : 'IPv4'} {listType === 'black_list' ? '黑名單' : '白名單'}
+                            <h2 className={`text-xl font-semibold flex items-center ${isDark ? 'text-gray-300' : 'text-gray-900'}`}>
+                                {isIPv6 ? 'IPv6' : 'IPv4'} {listType === 'black_list' ? 'Blacklist' : 'Whitelist'}
                                 {isLoading && (
                                     <div className="ml-3">
                                         <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
                                     </div>
                                 )}
                             </h2>
-                            <span className="text-sm text-gray-500">
-                                {flatData.length} 條規則
+                            <span className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                                {flatData.length} Rules
                             </span>
                         </div>
                     </div>
@@ -641,68 +632,68 @@ const AccessControl: React.FC = () => {
                     {/* 简化表格切换，移除奇怪的动画 */}
                     {flatData.length === 0 ? (
                         <div className="p-12 text-center">
-                            <FontAwesomeIcon icon={faInfoCircle} className="text-6xl text-gray-300 mb-4" />
-                            <h3 className="text-xl font-semibold text-gray-700 mb-2">
-                                {searchTerm ? '沒有找到匹配的結果' : '暫無資料'}
+                            <FontAwesomeIcon icon={faInfoCircle} className={`text-6xl mb-4 ${isDark ? 'text-gray-500' : 'text-gray-300'}`} />
+                            <h3 className={`text-xl font-semibold mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                                {searchTerm ? 'No matching results found' : 'No data yet'}
                             </h3>
-                            <p className="text-gray-500 mb-4">
-                                {searchTerm ? '請嘗試調整搜索條件' : '點擊上方按鈕添加第一條規則'}
+                            <p className={`mb-4 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                                {searchTerm ? 'Please try adjusting your search criteria' : 'Click the button above to add the first rule'}
                             </p>
                             {!searchTerm && (
-                                <button 
+                                <button
                                     className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                                     onClick={handleAddItemClick}
                                 >
                                     <FontAwesomeIcon icon={faPlus} className="mr-2" />
-                                    添加規則
+                                    Add Rule
                                 </button>
                             )}
                         </div>
                     ) : (
                         <div className="overflow-x-auto">
-                            <table className="min-w-full divide-y divide-gray-200">
-                                <thead className="bg-gray-50">
-                                    <tr>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            IP 地址
-                                        </th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            端口
-                                        </th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            操作
-                                        </th>
-                                    </tr>
+                            <table className={`min-w-full divide-y ${isDark ? 'divide-gray-700' : 'divide-gray-200'}`}>
+                                <thead className={isDark ? 'bg-gray-700' : 'bg-gray-50'}>
+                                <tr>
+                                    <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                                        IP Address
+                                    </th>
+                                    <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                                        Port
+                                    </th>
+                                    <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                                        Action
+                                    </th>
+                                </tr>
                                 </thead>
-                                <tbody className="bg-white divide-y divide-gray-200">
-                                    {flatData.map(({ ip, port }, index) => (
-                                        <tr 
-                                            key={`${ip}-${port}-${index}`}
-                                            className="hover:bg-gray-50 transition-colors"
-                                        >
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                                {ip}
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                <tbody className={`divide-y ${isDark ? 'bg-gray-600 divide-gray-700' : 'bg-white divide-gray-200'}`}>
+                                {flatData.map(({ ip, port }, index) => (
+                                    <tr
+                                        key={`${ip}-${port}-${index}`}
+                                        className={`transition-colors ${isDark ? 'hover:bg-gray-700' : 'hover:bg-gray-50'}`}
+                                    >
+                                        <td className={`px-6 py-4 whitespace-nowrap text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-900'}`}>
+                                            {ip}
+                                        </td>
+                                        <td className={`px-6 py-4 whitespace-nowrap text-sm ${isDark ? 'text-gray-300' : 'text-gray-900'}`}>
                                                 <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
-                                                    port === "0" || port === 0 
-                                                        ? 'bg-red-100 text-red-800' 
-                                                        : 'bg-blue-100 text-blue-800'
+                                                    port === "0" || port === 0
+                                                        ? 'bg-red-100 text-red-800'
+                                                        : (isDark ? 'bg-blue-900/50 text-blue-300' : 'bg-blue-100 text-blue-800')
                                                 }`}>
-                                                    {port === "0" || port === 0 ? "所有端口 (*)" : port}
+                                                    {port === "0" || port === 0 ? "All ports (*)" : port}
                                                 </span>
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                                <button
-                                                    className="text-red-600 hover:text-red-800 transition-colors"
-                                                    onClick={() => handleDeleteClick(ip, port)}
-                                                    title="刪除規則"
-                                                >
-                                                    <FontAwesomeIcon icon={faTrash} />
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    ))}
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                            <button
+                                                className="px-3 py-1 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 transition-colors flex items-center space-x-1"
+                                                onClick={() => handleDeleteClick(ip, port)}
+                                                title="Delete Rule"
+                                            >
+                                                <FontAwesomeIcon icon={faTrash} />
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))}
                                 </tbody>
                             </table>
                         </div>
@@ -712,26 +703,28 @@ const AccessControl: React.FC = () => {
                 {/* 添加規則模態框 */}
                 {isModalOpen && (
                     <Modal
-                        title={`添加 ${isIPv6 ? 'IPv6' : 'IPv4'} ${listType === 'black_list' ? '黑名單' : '白名單'}規則`}
+                        title={`Add ${isIPv6 ? 'IPv6' : 'IPv4'} ${listType === 'black_list' ? 'Blacklist' : 'Whitelist'} Rule`}
                         onClose={handleModalClose}
                         onSubmit={handleAddItemSubmit}
-                        submitLabel="添加"
+                        submitLabel="Add"
                         submitDisabled={isSubmitting}
                     >
                         <div className="space-y-4">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    IP 地址
+                                <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                                    IP Address
                                 </label>
                                 <input
                                     type="text"
                                     value={newIp}
                                     onChange={(e) => setNewIp(e.target.value)}
                                     placeholder={isIPv6 ? "2001:db8::" : "192.168.1.1"}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 ${
+                                        isDark ? 'bg-gray-700 border-gray-600 text-gray-300 placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400'
+                                    }`}
                                 />
                             </div>
-                            
+
                             <div>
                                 <div className="flex items-center space-x-2 mb-2">
                                     <input
@@ -741,15 +734,15 @@ const AccessControl: React.FC = () => {
                                         onChange={handleBlockAllPortsChange}
                                         className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                                     />
-                                    <label htmlFor="block-all-ports" className="text-sm font-medium text-gray-700">
-                                        阻擋所有端口
+                                    <label htmlFor="block-all-ports" className={`text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                                        Block All Ports
                                     </label>
                                 </div>
                             </div>
-                            
+
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    端口
+                                <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                                    Port
                                 </label>
                                 <input
                                     type="text"
@@ -757,30 +750,32 @@ const AccessControl: React.FC = () => {
                                     onChange={(e) => setNewPort(e.target.value)}
                                     placeholder="80"
                                     disabled={blockAllPorts}
-                                    className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 ${
-                                        blockAllPorts ? 'bg-gray-100 text-gray-500' : ''
+                                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 ${
+                                        blockAllPorts
+                                            ? (isDark ? 'bg-gray-600 text-gray-500 border-gray-600' : 'bg-gray-100 text-gray-500 border-gray-300')
+                                            : (isDark ? 'bg-gray-700 border-gray-600 text-gray-300' : 'bg-white border-gray-300 text-gray-900')
                                     }`}
                                 />
                                 {blockAllPorts && (
-                                    <p className="mt-1 text-sm text-gray-500">
-                                        將阻擋此 IP 的所有端口
+                                    <p className={`mt-1 text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                                        Block all ports for this IP
                                     </p>
                                 )}
                             </div>
-                            
-                            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+
+                            <div className={`border rounded-lg p-3 ${isDark ? 'bg-blue-900/30 border-blue-800' : 'bg-blue-50 border-blue-200'}`}>
                                 <div className="flex items-start">
-                                    <FontAwesomeIcon icon={faInfoCircle} className="text-blue-400 mt-0.5 mr-2" />
-                                    <div className="text-sm text-blue-700">
+                                    <FontAwesomeIcon icon={faInfoCircle} className={`mt-0.5 mr-2 ${isDark ? 'text-blue-400' : 'text-blue-400'}`} />
+                                    <div className={`text-sm ${isDark ? 'text-blue-300' : 'text-blue-700'}`}>
                                         <p className="font-medium mb-1">
-                                            將添加到 {listType === 'black_list' ? '黑名單' : '白名單'}
+                                            Add to {listType === 'black_list' ? 'Blacklist' : 'Whitelist'}
                                         </p>
                                         <p>
-                                            {listType === 'black_list' 
-                                                ? '黑名單中的 IP 將被拒絕存取'
-                                                : '只有白名單中的 IP 可以存取'
+                                            {listType === 'black_list'
+                                                ? 'IP addresses in the Blacklist will be denied access'
+                                                : 'Only IP addresses in the Whitelist can access'
                                             }
-                                            {blockAllPorts && '，所有端口都將受到影響'}
+                                            {blockAllPorts && ', all ports will be affected'}
                                         </p>
                                     </div>
                                 </div>
@@ -792,53 +787,53 @@ const AccessControl: React.FC = () => {
                 {/* 確認刪除模態框 */}
                 {isConfirmModalOpen && (
                     <Modal
-                        title="確認刪除"
+                        title="Confirm Deletion"
                         onClose={handleDeleteCancel}
                         onSubmit={handleDeleteConfirm}
-                        submitLabel="刪除"
+                        submitLabel="Delete"
                         submitDisabled={isSubmitting}
                     >
                         <div className="space-y-4">
                             <div className="flex items-center text-yellow-600 mb-4">
                                 <FontAwesomeIcon icon={faExclamationTriangle} className="mr-2" />
-                                <span className="font-medium">警告</span>
+                                <span className="font-medium">Warning</span>
                             </div>
-                            
-                            <p className="text-gray-700">
-                                您確定要刪除此規則嗎？
+
+                            <p className={isDark ? 'text-gray-300' : 'text-gray-700'}>
+                                Are you sure you want to delete this rule?
                             </p>
-                            
+
                             {itemToDelete && (
-                                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                                <div className={`border rounded-lg p-4 ${isDark ? 'bg-gray-700 border-gray-600' : 'bg-gray-50 border-gray-200'}`}>
                                     <div className="space-y-2">
                                         <div className="flex justify-between">
-                                            <span className="font-medium text-gray-700">IP 地址:</span>
-                                            <span className="text-gray-900">{itemToDelete.ip}</span>
+                                            <span className={`font-medium ${isDark ? 'text-gray-400' : 'text-gray-700'}`}>IP Address:</span>
+                                            <span className={isDark ? 'text-gray-300' : 'text-gray-900'}>{itemToDelete.ip}</span>
                                         </div>
                                         <div className="flex justify-between">
-                                            <span className="font-medium text-gray-700">端口:</span>
-                                            <span className="text-gray-900">
-                                                {itemToDelete.port === "0" || itemToDelete.port === 0 
-                                                    ? "所有端口 (*)" 
+                                            <span className={`font-medium ${isDark ? 'text-gray-400' : 'text-gray-700'}`}>Port:</span>
+                                            <span className={isDark ? 'text-gray-300' : 'text-gray-900'}>
+                                                {itemToDelete.port === "0" || itemToDelete.port === 0
+                                                    ? "All Ports (*)"
                                                     : itemToDelete.port
                                                 }
                                             </span>
                                         </div>
                                         <div className="flex justify-between">
-                                            <span className="font-medium text-gray-700">列表類型:</span>
-                                            <span className="text-gray-900">
-                                                {listType === 'black_list' ? '黑名單' : '白名單'}
+                                            <span className={`font-medium ${isDark ? 'text-gray-400' : 'text-gray-700'}`}>List Type:</span>
+                                            <span className={isDark ? 'text-gray-300' : 'text-gray-900'}>
+                                                {listType === 'black_list' ? 'Blacklist' : 'Whitelist'}
                                             </span>
                                         </div>
                                     </div>
                                 </div>
                             )}
-                            
-                            <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+
+                            <div className={`border rounded-lg p-3 ${isDark ? 'bg-red-900/30 border-red-800' : 'bg-red-50 border-red-200'}`}>
                                 <div className="flex items-start">
-                                    <FontAwesomeIcon icon={faExclamationTriangle} className="text-red-400 mt-0.5 mr-2" />
-                                    <p className="text-sm text-red-700">
-                                        此操作無法撤銷。刪除後，此規則將立即失效。
+                                    <FontAwesomeIcon icon={faExclamationTriangle} className={`mt-0.5 mr-2 ${isDark ? 'text-red-400' : 'text-red-400'}`} />
+                                    <p className={`text-sm ${isDark ? 'text-red-300' : 'text-red-700'}`}>
+                                        This action cannot be undone. Once deleted, this rule will take effect immediately.
                                     </p>
                                 </div>
                             </div>

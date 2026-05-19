@@ -1,4 +1,33 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans:wght@300;400;500;600&family=Noto+Sans+TC:wght@300;400;500;600&family=Noto+Sans+SC:wght@300;400;500;600&family=Noto+Sans+JP:wght@300;400;500;600&display=swap');
 @import "tailwindcss";
+
+svg.svg-inline--fa {
+    display: inline-block;
+    height: 1em;
+    overflow: visible;
+    vertical-align: -0.125em;
+}
+
+/* 確保圖標尺寸穩定 */
+.svg-inline--fa {
+    width: 1em;
+}
+
+/* 針對有固定寬高的圖標 */
+.svg-inline--fa.fa-fw {
+    width: 1.25em;
+}
+
+/* 防止尺寸跳動 */
+.svg-inline--fa {
+    transition: none !important;
+}
+
+/* 確保初始渲染就有正確尺寸 */
+.svg-inline--fa:not(:root) {
+    overflow: visible;
+    box-sizing: content-box;
+}
 
 ::-webkit-scrollbar {
     width: 8px;

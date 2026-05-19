@@ -1,37 +1,39 @@
-import React, { createContext, useState, useEffect, useRef } from 'react'
+import React, { createContext, useState, useEffect, useRef, useCallback } from 'react'
 import { websocketUrl, urls } from '../config'
 import { createWebSocket, fetchData } from '../utils/connectionUtils'
-import { Subject } from 'rxjs'
+import { BehaviorSubject } from 'rxjs'
+import { share } from 'rxjs/operators'
 
 interface WebSocketContextType {
     bootTime: number | null;
-    getAiAlertStream: () => any;
+    getDetectionAlertStream: () => any;
     getIPv4FlowStream: (direction: string, flow_direction: string, timeType: string) => any;
     getIPv6FlowStream: (direction: string, flow_direction: string, timeType: string) => any;
     getSystemHealthStream: () => any;
+    getLatestFlowData: (protocol: 'ipv4' | 'ipv6', direction: string, flow_direction: string, timeType: string) => any;
+    getLatestSystemHealth: () => any;
 }
 
 export const WebsocketContext = createContext<WebSocketContextType>({
     bootTime: null,
-    getAiAlertStream: () => null,
+    getDetectionAlertStream: () => null,
     getIPv4FlowStream: () => null,
     getIPv6FlowStream: () => null,
     getSystemHealthStream: () => null,
+    getLatestFlowData: () => null,
+    getLatestSystemHealth: () => null,
 })
 
-interface WebSocketProviderProps {
-    children: React.ReactNode
-}
-
-export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }) => {
+export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const wsRefs = useRef<{ [key: string]: WebSocket }>({})
     const [bootTime, setBootTime] = useState<number | null>(null)
     const retryDelays = useRef<{ [key: string]: number }>({})
-    const dataSubjects = useRef<{ [key: string]: Subject<any> }>({})
+    const dataSubjects = useRef<{ [key: string]: BehaviorSubject<any> }>({})
+    const latestDataCache = useRef<{ [key: string]: any }>({})
 
     const fetchBootTime = async () => {
         try {
-            const data = await fetchData(
+            await fetchData(
                 urls.bootTime,
                 (data) => setBootTime(Number(data.trim())),
                 (error) => {
@@ -43,14 +45,24 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
         }
     }
 
-    const getWebSocketStream = (url: string) => {
+    const getOrCreateSubject = (url: string) => {
         if (!dataSubjects.current[url]) {
-            dataSubjects.current[url] = new Subject()
+            dataSubjects.current[url] = new BehaviorSubject(null)
         }
-        return dataSubjects.current[url].asObservable()
+        return dataSubjects.current[url]
+    }
+
+    const getWebSocketStream = (url: string) => {
+        const subject = getOrCreateSubject(url)
+        return subject.asObservable().pipe(share())
     }
 
     const setupWebSocket = (url: string, retryCount: number = 0) => {
+        if (wsRefs.current[url] && wsRefs.current[url].readyState === WebSocket.OPEN) {
+            console.log(`WebSocket already connected: ${url}`)
+            return wsRefs.current[url]
+        }
+
         if (wsRefs.current[url]) {
             wsRefs.current[url].close()
         }
@@ -58,15 +70,15 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
         const ws = createWebSocket(
             url,
             (data) => {
-                if (dataSubjects.current[url]) {
-                    dataSubjects.current[url].next(data)
-                }
+                latestDataCache.current[url] = data
+                getOrCreateSubject(url).next(data)
             },
             (error) => console.error(`WebSocket error for ${url}:`, error)
         )
 
         ws.onclose = () => {
             console.warn(`WebSocket for ${url} closed. Retrying...`)
+            delete wsRefs.current[url]
             let delay = retryDelays.current[url] || 1000
             retryDelays.current[url] = Math.min(delay * 2, 30000)
             setTimeout(() => setupWebSocket(url, retryCount + 1), delay)
@@ -74,7 +86,6 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
 
         ws.onopen = () => {
             console.log(`WebSocket connected: ${url}`)
-            // 重置重試延遲
             retryDelays.current[url] = 1000
         }
 
@@ -82,27 +93,43 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
         return ws
     }
 
-    const getAiAlertStream = () => {
-        return getWebSocketStream(websocketUrl.aiAlert)
-    }
+    const getLatestFlowData = useCallback((
+        protocol: 'ipv4' | 'ipv6',
+        direction: string,
+        flow_direction: string,
+        timeType: string
+    ) => {
+        const urlFunc = protocol === 'ipv4' ? websocketUrl.ipv4FlowStats : websocketUrl.ipv6FlowStats
+        const url = urlFunc(direction, flow_direction, timeType)
+        return latestDataCache.current[url] || null
+    }, [])
 
-    const getIPv4FlowStream = (direction: string, flow_direction: string, timeType: string) => {
+    const getLatestSystemHealth = useCallback(() => {
+        return latestDataCache.current[websocketUrl.systemHealth] || null
+    }, [])
+
+    const getDetectionAlertStream = useCallback(() => {
+        return getWebSocketStream(websocketUrl.detectionAlert)
+    }, [])
+
+    const getIPv4FlowStream = useCallback((direction: string, flow_direction: string, timeType: string) => {
         const url = websocketUrl.ipv4FlowStats(direction, flow_direction, timeType)
         return getWebSocketStream(url)
-    }
+    }, [])
 
-    const getIPv6FlowStream = (direction: string, flow_direction: string, timeType: string) => {
+    const getIPv6FlowStream = useCallback((direction: string, flow_direction: string, timeType: string) => {
         const url = websocketUrl.ipv6FlowStats(direction, flow_direction, timeType)
         return getWebSocketStream(url)
-    }
+    }, [])
 
-    const getSystemHealthStream = () => {
+    const getSystemHealthStream = useCallback(() => {
         return getWebSocketStream(websocketUrl.systemHealth)
-    }
+    }, [])
 
-    const initializeWebSockets = () => {
-        setupWebSocket(websocketUrl.aiAlert)
-        
+    const initializeWebSockets = useCallback(() => {
+        console.log("Initializing all WebSocket connections...")
+
+        setupWebSocket(websocketUrl.detectionAlert)
         setupWebSocket(websocketUrl.systemHealth)
 
         const directions = ["ingress", "egress"]
@@ -117,41 +144,45 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
                 })
             })
         })
-    }
 
-    const closeWebSockets = () => {
+        console.log(`Total WebSocket connections: ${Object.keys(wsRefs.current).length}`)
+    }, [])
+
+    const closeWebSockets = useCallback(() => {
+        console.log("Closing all WebSocket connections...")
+
         Object.entries(wsRefs.current).forEach(([url, ws]) => {
             try {
                 ws.close()
-                delete wsRefs.current[url]
             } catch (error) {
                 console.error(`Failed to close WebSocket ${url}:`, error)
             }
         })
+        wsRefs.current = {}
 
         Object.values(dataSubjects.current).forEach(subject => {
             subject.complete()
         })
         dataSubjects.current = {}
-    }
+        latestDataCache.current = {}
+    }, [])
 
     useEffect(() => {
         fetchBootTime()
         initializeWebSockets()
-
         return () => closeWebSockets()
     }, [])
 
-    const contextValue: WebSocketContextType = {
-        bootTime,
-        getAiAlertStream,
-        getIPv4FlowStream,
-        getIPv6FlowStream,
-        getSystemHealthStream,
-    }
-
     return (
-        <WebsocketContext.Provider value={contextValue}>
+        <WebsocketContext.Provider value={{
+            bootTime,
+            getDetectionAlertStream,
+            getIPv4FlowStream,
+            getIPv6FlowStream,
+            getSystemHealthStream,
+            getLatestFlowData,
+            getLatestSystemHealth,
+        }}>
             {children}
         </WebsocketContext.Provider>
     )

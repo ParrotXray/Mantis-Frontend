@@ -23,17 +23,17 @@ const ThemeToggle: React.FC<ThemeToggleProps> = ({ isCollapsed = false }) => {
   const themeOptions = [
     {
       value: 'light' as const,
-      label: '淺色模式',
+      label: 'Light Mode',
       icon: faSun,
     },
     {
       value: 'dark' as const,
-      label: '深色模式',
+      label: 'Dark Mode',
       icon: faMoon,
     },
     {
       value: 'system' as const,
-      label: '跟隨系統',
+      label: 'System Default',
       icon: faDesktop,
     }
   ]
@@ -85,7 +85,7 @@ const ThemeToggle: React.FC<ThemeToggleProps> = ({ isCollapsed = false }) => {
             />
           </div>
           <div>
-            <div className="font-medium text-sm">主題模式</div>
+            <div className="font-medium text-sm">Theme Mode</div>
             <div className="text-xs text-gray-400">
               {currentThemeOption.label}
             </div>
