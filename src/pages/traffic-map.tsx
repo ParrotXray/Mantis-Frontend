@@ -469,7 +469,6 @@ const TrafficMap: React.FC = () => {
     const { getIPv4FlowStream, getIPv6FlowStream, bootTime } = useContext(WebsocketContext);
     const isDark = actualTheme === 'dark';
 
-    // 狀態管理
     const [isIPv6, setIsIPv6] = useState(false);
     const [direction, setDirection] = useState('ingress');
     const [trafficType, setTrafficType] = useState('source');
@@ -485,12 +484,10 @@ const TrafficMap: React.FC = () => {
     const latestDataRef = useRef<any>({});
     const isPausedRef = useRef<boolean>(isPaused);
 
-    // 同步 isPaused 到 ref
     useEffect(() => {
         isPausedRef.current = isPaused;
     }, [isPaused]);
 
-    // 解析流量資料 - 使用 useCallback 保持穩定引用
     const parseFlowData = useCallback((rawData: any): FlowDataRecord => {
         try {
             if (typeof rawData === 'object' && rawData !== null) {
@@ -503,7 +500,6 @@ const TrafficMap: React.FC = () => {
         }
     }, []);
 
-    // 處理 WebSocket 資料 - 使用 useCallback 保持穩定引用
     const processWebSocketData = useCallback((results: any[]) => {
         if (isPausedRef.current) return;
 
@@ -538,7 +534,6 @@ const TrafficMap: React.FC = () => {
         setError(null);
         setIsLoading(true);
 
-        // 定義所有需要訂閱的配置
         const DIRECTIONS = ['ingress', 'egress'] as const;
         const TRAFFIC_TYPES = ['source', 'destination'] as const;
         const TIME_RANGES = ['1min', '10min', '1hour'] as const;
@@ -550,7 +545,6 @@ const TrafficMap: React.FC = () => {
             protocol: 'ipv4' | 'ipv6';
         }> = [];
 
-        // 生成所有組合 (2 directions × 2 types × 3 ranges × 2 protocols = 24 configs)
         DIRECTIONS.forEach(dir => {
             TRAFFIC_TYPES.forEach(type => {
                 TIME_RANGES.forEach(range => {
@@ -562,7 +556,6 @@ const TrafficMap: React.FC = () => {
 
         console.log(`Total stream configs for Traffic Map: ${streamConfigs.length}`); // 24
 
-        // 創建所有串流的 Observable
         const streams = streamConfigs.map(config => {
             const { dir, type, range, protocol } = config;
             const getStream = protocol === "ipv4" ? getIPv4FlowStream : getIPv6FlowStream;
@@ -580,7 +573,6 @@ const TrafficMap: React.FC = () => {
             );
         });
 
-        // 訂閱合併的串流
         const subscription = combineLatest(streams).subscribe({
             next: (results) => {
                 processWebSocketData(results);
@@ -593,7 +585,6 @@ const TrafficMap: React.FC = () => {
             }
         });
 
-        // 清理函數：只取消訂閱，不關閉 WebSocket 連線
         return () => {
             console.log("Unsubscribing from Traffic Map WebSocket streams");
             subscription.unsubscribe();
@@ -602,7 +593,6 @@ const TrafficMap: React.FC = () => {
 
     useEffect(() => {
         if (!isPaused && Object.keys(latestDataRef.current).length > 0) {
-            // 恢復時立即更新一次
             setFlowData(latestDataRef.current);
             setLastUpdateTime(new Date());
         }
@@ -622,14 +612,12 @@ const TrafficMap: React.FC = () => {
         const seenLocations: Record<string, MapPoint> = {};
 
         Object.entries(data).forEach(([ipPort, details]: [string, FlowDetails]) => {
-            // 檢查地理位置資料是否有效
             if (!details.geo ||
                 details.geo.latitude === null ||
                 details.geo.longitude === null) {
                 return;
             }
 
-            // 提取 IP 地址（移除端口）
             let ip = ipPort;
             if (ipPort.includes('[') && ipPort.includes(']:')) {
                 // IPv6 格式: [ip]:port
@@ -642,7 +630,6 @@ const TrafficMap: React.FC = () => {
 
             const locationKey = `${details.geo.latitude},${details.geo.longitude}`;
 
-            // 合併相同位置的多個 IP
             if (seenLocations[locationKey]) {
                 const existingPoint = seenLocations[locationKey];
                 existingPoint.bytes += details.bytes || 0;
@@ -702,7 +689,7 @@ const TrafficMap: React.FC = () => {
         return (
             <>
                 <Head>
-                    <title>Traffic Map - NetGuardia</title>
+                    <title>Traffic Map - Mantis</title>
                 </Head>
                 <Layout>
                     <div className="flex items-center justify-center w-full h-full min-h-[calc(100vh-4rem)]">
@@ -716,8 +703,8 @@ const TrafficMap: React.FC = () => {
     return (
         <>
             <Head>
-                <title>Traffic Map - NetGuardia</title>
-                <meta name="description" content="NetGuardia Network Traffic Geographic Map" />
+                <title>Traffic Map - Mantis</title>
+                <meta name="description" content="Mantis Network Traffic Geographic Map" />
                 <link href='https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css' rel='stylesheet' />
             </Head>
 

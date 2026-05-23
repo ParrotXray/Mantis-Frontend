@@ -31,7 +31,6 @@ import {
 } from '../types/DashboardTypes'
 import { useTheme } from "../providers/ThemeProvider"
 
-// 更新频率選項 (毫秒)
 const UPDATE_INTERVALS = [
     { label: "immediate", value: 0 },
     { label: "0.5s", value: 500 },
@@ -42,7 +41,6 @@ const UPDATE_INTERVALS = [
     { label: "10s", value: 10000 }
 ];
 
-// 智能格式化位元組大小（返回数值和单位）
 const formatBytesWithUnit = (bytes: number): {value: number, unit: string} => {
     const units = ["B", "KB", "MB", "GB", "TB"]
     if (bytes < 1024) return {value: bytes, unit: "B"}
@@ -58,13 +56,11 @@ const formatBytesWithUnit = (bytes: number): {value: number, unit: string} => {
     return {value: parseFloat(value.toFixed(2)), unit: units[i]}
 }
 
-// 格式化位元組大小（用于显示）
 const formatBytes = (bytes: number): string => {
     const {value, unit} = formatBytesWithUnit(bytes)
     return `${value} ${unit}`
 }
 
-// 获取最适合的图表单位（更保守的切换策略）
 const getBestChartUnit = (dataArray: TrendDataPoint[]): {unit: string, divisor: number} => {
     if (dataArray.length === 0) return {unit: "B", divisor: 1}
 
@@ -81,7 +77,6 @@ const getBestChartUnit = (dataArray: TrendDataPoint[]): {unit: string, divisor: 
     }
 }
 
-// 協議號對應名稱
 const getProtocolName = (protocol: number): string => {
     switch (protocol) {
         case 1: return 'ICMP'
@@ -95,7 +90,6 @@ const getProtocolName = (protocol: number): string => {
     }
 }
 
-// 解析流量資料
 const parseFlowData = (rawData: any): any => {
     try {
         if (typeof rawData === 'object' && rawData !== null) {
@@ -121,7 +115,6 @@ const UpdateControl: React.FC<UpdateControlProps> = ({
 
     return (
         <div className="flex items-center space-x-4">
-            {/* 更新頻率控制 */}
             <div className="flex items-center space-x-2">
                 <FontAwesomeIcon icon={faClock} className={isDark ? 'text-gray-400' : 'text-gray-500'} />
                 <label className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Update interval:</label>
@@ -138,7 +131,6 @@ const UpdateControl: React.FC<UpdateControlProps> = ({
                 </select>
             </div>
 
-            {/* 暫停/恢復按鈕 */}
             <button
                 onClick={() => setIsPaused(!isPaused)}
                 className={`px-3 py-1 rounded-md text-sm font-medium transition-colors flex items-center space-x-1 ${
@@ -151,7 +143,6 @@ const UpdateControl: React.FC<UpdateControlProps> = ({
                 <span>{isPaused ? "resume" : "pause"}</span>
             </button>
 
-            {/* 連接狀態和最後更新時間 */}
             <div className="flex items-center space-x-4">
                 {lastUpdateTime && (
                     <div className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
@@ -825,7 +816,6 @@ const Dashboard: React.FC = () => {
         }
     }, [getIPv4FlowStream, getIPv6FlowStream, apiTimeRange, updateChartData])
 
-    // Subscribe to detection alerts for attack type / protocol breakdown charts
     useEffect(() => {
         if (!getDetectionAlertStream) return
 
@@ -895,7 +885,7 @@ const Dashboard: React.FC = () => {
     if (isLoading) {
         return (
             <>
-                <Head><title>Dashboard - NetGuardia</title></Head>
+                <Head><title>Dashboard - Mantis</title></Head>
                 <Layout>
                     <div className="flex items-center justify-center w-full h-full min-h-[calc(100vh-4rem)]">
                         <div className="flex flex-col items-center space-y-4">
@@ -910,7 +900,7 @@ const Dashboard: React.FC = () => {
     if (connectionStatus === 'error') {
         return (
             <>
-                <Head><title>Dashboard - NetGuardia</title></Head>
+                <Head><title>Dashboard - Mantis</title></Head>
                 <Layout>
                     <div className="flex items-center justify-center min-h-[60vh]">
                         <div className="text-center">
@@ -935,12 +925,11 @@ const Dashboard: React.FC = () => {
     return (
         <>
             <Head>
-                <title>Dashboard - NetGuardia</title>
-                <meta name="description" content="NetGuardia Network Traffic Monitoring Dashboard" />
+                <title>Dashboard - Mantis</title>
+                <meta name="description" content="Mantis Network Traffic Monitoring Dashboard" />
             </Head>
 
             <Layout>
-                {/* 頁面標題 */}
                 <motion.div
                     initial={{ opacity: 0, y: -20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -957,7 +946,6 @@ const Dashboard: React.FC = () => {
                         </div>
 
                         <div className="flex items-center space-x-6">
-                            {/* API 時間範圍控制 */}
                             <div className="flex items-center space-x-2">
                                 <FontAwesomeIcon icon={faClock} className={isDark ? 'text-gray-400' : 'text-gray-500'} />
                                 <label className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Time Range:</label>
@@ -984,7 +972,6 @@ const Dashboard: React.FC = () => {
                     </div>
                 </motion.div>
 
-                {/* 統計卡片 */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                     {statsCards.map((card, index) => (
                         <motion.div
@@ -1011,7 +998,6 @@ const Dashboard: React.FC = () => {
                     ))}
                 </div>
 
-                {/* 圖表區域 */}
                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
                     <motion.div
                         initial={{ opacity: 0, x: -20 }}
@@ -1040,7 +1026,6 @@ const Dashboard: React.FC = () => {
                     </motion.div>
                 </div>
 
-                {/* 攻擊統計圓餅圖 */}
                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 mt-8">
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}

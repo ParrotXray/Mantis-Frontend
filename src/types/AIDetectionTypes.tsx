@@ -1,4 +1,3 @@
-// ai detection types
 export interface AlertLog {
     timestamp: number
     flow_key: string

@@ -34,12 +34,10 @@ import {
     StatsOverviewProps
 } from '../types/StatisticsTypes';
 
-// 常量定義
 const TRAFFIC_TYPES = ["source", "destination"];
 const DIRECTIONS = ["ingress", "egress"];
 const TIME_RANGES = ["1min", "10min", "1hour"];
 
-// 更新频率选項 (毫秒)
 const UPDATE_INTERVALS = [
     { label: "immediate", value: 0 },
     { label: "1s", value: 1000 },
@@ -48,7 +46,6 @@ const UPDATE_INTERVALS = [
     { label: "10s", value: 10000 }
 ];
 
-// 格式化時間戳
 const formatTimestamp = (timestamp: number | string, bootTime: number | null): string => {
     if (!timestamp || !bootTime) return "Loading...";
     const date = new Date((bootTime + Number(timestamp)) / 1e6);
@@ -56,7 +53,6 @@ const formatTimestamp = (timestamp: number | string, bootTime: number | null): s
     return date.toISOString().replace("T", " ").split(".")[0];
 };
 
-// 解析流量資料
 const parseFlowData = (rawData: any): any => {
     try {
         if (typeof rawData === 'object' && rawData !== null) {
@@ -69,7 +65,6 @@ const parseFlowData = (rawData: any): any => {
     }
 };
 
-// 格式化位元組大小
 const formatBytes = (bytes: number): string => {
     const units = ["B", "KB", "MB", "GB", "TB"];
     if (bytes < 1024) return `${bytes} B`;
@@ -85,7 +80,6 @@ const formatBytes = (bytes: number): string => {
     return `${value.toFixed(2)} ${units[i]}`;
 };
 
-// IP 排序輔助函數
 const getIPSortValue = (ip: string, isIPv6: boolean): any => {
     if (isIPv6) {
         const cleanIPv6 = ip.replace(/\[|\]|:[0-9]+/g, "");
@@ -174,7 +168,6 @@ const UpdateControl: React.FC<UpdateControlProps> = ({
 
     return (
         <div className={`flex flex-wrap items-center gap-4 p-3 rounded-lg ${isDark ? 'bg-gray-700' : 'bg-gray-50'}`}>
-            {/* 更新频率 */}
             <div className="flex items-center space-x-2">
                 <FontAwesomeIcon icon={faClock} className={isDark ? 'text-gray-400' : 'text-gray-500'} />
                 <span className={`text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>Update Interval:</span>
@@ -193,7 +186,6 @@ const UpdateControl: React.FC<UpdateControlProps> = ({
                 </select>
             </div>
 
-            {/* 暂停/恢复按钮 */}
             <button
                 onClick={() => setIsPaused(!isPaused)}
                 className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
@@ -206,7 +198,6 @@ const UpdateControl: React.FC<UpdateControlProps> = ({
                 {isPaused ? "resume" : "pause"}
             </button>
 
-            {/* 更新資料按钮 */}
             <button
                 onClick={() => window.location.reload()}
                 className="px-3 py-1 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 transition-colors flex items-center space-x-1"
@@ -215,7 +206,6 @@ const UpdateControl: React.FC<UpdateControlProps> = ({
                 <span>Update</span>
             </button>
 
-            {/* 最后更新时间 */}
             {lastUpdateTime && (
                 <div className={`text-xs ml-auto ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
                     Last Update: {lastUpdateTime.toLocaleTimeString()}
@@ -244,7 +234,6 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
             animate={{ opacity: 1, y: 0 }}
             className={`rounded-lg shadow-md p-6 mb-6 space-y-4 ${isDark ? 'bg-gray-600' : 'bg-white'}`}
         >
-            {/* 更新控制 */}
             <UpdateControl
                 updateInterval={updateInterval}
                 setUpdateInterval={setUpdateInterval}
@@ -254,7 +243,6 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
             />
 
             <div className="flex flex-wrap items-center gap-4">
-                {/* 搜索框 */}
                 <div className="flex-1 min-w-64">
                     <div className="relative">
                         <FontAwesomeIcon
@@ -273,7 +261,6 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
                     </div>
                 </div>
 
-                {/* IP Version Selection */}
                 <div className="flex items-center space-x-2">
                     <span className={`text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>IP Version:</span>
                     <div className="flex space-x-1">
@@ -292,7 +279,6 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
                     </div>
                 </div>
 
-                {/* 流量方向 */}
                 <div className="flex items-center space-x-2">
                     <span className={`text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>Direction:</span>
                     <div className="flex space-x-1">
@@ -311,7 +297,6 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
                     </div>
                 </div>
 
-                {/* 流量類型 */}
                 <div className="flex items-center space-x-2">
                     <span className={`text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>Traffic Type:</span>
                     <div className="flex space-x-1">
@@ -330,7 +315,6 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
                     </div>
                 </div>
 
-                {/* 時間範圍 */}
                 <div className="flex items-center space-x-2">
                     <span className={`text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>Time:</span>
                     <div className="flex space-x-1">
@@ -390,10 +374,8 @@ const DataTable: React.FC<DataTableProps> = ({ data, sortConfig, handleSort, boo
             animate={{ opacity: 1, y: 0 }}
             className={`rounded-lg shadow-md overflow-hidden ${isDark ? 'bg-gray-600' : 'bg-white'}`}
         >
-            {/* 表格容器 - 设置最大高度和滚动 */}
             <div className="max-h-[600px] overflow-y-auto">
                 <table className={`min-w-full divide-y ${isDark ? 'divide-gray-700' : 'divide-gray-200'}`}>
-                    {/* 固定表头 */}
                     <thead className={`sticky top-0 z-10 ${isDark ? 'bg-gray-700' : 'bg-gray-50'}`}>
                     <tr>
                         {columns.map((column) => (
@@ -436,7 +418,6 @@ const DataTable: React.FC<DataTableProps> = ({ data, sortConfig, handleSort, boo
                 </table>
             </div>
 
-            {/* 資料条数显示 */}
             {data.length > 0 && (
                 <div className={`px-4 py-2 border-t ${isDark ? 'bg-gray-700 border-gray-600' : 'bg-gray-50 border-gray-200'}`}>
                     <div className={`flex justify-between items-center text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
@@ -482,7 +463,6 @@ const StatsOverview: React.FC<StatsOverviewProps> = ({ data, isIPv6, direction, 
     const totalPackets = data.reduce((sum, item) => sum + item.packets, 0);
     const uniqueIPs = new Set(
         data.map(item => {
-            // 移除端口部分，只保留IP
             if (item.ip.includes('[') && item.ip.includes(']:')) {
                 // IPv6: [ip]:port -> ip
                 return item.ip.split(']:')[0] + ']';
@@ -551,13 +531,11 @@ const StatsOverview: React.FC<StatsOverviewProps> = ({ data, isIPv6, direction, 
     );
 };
 
-// 主要統計組件
 const Statistics: React.FC = () => {
     const { bootTime, getIPv4FlowStream, getIPv6FlowStream } = useContext(WebsocketContext);
     const { actualTheme } = useTheme();
     const isDark = actualTheme === 'dark';
 
-    // 狀態管理
     const [isIPv6, setIsIPv6] = useState(false);
     const [trafficType, setTrafficType] = useState("source");
     const [direction, setDirection] = useState("ingress");
@@ -568,19 +546,16 @@ const Statistics: React.FC = () => {
     const [flowData, setFlowData] = useState<any>({});
     const [error, setError] = useState<string | null>(null);
 
-    // 更新控制狀態
     const [updateInterval, setUpdateInterval] = useState(3000);
     const [isPaused, setIsPaused] = useState(false);
     const [lastUpdateTime, setLastUpdateTime] = useState<Date | null>(null);
     const [isUpdating, setIsUpdating] = useState(false);
 
-    // 用於存儲最新資料和控制更新的 refs
     const latestDataRef = useRef<any>({});
     const lastUpdateRef = useRef<number>(0);
     const updateIntervalRef = useRef<number>(updateInterval);
     const isPausedRef = useRef<boolean>(isPaused);
 
-    // 同步 refs 與 state
     useEffect(() => {
         updateIntervalRef.current = updateInterval;
     }, [updateInterval]);
@@ -589,7 +564,6 @@ const Statistics: React.FC = () => {
         isPausedRef.current = isPaused;
     }, [isPaused]);
 
-    // 解析流量資料 - 使用 useCallback 保持穩定引用
     const parseFlowData = useCallback((rawData: any): any => {
         try {
             if (typeof rawData === 'object' && rawData !== null) {
@@ -602,7 +576,6 @@ const Statistics: React.FC = () => {
         }
     }, []);
 
-    // 處理 WebSocket 資料 - 使用 useCallback 保持穩定引用
     const processWebSocketData = useCallback((results: any[]) => {
         const validResults = results.filter(result => result !== null);
         if (validResults.length === 0) return;
@@ -620,7 +593,6 @@ const Statistics: React.FC = () => {
         if (Object.keys(newData).length > 0) {
             latestDataRef.current = newData;
 
-            // 根據當前狀態決定是否立即更新 UI
             const now = Date.now();
             const currentUpdateInterval = updateIntervalRef.current;
             const currentIsPaused = isPausedRef.current;
@@ -649,7 +621,6 @@ const Statistics: React.FC = () => {
         setError(null);
         setIsLoading(true);
 
-        // 使用循環動態生成所有配置
         const DIRECTIONS = ['ingress', 'egress'] as const;
         const TRAFFIC_TYPES = ['source', 'destination'] as const;
         const TIME_RANGES = ['1min', '10min', '1hour'] as const;
@@ -661,7 +632,6 @@ const Statistics: React.FC = () => {
             protocol: 'ipv4' | 'ipv6';
         }> = [];
 
-        // 生成所有組合 (2 directions × 2 types × 3 ranges × 2 protocols = 24 configs)
         DIRECTIONS.forEach(dir => {
             TRAFFIC_TYPES.forEach(type => {
                 TIME_RANGES.forEach(range => {
@@ -673,7 +643,6 @@ const Statistics: React.FC = () => {
 
         console.log(`Total stream configs: ${streamConfigs.length}`); // 應該是 24
 
-        // 創建所有資料流的 Observable
         const streams = streamConfigs.map(config => {
             const { dir, type, range, protocol } = config;
             const getStream = protocol === "ipv4" ? getIPv4FlowStream : getIPv6FlowStream;
@@ -691,7 +660,6 @@ const Statistics: React.FC = () => {
             );
         });
 
-        // 訂閱合併的資料流
         const subscription = combineLatest(streams).subscribe({
             next: (results) => {
                 processWebSocketData(results);
@@ -713,7 +681,6 @@ const Statistics: React.FC = () => {
 
     useEffect(() => {
         if (!isPaused && Object.keys(latestDataRef.current).length > 0) {
-            // 恢復時立即更新一次
             setFlowData(latestDataRef.current);
             setLastUpdateTime(new Date());
             lastUpdateRef.current = Date.now();
@@ -721,7 +688,6 @@ const Statistics: React.FC = () => {
     }, [isPaused]);
 
     useEffect(() => {
-        // 即時模式或暫停時不需要定時器
         if (updateInterval === 0 || isPaused) {
             return;
         }
@@ -742,7 +708,6 @@ const Statistics: React.FC = () => {
         return () => clearInterval(intervalId);
     }, [updateInterval, isPaused]);
 
-    // 提取當前選擇的資料
     const parseCurrentData = useCallback(() => {
         const key = `${direction}_${trafficType}_${timeRange}`;
         const protocol = isIPv6 ? "ipv6" : "ipv4";
@@ -759,7 +724,6 @@ const Statistics: React.FC = () => {
         }));
     }, [flowData, direction, trafficType, timeRange, isIPv6]);
 
-    // 排序和過濾資料
     const sortedData = useMemo(() => {
         const data = parseCurrentData();
         if (!data) return null;
@@ -773,7 +737,6 @@ const Statistics: React.FC = () => {
             return data;
         }
 
-        // 排序
         const sortedData = [...data].sort((a, b) => {
             let valA = a[sortConfig.key as keyof typeof a];
             let valB = b[sortConfig.key as keyof typeof b];
@@ -792,7 +755,6 @@ const Statistics: React.FC = () => {
             return 0;
         });
 
-        // 過濾
         if (searchTerm.trim()) {
             return sortedData.filter((row) =>
                 row.ip.toLowerCase().includes(searchTerm.trim().toLowerCase())
@@ -802,14 +764,11 @@ const Statistics: React.FC = () => {
         return sortedData;
     }, [parseCurrentData, sortConfig, searchTerm, isIPv6]);
 
-    // 檢查是否由於搜索而過濾
     const isSearchFiltered = useMemo(() => {
         return searchTerm.trim() !== "" && parseCurrentData() !== null;
     }, [searchTerm, parseCurrentData]);
 
-    // ============ 事件處理函數 ============
 
-    // 處理排序
     const handleSort = useCallback((key: string) => {
         setSortConfig(prevConfig => {
             const direction = prevConfig.key === key && prevConfig.direction === "asc" ? "desc" : "asc";
@@ -817,7 +776,6 @@ const Statistics: React.FC = () => {
         });
     }, []);
 
-    // 搜索處理
     const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
         setSearchTerm(e.target.value);
     }, []);
@@ -826,7 +784,7 @@ const Statistics: React.FC = () => {
         return (
             <>
                 <Head>
-                    <title>Statistics - NetGuardia</title>
+                    <title>Statistics - Mantis</title>
                 </Head>
                 <Layout>
                     <div className="flex items-center justify-center w-full h-full min-h-[calc(100vh-4rem)]">
@@ -843,7 +801,7 @@ const Statistics: React.FC = () => {
         return (
             <>
                 <Head>
-                    <title>Statistics - NetGuardia</title>
+                    <title>Statistics - Mantis</title>
                 </Head>
                 <Layout>
                     <div className="flex items-center justify-center min-h-[60vh]">
@@ -867,12 +825,11 @@ const Statistics: React.FC = () => {
     return (
         <>
             <Head>
-                <title>Statistics - NetGuardia</title>
-                <meta name="description" content="NetGuardia Network Traffic Statistics" />
+                <title>Statistics - Mantis</title>
+                <meta name="description" content="Mantis Network Traffic Statistics" />
             </Head>
 
             <Layout>
-                {/* 頁面標題 */}
                 <motion.div
                     initial={{ opacity: 0, y: -20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -890,7 +847,6 @@ const Statistics: React.FC = () => {
                     </div>
                 </motion.div>
 
-                {/* 控制面板 */}
                 <ControlPanel
                     isIPv6={isIPv6}
                     setIsIPv6={setIsIPv6}
@@ -909,7 +865,6 @@ const Statistics: React.FC = () => {
                     lastUpdateTime={lastUpdateTime}
                 />
 
-                {/* 統計概覽 */}
                 {sortedData && sortedData.length > 0 && (
                     <StatsOverview
                         data={sortedData}
@@ -919,7 +874,6 @@ const Statistics: React.FC = () => {
                     />
                 )}
 
-                {/* 資料表格 */}
                 <div className="mb-8">
                     {sortedData === null ? (
                         <NoDataState isSearchFiltered={false} />

@@ -1,4 +1,3 @@
-// src/components/Layout.tsx
 import React from 'react'
 import Head from 'next/head'
 import { siteUrl } from '../config'
@@ -12,8 +11,8 @@ interface LayoutProps {
 
 const Layout: React.FC<LayoutProps> = ({ 
   children, 
-  title = "NetGuardia", 
-  description = "NetGuardia" 
+  title = "Mantis",
+  description = "Mantis"
 }) => {
   const imageUrl = `${siteUrl}/logo.png`
 
@@ -25,7 +24,6 @@ const Layout: React.FC<LayoutProps> = ({
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" href="/favicon.ico" />
         
-        {/* Open Graph Meta Tags */}
         <meta property="og:type" content="website"/>
         <meta property="og:title" content={title}/>
         <meta property="og:description" content={description}/>
@@ -33,16 +31,14 @@ const Layout: React.FC<LayoutProps> = ({
         <meta property="og:image" content={imageUrl}/>
         <meta property="og:image:width" content="200"/>
         <meta property="og:image:height" content="200"/>
-        <meta property="og:image:alt" content="NetGuardia"/>
+        <meta property="og:image:alt" content="Mantis"/>
         
-        {/* Twitter Card Meta Tags */}
         <meta name="twitter:card" content="summary_large_image"/>
         <meta name="twitter:title" content={title}/>
         <meta name="twitter:description" content={description}/>
         <meta name="twitter:image" content={imageUrl}/>
       </Head>
 
-      {/* Wrap Sidebar around the content */}
       <Sidebar>
         {children}
       </Sidebar>

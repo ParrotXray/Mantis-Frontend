@@ -1,4 +1,3 @@
-// index types
 export interface SystemHealthData {
   timestamp: number
   boot_time?: number

@@ -1,4 +1,3 @@
-// src/components/Sidebar.tsx
 import React, { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
@@ -68,7 +67,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ children }) => {
     setIsCollapsed(!isCollapsed)
   }
 
-  // 檢查當前路徑是否為活動狀態
   const isActive = (href: string) => {
     if (href === '/') {
       return router.pathname === '/'
@@ -86,14 +84,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ children }) => {
     collapsed: { x: -10, opacity: 0 }
   }
 
-  // 深色模式樣式
   const isDark = actualTheme === 'dark'
 
   return (
     <div className={`flex min-h-screen transition-colors duration-300 ${
       isDark ? 'bg-gray-900' : 'bg-gray-100'
     }`}>
-      {/* Sidebar */}
       <motion.aside
         className={`fixed top-0 left-0 h-screen flex flex-col shadow-xl z-50 overflow-hidden transition-colors duration-300 ${
           isDark 
@@ -105,7 +101,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ children }) => {
         variants={sidebarVariants}
         transition={{ duration: 0.3, ease: "easeInOut" }}
       >
-        {/* Sidebar Header */}
         <div className={`flex items-center justify-between p-4 min-h-[70px] border-b transition-colors duration-300 ${
           isDark ? 'border-gray-700' : 'border-white/10'
         }`}>
@@ -118,7 +113,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ children }) => {
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.3 }}
               >
-                NetGuardia
+                Mantis
               </motion.h1>
             </Link>
           )}
@@ -134,7 +129,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ children }) => {
           </button>
         </div>
         
-        {/* Navigation Menu */}
         <nav className="flex-1 py-4 flex flex-col gap-2">
           {menuItems.map((item) => (
             <Link 
@@ -173,7 +167,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ children }) => {
           ))}
         </nav>
 
-        {/* Theme Toggle - 放在 Sidebar 底部 */}
         <div className={`mt-auto border-t transition-colors duration-300 ${
           isDark ? 'border-gray-700' : 'border-white/10'
         }`}>
@@ -181,7 +174,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ children }) => {
         </div>
       </motion.aside>
       
-      {/* Main Content */}
       <div className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'ml-20' : 'ml-60'}`}>
         <section className="flex-1 p-8">
           <div className="max-w-full mx-auto">

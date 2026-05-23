@@ -31,7 +31,6 @@ import {
     StatsCardProps
 } from '../types/AccessControlTypes'
 
-// 通知組件
 const Notification: React.FC<NotificationProps> = ({ message, type, onClose }) => {
     useEffect(() => {
         const timer = setTimeout(() => {
@@ -68,7 +67,6 @@ const Notification: React.FC<NotificationProps> = ({ message, type, onClose }) =
     )
 }
 
-// 模態框組件
 const Modal: React.FC<ModalProps> = ({
                                          title,
                                          children,
@@ -141,7 +139,6 @@ const Modal: React.FC<ModalProps> = ({
     )
 }
 
-// 切換按鈕組件
 const ToggleButton: React.FC<ToggleButtonProps> = ({ isActive, onClick, children, className = "" }) => {
     const { actualTheme } = useTheme()
     const isDark = actualTheme === 'dark'
@@ -183,7 +180,6 @@ const StatsCard: React.FC<StatsCardProps> = ({ title, value, icon, color }) => {
     )
 }
 
-// 主要組件
 const AccessControl: React.FC = () => {
     const {
         currentData,
@@ -198,7 +194,6 @@ const AccessControl: React.FC = () => {
     const { actualTheme } = useTheme()
     const isDark = actualTheme === 'dark'
 
-    // 狀態管理
     const [isIPv6, setIsIPv6] = useState(false)
     const [listType, setListType] = useState<'black_list' | 'white_list'>('black_list')
     const [searchTerm, setSearchTerm] = useState('')
@@ -211,7 +206,6 @@ const AccessControl: React.FC = () => {
     const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' | 'warning' | 'info' } | null>(null)
     const [isSubmitting, setIsSubmitting] = useState(false)
 
-    // 切换IP版本和列表类型 - 无跳动的平滑切换
     const handleIPVersionChange = useCallback((newIsIPv6: boolean) => {
         if (newIsIPv6 !== isIPv6) {
             setIsIPv6(newIsIPv6)
@@ -226,7 +220,6 @@ const AccessControl: React.FC = () => {
         }
     }, [isIPv6, listType, switchTo])
 
-    // 其他回调函数
     const handleAddItemClick = useCallback(() => {
         setIsModalOpen(true)
         setNewIp('')
@@ -241,7 +234,6 @@ const AccessControl: React.FC = () => {
         setBlockAllPorts(false)
     }, [])
 
-    // 通知功能
     const showNotification = useCallback((message: string, type: 'success' | 'error' | 'warning' | 'info' = 'success') => {
         setNotification({ message, type })
     }, [])
@@ -250,7 +242,6 @@ const AccessControl: React.FC = () => {
         setNotification(null)
     }, [])
 
-    // 手动更新資料
     const handleRefresh = useCallback(async () => {
         try {
             await refreshData(isIPv6, listType)
@@ -260,12 +251,10 @@ const AccessControl: React.FC = () => {
         }
     }, [isIPv6, listType, refreshData, showNotification])
 
-    // 初始化資料 - 组件挂载时加载默认資料
     useEffect(() => {
         switchTo(isIPv6, listType)
-    }, []) // 只在组件挂载时执行一次
+    }, [])
 
-    // 搜索过滤 - 基于currentData而不是重新获取
     useEffect(() => {
         if (!searchTerm.trim()) {
             setFilteredData(currentData)
@@ -279,7 +268,6 @@ const AccessControl: React.FC = () => {
         setFilteredData(filtered)
     }, [searchTerm, currentData, setFilteredData])
 
-    // 展平資料，便於表格顯示
     const flatData = useMemo(() =>
             filteredData.flatMap(({ ip, ports }) =>
                 ports.map((port) => ({ ip, port }))
@@ -287,7 +275,6 @@ const AccessControl: React.FC = () => {
         [filteredData]
     )
 
-    // 統計資料
     const stats = useMemo(() => {
         const uniqueIPs = new Set(filteredData.map(item => item.ip)).size
         const totalEntries = flatData.length
@@ -301,14 +288,11 @@ const AccessControl: React.FC = () => {
         }
     }, [filteredData, flatData])
 
-    // IP 驗證
     const validateIP = useCallback((ip: string, isIPv6: boolean): boolean => {
         if (isIPv6) {
-            // 簡單的 IPv6 驗證
             const ipv6Regex = /^([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$|^::1$|^::$/
             return ipv6Regex.test(ip) || ip.includes('::')
         } else {
-            // IPv4 驗證
             const ipv4Regex = /^(\d{1,3}\.){3}\d{1,3}$/
             if (!ipv4Regex.test(ip)) return false
 
@@ -320,14 +304,12 @@ const AccessControl: React.FC = () => {
         }
     }, [])
 
-    // 端口驗證
     const validatePort = useCallback((port: string): boolean => {
         if (!port.trim()) return false
         const portNum = parseInt(port, 10)
         return !isNaN(portNum) && portNum >= 1 && portNum <= 65535
     }, [])
 
-    // 添加項目
     const handleAddItemSubmit = useCallback(async () => {
         if (!newIp.trim()) {
             showNotification('Please enter a valid IP address', 'error')
@@ -365,7 +347,6 @@ const AccessControl: React.FC = () => {
                         setNewIp('')
                         setNewPort('')
                         setBlockAllPorts(false)
-                        // 更新当前資料
                         refreshData(isIPv6, listType)
                         resolve()
                     },
@@ -382,7 +363,6 @@ const AccessControl: React.FC = () => {
         }
     }, [newIp, newPort, blockAllPorts, isIPv6, listType, refreshData, showNotification, validateIP, validatePort])
 
-    // 刪除處理
     const handleDeleteClick = useCallback((ip: string, port: string | number) => {
         setItemToDelete({ ip, port })
         setIsConfirmModalOpen(true)
@@ -414,7 +394,6 @@ const AccessControl: React.FC = () => {
                             `Successfully deleted: ${formattedIp}:${port === "0" || port === 0 ? "*" : port}`,
                             'success'
                         )
-                        // 更新当前資料
                         refreshData(isIPv6, listType)
                         setIsConfirmModalOpen(false)
                         setItemToDelete(null)
@@ -435,12 +414,10 @@ const AccessControl: React.FC = () => {
         }
     }, [itemToDelete, isIPv6, listType, refreshData, showNotification])
 
-    // 搜索處理
     const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
         setSearchTerm(e.target.value)
     }, [])
 
-    // 全部端口勾選處理
     const handleBlockAllPortsChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
         setBlockAllPorts(e.target.checked)
         if (e.target.checked) {
@@ -448,18 +425,16 @@ const AccessControl: React.FC = () => {
         }
     }, [])
 
-    // 获取缓存状态用于调试
     const cacheStatus = getCacheStatus()
 
     return (
         <>
             <Head>
-                <title>Access Control - NetGuardia</title>
-                <meta name="description" content="NetGuardia Access Control Management - IP Whitelist and Blacklist" />
+                <title>Access Control - Mantis</title>
+                <meta name="description" content="Mantis Access Control Management - IP Whitelist and Blacklist" />
             </Head>
 
             <Layout>
-                {/* 通知 */}
                 <AnimatePresence>
                     {notification && (
                         <Notification
@@ -470,7 +445,6 @@ const AccessControl: React.FC = () => {
                     )}
                 </AnimatePresence>
 
-                {/* 頁面標題 */}
                 <motion.div
                     initial={{ opacity: 0, y: -20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -489,7 +463,6 @@ const AccessControl: React.FC = () => {
                     </div>
                 </motion.div>
 
-                {/* 統計卡片 */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                     <StatsCard
                         title="Unique IPs"
@@ -517,14 +490,12 @@ const AccessControl: React.FC = () => {
                     />
                 </div>
 
-                {/* 控制面板 */}
                 <motion.div
                     initial={{ opacity: 0, y: -20 }}
                     animate={{ opacity: 1, y: 0 }}
                     className={`rounded-lg shadow-md p-6 mb-6 ${isDark ? 'bg-gray-600' : 'bg-white'}`}
                 >
                     <div className="flex flex-wrap items-center gap-4">
-                        {/* 搜索框 */}
                         <div className="flex-1 min-w-64">
                             <div className="relative">
                                 <FontAwesomeIcon
@@ -543,7 +514,6 @@ const AccessControl: React.FC = () => {
                             </div>
                         </div>
 
-                        {/* IP 版本選擇 */}
                         <div className="flex items-center space-x-2">
                             <span className={`text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>IP Version:</span>
                             <div className="flex space-x-1">
@@ -562,7 +532,6 @@ const AccessControl: React.FC = () => {
                             </div>
                         </div>
 
-                        {/* 列表類型選擇 */}
                         <div className="flex items-center space-x-2">
                             <span className={`text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>List Type:</span>
                             <div className="flex space-x-1">
@@ -583,7 +552,6 @@ const AccessControl: React.FC = () => {
                             </div>
                         </div>
 
-                        {/* 操作按鈕 */}
                         <div className="flex items-center space-x-2 ml-auto">
                             <button
                                 className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors flex items-center space-x-1 ${
@@ -607,7 +575,6 @@ const AccessControl: React.FC = () => {
                     </div>
                 </motion.div>
 
-                {/* 資料表格 */}
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -629,7 +596,6 @@ const AccessControl: React.FC = () => {
                         </div>
                     </div>
 
-                    {/* 简化表格切换，移除奇怪的动画 */}
                     {flatData.length === 0 ? (
                         <div className="p-12 text-center">
                             <FontAwesomeIcon icon={faInfoCircle} className={`text-6xl mb-4 ${isDark ? 'text-gray-500' : 'text-gray-300'}`} />
@@ -700,7 +666,6 @@ const AccessControl: React.FC = () => {
                     )}
                 </motion.div>
 
-                {/* 添加規則模態框 */}
                 {isModalOpen && (
                     <Modal
                         title={`Add ${isIPv6 ? 'IPv6' : 'IPv4'} ${listType === 'black_list' ? 'Blacklist' : 'Whitelist'} Rule`}
@@ -784,7 +749,6 @@ const AccessControl: React.FC = () => {
                     </Modal>
                 )}
 
-                {/* 確認刪除模態框 */}
                 {isConfirmModalOpen && (
                     <Modal
                         title="Confirm Deletion"

@@ -24,10 +24,6 @@ import { urls } from '../config'
 import Layout from '../components/Layout'
 import LoadingSpinner from '../components/LoadingSpinner'
 
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
-
 type AlertSource = 'ml' | 'rule' | 'fusion'
 type AlertSeverity = 'high' | 'critical'
 
@@ -81,10 +77,6 @@ interface FilterButtonProps {
     activeClassName?: string
     activeHoverClassName?: string
 }
-
-// ---------------------------------------------------------------------------
-// Constants & helpers
-// ---------------------------------------------------------------------------
 
 const UPDATE_INTERVALS = [
     { label: 'immediate', value: 0 },
@@ -157,10 +149,6 @@ const parseAlertData = (rawData: any): UnifiedAlert | null => {
     }
 }
 
-// ---------------------------------------------------------------------------
-// Notification
-// ---------------------------------------------------------------------------
-
 const Notification: React.FC<NotificationProps> = ({ message, type, onClose }) => {
     useEffect(() => {
         const timer = setTimeout(onClose, 4000)
@@ -188,10 +176,6 @@ const Notification: React.FC<NotificationProps> = ({ message, type, onClose }) =
         </motion.div>
     )
 }
-
-// ---------------------------------------------------------------------------
-// AlertDetails
-// ---------------------------------------------------------------------------
 
 const AlertDetails: React.FC<AlertDetailsProps> = ({ log, onClose, showNotification }) => {
     const { actualTheme } = useTheme()
@@ -240,7 +224,6 @@ const AlertDetails: React.FC<AlertDetailsProps> = ({ log, onClose, showNotificat
                 exit={{ opacity: 0, x: 20 }}
                 className={`rounded-lg shadow-md p-6 max-h-[600px] overflow-y-auto ${isDark ? 'bg-gray-600' : 'bg-white'}`}
             >
-                {/* Header */}
                 <div className="flex items-center justify-between mb-6">
                     <h3 className={`text-xl font-semibold flex items-center ${isDark ? 'text-gray-300' : 'text-gray-900'}`}>
                         <FontAwesomeIcon icon={faEye} className="mr-2 text-blue-600" />
@@ -254,7 +237,6 @@ const AlertDetails: React.FC<AlertDetailsProps> = ({ log, onClose, showNotificat
                     </button>
                 </div>
 
-                {/* Basic info */}
                 <div className="space-y-4 mb-6">
                     <div className="flex justify-between">
                         <span className={`text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>Timestamp:</span>
@@ -295,7 +277,6 @@ const AlertDetails: React.FC<AlertDetailsProps> = ({ log, onClose, showNotificat
                     </div>
                 </div>
 
-                {/* ML scores — only when source is ml or fusion */}
                 {(log.source === 'ml' || log.source === 'fusion') && (
                     <div className="mb-6">
                         <span className={`text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>ML Score Details:</span>
@@ -320,7 +301,6 @@ const AlertDetails: React.FC<AlertDetailsProps> = ({ log, onClose, showNotificat
                     </div>
                 )}
 
-                {/* Rule details — only when source is rule or fusion */}
                 {(log.source === 'rule' || log.source === 'fusion') && (log.rule_sid !== null || log.rule_msg !== null) && (
                     <div className="mb-6">
                         <span className={`text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>Rule Match:</span>
@@ -341,7 +321,6 @@ const AlertDetails: React.FC<AlertDetailsProps> = ({ log, onClose, showNotificat
                     </div>
                 )}
 
-                {/* Connection details */}
                 <div className="mb-6">
                     <h4 className={`text-lg font-medium mb-3 ${isDark ? 'text-gray-300' : 'text-gray-900'}`}>Connection Details</h4>
                     <div className={`flex items-center justify-between rounded-lg p-4 ${isDark ? 'bg-gray-700' : 'bg-gray-50'}`}>
@@ -359,7 +338,6 @@ const AlertDetails: React.FC<AlertDetailsProps> = ({ log, onClose, showNotificat
                     </div>
                 </div>
 
-                {/* IP management */}
                 <div className="space-y-6">
                     <h4 className={`text-lg font-medium ${isDark ? 'text-gray-300' : 'text-gray-900'}`}>IP Management</h4>
 
@@ -406,10 +384,6 @@ const AlertDetails: React.FC<AlertDetailsProps> = ({ log, onClose, showNotificat
         </AnimatePresence>
     )
 }
-
-// ---------------------------------------------------------------------------
-// AlertItem
-// ---------------------------------------------------------------------------
 
 const AlertItem: React.FC<AlertItemProps> = ({ log, index, onClick }) => {
     const { actualTheme } = useTheme()
@@ -487,10 +461,6 @@ const AlertItem: React.FC<AlertItemProps> = ({ log, index, onClick }) => {
     )
 }
 
-// ---------------------------------------------------------------------------
-// FilterButton
-// ---------------------------------------------------------------------------
-
 const FilterButton: React.FC<FilterButtonProps> = ({
                                                        isActive, onClick, children,
                                                        className = '', activeClassName = '', activeHoverClassName = '',
@@ -511,10 +481,6 @@ const FilterButton: React.FC<FilterButtonProps> = ({
         </button>
     )
 }
-
-// ---------------------------------------------------------------------------
-// Main page
-// ---------------------------------------------------------------------------
 
 const Detection: React.FC = () => {
     const { getDetectionAlertStream } = useContext(WebsocketContext)
@@ -623,7 +589,7 @@ const Detection: React.FC = () => {
     if (isLoading) {
         return (
             <>
-                <Head><title>Detection - NetGuardia</title></Head>
+                <Head><title>Detection - Mantis</title></Head>
                 <Layout>
                     <div className="flex items-center justify-center w-full h-full min-h-[calc(100vh-4rem)]">
                         <LoadingSpinner />
@@ -636,8 +602,8 @@ const Detection: React.FC = () => {
     return (
         <>
             <Head>
-                <title>Detection - NetGuardia</title>
-                <meta name="description" content="NetGuardia Unified Threat Detection" />
+                <title>Detection - Mantis</title>
+                <meta name="description" content="Mantis Unified Threat Detection" />
             </Head>
 
             <Layout>
@@ -647,7 +613,6 @@ const Detection: React.FC = () => {
                     )}
                 </AnimatePresence>
 
-                {/* Page header */}
                 <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
                     <h1 className={`text-3xl font-bold mb-2 flex items-center ${isDark ? 'text-white' : 'text-gray-900'}`}>
                         <FontAwesomeIcon icon={faRobot} className="mr-3 text-purple-600" />
@@ -658,7 +623,6 @@ const Detection: React.FC = () => {
                     </p>
                 </motion.div>
 
-                {/* Stats cards */}
                 <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4 mb-8">
                     {[
                         { label: 'Total',      value: stats.total,     icon: faList,                bg: 'bg-blue-500'   },
@@ -689,13 +653,11 @@ const Detection: React.FC = () => {
                     ))}
                 </div>
 
-                {/* Controls & filters */}
                 <motion.div
                     initial={{ opacity: 0, y: -20 }}
                     animate={{ opacity: 1, y: 0 }}
                     className={`rounded-lg shadow-md p-6 mb-6 ${isDark ? 'bg-gray-600' : 'bg-white'}`}
                 >
-                    {/* System controls */}
                     <div className={`flex flex-wrap items-center gap-4 p-3 rounded-lg mb-4 ${isDark ? 'bg-gray-700' : 'bg-gray-50'}`}>
                         <div className="flex items-center space-x-2">
                             <FontAwesomeIcon icon={faClock} className={isDark ? 'text-gray-400' : 'text-gray-500'} />
@@ -732,7 +694,6 @@ const Detection: React.FC = () => {
                         )}
                     </div>
 
-                    {/* Severity filter */}
                     <div className="flex flex-wrap items-center gap-2 mb-3">
                         <span className={`text-sm font-medium mr-1 ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>Severity:</span>
                         <FilterButton isActive={severityFilter === 'all'} onClick={() => { setSeverityFilter('all'); setSelectedLogIndex(null) }}>
@@ -754,7 +715,6 @@ const Detection: React.FC = () => {
                         </FilterButton>
                     </div>
 
-                    {/* Source filter */}
                     <div className="flex flex-wrap items-center gap-2">
                         <span className={`text-sm font-medium mr-1 ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>Source:</span>
                         <FilterButton isActive={sourceFilter === 'all'} onClick={() => { setSourceFilter('all'); setSelectedLogIndex(null) }}>
@@ -784,7 +744,6 @@ const Detection: React.FC = () => {
                     </div>
                 </motion.div>
 
-                {/* Main content */}
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                     <motion.div
                         initial={{ opacity: 0, x: -50 }}

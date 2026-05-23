@@ -1,4 +1,3 @@
-// dashboard types
 export interface TrendDataPoint {
     time: string
     value: number

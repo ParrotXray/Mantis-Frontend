@@ -1,4 +1,3 @@
-// statistics types
 export interface ToggleButtonProps {
     isActive: boolean;
     onClick: () => void;

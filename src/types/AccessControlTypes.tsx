@@ -1,4 +1,3 @@
-// access control types
 export interface AccessControlItem {
     ip: string
     ports: (string | number)[]

@@ -1,4 +1,3 @@
-// src/pages/index.tsx
 import Head from 'next/head'
 import {motion, AnimatePresence} from 'framer-motion'
 import {useEffect, useState, useContext, useMemo, useCallback} from 'react'
@@ -52,7 +51,6 @@ import {
     NetworkStatsProps
 } from '../types/HomeTypes'
 
-// 工具函數
 const formatBytes = (bytes: number): string => {
     const units = ['B', 'KB', 'MB', 'GB', 'TB']
     if (bytes === 0) return '0 B'
@@ -133,7 +131,6 @@ const getStatusColor = (status: 'good' | 'warning' | 'critical' | 'unknown') => 
     }
 }
 
-// 系統詳情模態框組件
 const SystemDetailModal: React.FC<SystemDetailModalProps> = ({ isOpen, onClose, systemHealth, type }) => {
     const {actualTheme} = useTheme()
     const isDark = actualTheme === 'dark'
@@ -149,7 +146,6 @@ const SystemDetailModal: React.FC<SystemDetailModalProps> = ({ isOpen, onClose, 
                     color: 'text-blue-600',
                     content: (
                         <div className="space-y-6">
-                            {/* CPU 基本資訊 */}
                             <div className={`rounded-lg p-4 ${isDark ? 'bg-slate-600' : 'bg-blue-50'}`}>
                                 <h4 className={`font-semibold mb-3 flex items-center ${isDark ? 'text-gray-300' : 'text-gray-900'}`}>
                                     <FontAwesomeIcon icon={faMicrochip}
@@ -187,7 +183,6 @@ const SystemDetailModal: React.FC<SystemDetailModalProps> = ({ isOpen, onClose, 
                                 </div>
                             </div>
 
-                            {/* 各核心使用率 */}
                             {systemHealth.cpu_details?.cores && (
                                 <div className={`rounded-lg p-4 ${isDark ? 'bg-slate-600' : 'bg-blue-50'}`}>
                                     <h4 className={`font-semibold mb-3 flex items-center ${isDark ? 'text-gray-300' : 'text-gray-900'}`}>
@@ -214,7 +209,6 @@ const SystemDetailModal: React.FC<SystemDetailModalProps> = ({ isOpen, onClose, 
                                                         </span>
                                                     </div>
 
-                                                    {/* 進度條 */}
                                                     <div
                                                         className={`w-full rounded-full h-2 mb-2 ${isDark ? 'bg-gray-500' : 'bg-gray-200'}`}>
                                                         <div
@@ -237,7 +231,6 @@ const SystemDetailModal: React.FC<SystemDetailModalProps> = ({ isOpen, onClose, 
                                 </div>
                             )}
 
-                            {/* 系統負載 */}
                             {systemHealth.load_average ? (
                                 <div className={`rounded-lg p-4 ${isDark ? 'bg-slate-600' : 'bg-blue-50'}`}>
                                     <h4 className={`font-semibold mb-3 flex items-center ${isDark ? 'text-gray-300' : 'text-gray-900'}`}>
@@ -309,7 +302,6 @@ const SystemDetailModal: React.FC<SystemDetailModalProps> = ({ isOpen, onClose, 
                     color: 'text-green-600',
                     content: (
                         <div className="space-y-6">
-                            {/* 實體記憶體 */}
                             <div className={`rounded-lg p-4 ${isDark ? 'bg-slate-600' : 'bg-blue-50'}`}>
                                 <h4 className={`font-semibold mb-4 flex items-center ${isDark ? 'text-gray-300' : 'text-gray-900'}`}>
                                     <FontAwesomeIcon icon={faMemory}
@@ -317,11 +309,9 @@ const SystemDetailModal: React.FC<SystemDetailModalProps> = ({ isOpen, onClose, 
                                     Physical Memory (RAM)
                                 </h4>
 
-                                {/* 記憶體使用率圓餅圖式進度條 */}
                                 <div className="flex items-center justify-center mb-4">
                                     <div className="relative w-32 h-32">
                                         <svg className="w-32 h-32 transform -rotate-90" viewBox="0 0 100 100">
-                                            {/* 背景圓環 */}
                                             <circle
                                                 cx="50"
                                                 cy="50"
@@ -330,7 +320,6 @@ const SystemDetailModal: React.FC<SystemDetailModalProps> = ({ isOpen, onClose, 
                                                 strokeWidth="8"
                                                 fill="none"
                                             />
-                                            {/* 進度圓環 */}
                                             <circle
                                                 cx="50"
                                                 cy="50"
@@ -384,7 +373,6 @@ const SystemDetailModal: React.FC<SystemDetailModalProps> = ({ isOpen, onClose, 
                                 </div>
                             </div>
 
-                            {/* 交換空間 */}
                             {swapTotal > 0 && (
                                 <div className={`rounded-lg p-4 ${isDark ? 'bg-slate-600' : 'bg-blue-50'}`}>
                                     <h4 className={`font-semibold mb-3 flex items-center ${isDark ? 'text-gray-300' : 'text-gray-900'}`}>
@@ -446,7 +434,6 @@ const SystemDetailModal: React.FC<SystemDetailModalProps> = ({ isOpen, onClose, 
                     color: 'text-orange-600',
                     content: (
                         <div className="space-y-6">
-                            {/* 溫度顯示 */}
                             <div className={`rounded-lg p-6 ${isDark ? 'bg-slate-600' : 'bg-blue-50'}`}>
                                 <h4 className={`font-semibold mb-4 flex items-center ${isDark ? 'text-gray-300' : 'text-gray-900'}`}>
                                     <FontAwesomeIcon icon={faThermometerHalf}
@@ -454,7 +441,6 @@ const SystemDetailModal: React.FC<SystemDetailModalProps> = ({ isOpen, onClose, 
                                     Current system temperature
                                 </h4>
 
-                                {/* 溫度數值顯示 */}
                                 <div className="text-center mb-6">
                                     <div
                                         className={`text-5xl font-bold mb-2 ${isDark ? 'text-gray-300' : 'text-gray-900'}`}>
@@ -473,12 +459,9 @@ const SystemDetailModal: React.FC<SystemDetailModalProps> = ({ isOpen, onClose, 
                                     </div>
                                 </div>
 
-                                {/* 漸層溫度條 */}
                                 <div className="relative mb-6">
-                                    {/* 溫度條容器 */}
                                     <div
                                         className={`relative h-8 rounded-full overflow-hidden ${isDark ? 'bg-gray-700' : 'bg-gray-200'}`}>
-                                        {/* 漸層背景 */}
                                         <div
                                             className="absolute inset-0 opacity-30"
                                             style={{
@@ -486,7 +469,6 @@ const SystemDetailModal: React.FC<SystemDetailModalProps> = ({ isOpen, onClose, 
                                             }}
                                         ></div>
 
-                                        {/* 當前溫度進度 */}
                                         <div
                                             className="absolute inset-y-0 left-0 transition-all duration-500 rounded-full"
                                             style={{
@@ -501,7 +483,6 @@ const SystemDetailModal: React.FC<SystemDetailModalProps> = ({ isOpen, onClose, 
                                         ></div>
                                     </div>
 
-                                    {/* 溫度刻度 */}
                                     <div className="flex justify-between mt-2 px-1">
                                         {[0, 25, 45, 70, 100].map((value) => (
                                             <div key={value} className="flex flex-col items-center">
@@ -518,7 +499,6 @@ const SystemDetailModal: React.FC<SystemDetailModalProps> = ({ isOpen, onClose, 
                                 </div>
                             </div>
 
-                            {/* 溫度控制建議 */}
                             <div className={`rounded-lg p-4 ${isDark ? 'bg-slate-600' : 'bg-blue-50'}`}>
                                 <div className="grid grid-cols-3 gap-3 text-center text-sm">
                                     <div className={`rounded-lg p-3 border border-gray-200 ${isDark ? 'bg-gray-700' : 'bg-white'}`}>
@@ -585,7 +565,6 @@ const SystemDetailModal: React.FC<SystemDetailModalProps> = ({ isOpen, onClose, 
                     className={`rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden ${isDark ? 'bg-gray-800' : 'bg-white'}`}
                     onClick={(e) => e.stopPropagation()}
                 >
-                    {/* 模態框標題 */}
                     <div
                         className={`sticky top-0 border-b border-gray-200 px-6 py-4 rounded-t-xl ${isDark ? 'bg-gray-800' : 'bg-white'}`}>
                         <div className="flex items-center justify-between">
@@ -602,7 +581,6 @@ const SystemDetailModal: React.FC<SystemDetailModalProps> = ({ isOpen, onClose, 
                         </div>
                     </div>
 
-                    {/* 模態框內容 */}
                     <div className="p-6 overflow-y-auto max-h-[calc(90vh-64px)]">
                         {modalContent.content}
                     </div>
@@ -618,7 +596,6 @@ const HealthCard: React.FC<HealthCardProps> = ({metric, index, systemHealth, onC
     const [showTooltip, setShowTooltip] = useState(false)
     const isDark = actualTheme === 'dark'
 
-    // 計算進度條百分比
     const getProgressPercentage = (): number => {
         if (typeof metric.value !== 'number') return 0
 
@@ -627,14 +604,12 @@ const HealthCard: React.FC<HealthCardProps> = ({metric, index, systemHealth, onC
             case 'Memory usage':
                 return metric.value
             case 'System temperature':
-                // 溫度以100°C為最大值計算百分比
                 return Math.min((metric.value / 100) * 100, 100)
             default:
                 return 0
         }
     }
 
-    // 獲取詳細資訊
     const getDetailedInfo = (): string => {
         if (!systemHealth) return ''
 
@@ -693,7 +668,6 @@ const HealthCard: React.FC<HealthCardProps> = ({metric, index, systemHealth, onC
                         <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{metric.description}</p>
                     )}
 
-                    {/* 進度條 */}
                     {hasProgressBar && (
                         <div className="mt-2 mb-2">
                             <div className={`w-3/4 rounded-full h-1.5 ${isDark ? 'bg-gray-700' : 'bg-gray-200'}`}>
@@ -725,14 +699,12 @@ const HealthCard: React.FC<HealthCardProps> = ({metric, index, systemHealth, onC
                 </div>
             </div>
 
-            {/* 懸停提示框 */}
             {showTooltip && getDetailedInfo() && !isClickable && (
                 <div
                     className={`absolute z-50 bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 text-xs rounded-lg shadow-lg min-w-max max-w-xs ${
                         isDark ? 'bg-gray-700 text-gray-200' : 'bg-gray-900 text-white'
                     }`}>
                     <div className="whitespace-pre-line">{getDetailedInfo()}</div>
-                    {/* 箭頭 */}
                     <div
                         className={`absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent ${
                             isDark ? 'border-t-gray-700' : 'border-t-gray-900'
@@ -833,7 +805,6 @@ const LoadAverageDetails: React.FC<LoadAverageProps> = ({loadAverage}) => {
                                 </div>
                             </div>
 
-                            {/* 進度條 */}
                             <div className="w-full bg-gray-200 rounded-full h-3">
                                 <div
                                     className={`h-3 rounded-full transition-all duration-500 ${
@@ -864,7 +835,6 @@ const NetworkStats: React.FC<NetworkStatsProps> = ({networkStats}) => {
     const interfaces = [
         {key: 'ingress', name: 'Ingress Network', icon: faArrowDown, color: 'text-blue-600'},
         {key: 'egress', name: 'Egress Network', icon: faArrowUp, color: 'text-green-600'},
-        // {key: 'management', name: 'Management Network', icon: faDesktop, color: 'text-purple-600'}
     ]
 
     return (
@@ -941,7 +911,6 @@ const NetworkStats: React.FC<NetworkStatsProps> = ({networkStats}) => {
     )
 }
 
-// 主要組件
 export default function Home() {
     const {actualTheme} = useTheme()
     const {bootTime, getSystemHealthStream} = useContext(WebsocketContext)
@@ -955,7 +924,6 @@ export default function Home() {
 
     const isDark = actualTheme === 'dark'
 
-    // 模態框狀態
     const [modalState, setModalState] = useState<{
         isOpen: boolean
         type: 'cpu' | 'memory' | 'temperature' | null
@@ -964,7 +932,6 @@ export default function Home() {
         type: null
     })
 
-    // 更新當前時間
     useEffect(() => {
         const timer = setInterval(() => {
             setCurrentTime(new Date())
@@ -977,10 +944,8 @@ export default function Home() {
         if (isPaused) return
 
         try {
-            // 解析 WebSocket 資料
             const parsedData = typeof rawData === 'object' ? rawData : JSON.parse(rawData)
 
-            // 驗證必要欄位
             if (parsedData && typeof parsedData === 'object') {
                 const healthData: SystemHealthData = {
                     timestamp: parsedData.timestamp || Date.now() / 1000,
@@ -1049,7 +1014,6 @@ export default function Home() {
         }
     }, [isPaused])
 
-    // WebSocket 訂閱效果
     useEffect(() => {
         if (!getSystemHealthStream) {
             setError('WebSocket service unavailable')
@@ -1061,7 +1025,6 @@ export default function Home() {
         setError(null)
         setIsLoading(true)
 
-        // 訂閱系統健康串流
         const subscription = getSystemHealthStream().subscribe({
             next: (data: any) => {
                 processSystemHealthData(data)
@@ -1076,22 +1039,18 @@ export default function Home() {
             }
         })
 
-        // 清理函數：只取消訂閱，不關閉 WebSocket 連線
         return () => {
             console.log("Unsubscribing from System Health stream")
             subscription.unsubscribe()
         }
     }, [getSystemHealthStream, processSystemHealthData])
 
-    // 暫停/恢復處理
     useEffect(() => {
         if (!isPaused && systemHealth) {
-            // 恢復時更新時間戳
             setLastUpdateTime(new Date())
         }
     }, [isPaused, systemHealth])
 
-    // 連接狀態初始化（可選，用於顯示連接狀態）
     useEffect(() => {
         if (!getSystemHealthStream) {
             console.warn("WebSocket streams not available")
@@ -1104,7 +1063,6 @@ export default function Home() {
         setConnectionStatus('connecting')
     }, [getSystemHealthStream])
 
-    // 計算系統健康指標
     const healthMetrics = useMemo((): HealthMetric[] => {
         if (!systemHealth) return []
 
@@ -1148,7 +1106,6 @@ export default function Home() {
         return metrics
     }, [systemHealth])
 
-    // 處理卡片點擊
     const handleCardClick = useCallback((metricName: string) => {
         let type: 'cpu' | 'memory' | 'temperature' | null = null
 
@@ -1169,12 +1126,10 @@ export default function Home() {
         setModalState({isOpen: true, type})
     }, [])
 
-    // 關閉模態框
     const closeModal = useCallback(() => {
         setModalState({isOpen: false, type: null})
     }, [])
 
-    // 快速導航項目
     const quickNavigation = [
         {
             title: 'Network Traffic Monitoring',
@@ -1200,21 +1155,13 @@ export default function Home() {
             href: '/access-control',
             badge: 'Security'
         },
-        // {
-        //   title: 'AI Threat Detection',
-        //   description: 'Intelligent detection of abnormal behavior and potential network threats',
-        //   icon: faRobot,
-        //   color: 'bg-purple-500',
-        //   href: '/ai-detection',
-        //   badge: 'AI'
-        // }
     ]
 
     if (isLoading && !systemHealth) {
         return (
             <>
                 <Head>
-                    <title>Dashboard - NetGuardia</title>
+                    <title>Dashboard - Mantis</title>
                 </Head>
                 <Layout>
                     <div className="flex items-center justify-center w-full h-full min-h-[calc(100vh-4rem)]">
@@ -1230,14 +1177,13 @@ export default function Home() {
     return (
         <>
             <Head>
-                <title>NetGuardia - Network Security Monitoring System</title>
-                <meta name="description" content="NetGuardia - Network Security Monitoring System"/>
+                <title>Mantis - Network Security Monitoring System</title>
+                <meta name="description" content="Mantis - Network Security Monitoring System"/>
                 <meta name="viewport" content="width=device-width, initial-scale=1"/>
                 <link rel="icon" href="/favicon.ico"/>
             </Head>
 
             <Layout>
-                {/* 系統詳情模態框 */}
                 <SystemDetailModal
                     isOpen={modalState.isOpen}
                     onClose={closeModal}
@@ -1245,7 +1191,6 @@ export default function Home() {
                     type={modalState.type!}
                 />
 
-                {/* 歡迎標題 */}
                 <motion.div
                     initial={{opacity: 0, y: -20}}
                     animate={{opacity: 1, y: 0}}
@@ -1254,7 +1199,7 @@ export default function Home() {
                     <div className="flex items-center justify-between flex-wrap gap-4">
                         <div>
                             <h1 className={`text-3xl font-bold mb-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                                Welcome to NetGuardia
+                                Welcome to Mantis
                             </h1>
                             <p className={isDark ? 'text-gray-400' : 'text-gray-600'}>
                                 Network Security Monitoring System - Protecting your network environment with
@@ -1262,9 +1207,7 @@ export default function Home() {
                             </p>
                         </div>
 
-                        {/* 系統狀態控制 */}
                         <div className="flex items-center space-x-4">
-                            {/* 系統狀態指示器 */}
                             <div className={`rounded-lg shadow-md px-3 py-1 flex items-center ${
                                 isDark ? 'bg-gray-600' : 'bg-white'
                             }`}>
@@ -1277,7 +1220,6 @@ export default function Home() {
                 </span>
                             </div>
 
-                            {/* 暫停/恢復按鈕 */}
                             <button
                                 onClick={() => setIsPaused(!isPaused)}
                                 className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
@@ -1290,7 +1232,6 @@ export default function Home() {
                                 {isPaused ? "Resume" : "Pause"}
                             </button>
 
-                            {/* 手動更新按鈕 */}
                             <button
                                 onClick={() => window.location.reload()}
                                 className="px-3 py-1 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 transition-colors flex items-center space-x-1"
@@ -1299,7 +1240,6 @@ export default function Home() {
                                 <span>Update</span>
                             </button>
 
-                            {/* 最後更新時間 */}
                             {lastUpdateTime && (
                                 <div className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
                                     Last Updated: {lastUpdateTime.toLocaleTimeString()}
@@ -1309,7 +1249,6 @@ export default function Home() {
                     </div>
                 </motion.div>
 
-                {/* 錯誤狀態 */}
                 {error && (
                     <motion.div
                         initial={{opacity: 0, y: 20}}
@@ -1327,7 +1266,6 @@ export default function Home() {
                     </motion.div>
                 )}
 
-                {/* 系統健康狀態卡片 - 可點擊 */}
                 {healthMetrics.length > 0 && (
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                         {healthMetrics.map((metric, index) => (
@@ -1342,11 +1280,9 @@ export default function Home() {
                     </div>
                 )}
 
-                {/* 系統詳細資訊 */}
                 {systemHealth && (
                     <div className="space-y-8 mb-8">
-                        {/* 系統資訊 */}
-                        <motion.div
+                                <motion.div
                             initial={{opacity: 0, y: 20}}
                             animate={{opacity: 1, y: 0}}
                             transition={{delay: 1.0}}
@@ -1358,7 +1294,6 @@ export default function Home() {
                             </h3>
 
                             <div className="max-h-60 overflow-y-auto pr-2 space-y-4">
-                                {/* 基本系統資訊 */}
                                 <div className="space-y-3">
                                     <div className="flex justify-between">
                                         <span className={isDark ? 'text-white' : 'text-gray-600'}>System</span>
@@ -1410,15 +1345,12 @@ export default function Home() {
                     </div>
                 )}
 
-                {/* 網路狀態和系統負載 */}
                 {systemHealth && (
                     <div className="space-y-8 mb-8">
-                        {/* 網路狀態 - 占滿整行 */}
                         <NetworkStats networkStats={systemHealth.network_stats}/>
                     </div>
                 )}
 
-                {/* 快速導航 */}
                 <motion.div
                     initial={{opacity: 0, y: 20}}
                     animate={{opacity: 1, y: 0}}

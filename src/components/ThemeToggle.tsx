@@ -1,4 +1,3 @@
-// src/components/ThemeToggle.tsx
 'use client'
 
 import React from 'react'
@@ -40,7 +39,6 @@ const ThemeToggle: React.FC<ThemeToggleProps> = ({ isCollapsed = false }) => {
 
   const currentThemeOption = themeOptions.find(option => option.value === theme) || themeOptions[0]
 
-  // 如果 sidebar 收起，只顯示簡單的切換按鈕
   if (isCollapsed) {
     return (
       <div className="p-2">
@@ -57,7 +55,6 @@ const ThemeToggle: React.FC<ThemeToggleProps> = ({ isCollapsed = false }) => {
             className="text-lg text-gray-500"
           />
           
-          {/* 懸停提示 */}
           <div className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50">
             {currentThemeOption.label}
           </div>
@@ -68,7 +65,6 @@ const ThemeToggle: React.FC<ThemeToggleProps> = ({ isCollapsed = false }) => {
 
   return (
     <div className="p-4 relative">
-      {/* 主題切換按鈕 */}
       <button
         onClick={() => setShowOptions(!showOptions)}
         className={`
@@ -101,7 +97,6 @@ const ThemeToggle: React.FC<ThemeToggleProps> = ({ isCollapsed = false }) => {
         </motion.div>
       </button>
 
-      {/* 主題選項下拉選單 */}
       <AnimatePresence>
         {showOptions && (
           <motion.div
@@ -159,7 +154,6 @@ const ThemeToggle: React.FC<ThemeToggleProps> = ({ isCollapsed = false }) => {
         )}
       </AnimatePresence>
 
-      {/* 點擊外部關閉 */}
       {showOptions && (
         <div 
           className="fixed inset-0 z-40" 

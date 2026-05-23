@@ -1,5 +1,5 @@
 {
-  "name": "netguardia-dashboard",
+  "name": "mantis-dashboard",
   "version": "1.0.0",
   "scripts": {
     "dev": "next dev",

@@ -1,4 +1,3 @@
-// src/pages/_app.tsx - 深色模式版本
 import type { AppProps } from 'next/app'
 import { ErrorBoundary } from 'react-error-boundary'
 import { ThemeProvider } from '../providers/ThemeProvider'

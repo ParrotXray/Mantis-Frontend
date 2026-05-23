@@ -1,5 +1,3 @@
-// traffic map types
-
 export interface MapPoint {
     id: string;
     ip: string;

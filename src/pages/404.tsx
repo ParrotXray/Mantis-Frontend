@@ -1,4 +1,3 @@
-// pages/404.tsx
 import React from 'react';
 import Link from 'next/link';
 import Head from 'next/head';
@@ -87,7 +86,7 @@ const Custom404: React.FC = () => {
   return (
     <>
       <Head>
-        <title>404 - Page Not Found | NetGuardia</title>
+        <title>404 - Page Not Found | Mantis</title>
         <meta name="description" content="The page you are looking for does not exist." />
       </Head>
 
@@ -95,7 +94,6 @@ const Custom404: React.FC = () => {
         <div className="container mx-auto px-4 py-16">
           <div className="max-w-4xl mx-auto">
             
-            {/* 主要錯誤區域 */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -112,11 +110,10 @@ const Custom404: React.FC = () => {
               
               <p className="text-lg text-gray-600 max-w-lg mx-auto leading-relaxed">
                 Sorry, the page you are looking for does not exist or has been moved.<br />
-                Please choose from the options below to continue using the NetGuardia system.
+                Please choose from the options below to continue using the Mantis system.
               </p>
             </motion.div>
 
-            {/* 導航卡片區域 */}
             <motion.div
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
@@ -161,7 +158,6 @@ const Custom404: React.FC = () => {
               </div>
             </motion.div>
 
-            {/* 操作按鈕 */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -190,7 +186,6 @@ const Custom404: React.FC = () => {
               </motion.button>
             </motion.div>
 
-            {/* 底部信息 */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
