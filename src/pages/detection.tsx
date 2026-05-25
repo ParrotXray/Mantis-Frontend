@@ -189,7 +189,8 @@ const AlertDetails: React.FC<AlertDetailsProps> = ({ log, onClose, showNotificat
     const handleBlockIP = useCallback((ip: string, port: number, isSource: boolean, blockAllPorts = false) => {
         const isIPv6 = isSource ? isIPv6Source : isIPv6Dest
         const formattedIp = isIPv6 ? `[${ip}]` : ip
-        const url = isIPv6 ? urls.access_control.ipv6.black_list : urls.access_control.ipv4.black_list
+        const ipVersion = isIPv6 ? 'ipv6' as const : 'ipv4' as const
+        const url = urls.access_control('ingress', ipVersion, 'source', 'black_list')
         const portToSend = blockAllPorts ? '0' : String(port)
         const displayPort = blockAllPorts ? '*' : String(port)
 
@@ -204,7 +205,8 @@ const AlertDetails: React.FC<AlertDetailsProps> = ({ log, onClose, showNotificat
     const handleAllowIP = useCallback((ip: string, port: number, isSource: boolean, allowAllPorts = false) => {
         const isIPv6 = isSource ? isIPv6Source : isIPv6Dest
         const formattedIp = isIPv6 ? `[${ip}]` : ip
-        const url = isIPv6 ? urls.access_control.ipv6.white_list : urls.access_control.ipv4.white_list
+        const ipVersion = isIPv6 ? 'ipv6' as const : 'ipv4' as const
+        const url = urls.access_control('ingress', ipVersion, 'source', 'white_list')
         const portToSend = allowAllPorts ? '0' : String(port)
         const displayPort = allowAllPorts ? '*' : String(port)
 

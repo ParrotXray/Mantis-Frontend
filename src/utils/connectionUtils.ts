@@ -1,6 +1,8 @@
+import { getAuthHeaders } from './authStore'
+
 export const createWebSocket = (
-  url: string, 
-  onMessage: (data: any) => void, 
+  url: string,
+  onMessage: (data: any) => void,
   onError?: (error: Event) => void
 ): WebSocket => {
   const ws = new WebSocket(url)
@@ -23,12 +25,12 @@ export const createWebSocket = (
 }
 
 export const fetchData = async (
-  url: string, 
-  onSuccess: (data: string) => void, 
+  url: string,
+  onSuccess: (data: string) => void,
   onError?: (error?: Error) => void
 ): Promise<void> => {
   try {
-    const response = await fetch(url)
+    const response = await fetch(url, { headers: getAuthHeaders() })
     if (!response.ok) throw new Error(`HTTP Error: ${response.status}`)
     const data = await response.text()
     onSuccess(data)
@@ -39,9 +41,9 @@ export const fetchData = async (
 }
 
 export const putData = async (
-  url: string, 
-  payload: any, 
-  onSuccess?: (data?: any) => void, 
+  url: string,
+  payload: any,
+  onSuccess?: (data?: any) => void,
   onError?: (error: Error) => void
 ): Promise<void> => {
   try {
@@ -49,6 +51,7 @@ export const putData = async (
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
+        ...getAuthHeaders(),
       },
       body: JSON.stringify(payload),
     })
@@ -57,7 +60,6 @@ export const putData = async (
 
     const contentType = response.headers.get("Content-Type")
     const isJsonResponse = contentType && contentType.includes("application/json")
-
     const data = isJsonResponse ? await response.json() : null
 
     if (onSuccess) onSuccess(data)
@@ -68,9 +70,9 @@ export const putData = async (
 }
 
 export const deleteData = async (
-  url: string, 
-  data: any, 
-  onSuccess?: (data: string) => void, 
+  url: string,
+  data: any,
+  onSuccess?: (data: string) => void,
   onError?: (error: Error) => void
 ): Promise<void> => {
   try {
@@ -78,6 +80,7 @@ export const deleteData = async (
       method: "DELETE",
       headers: {
         "Content-Type": "application/json",
+        ...getAuthHeaders(),
       },
       body: JSON.stringify(data),
     })

@@ -1,6 +1,6 @@
 import React, { createContext, useState, useCallback, useMemo, useRef } from 'react'
 import { fetchData } from '../utils/connectionUtils'
-import { urls } from '../config'
+import { urls, NicType, FlowType, ListType, IpVersion } from '../config'
 
 interface AccessControlItem {
     ip: string;
@@ -19,11 +19,11 @@ interface AccessControlContextType {
     currentData: AccessControlItem[];
     filteredData: AccessControlItem[];
     isLoading: boolean;
-    
+
     setFilteredData: (data: AccessControlItem[]) => void;
-    switchTo: (isIPv6: boolean, listType: string) => void;
-    refreshData: (isIPv6?: boolean, listType?: string) => Promise<void>;
-    
+    switchTo: (isIPv6: boolean, listType: ListType, nic: NicType, flow: FlowType) => void;
+    refreshData: (isIPv6?: boolean, listType?: ListType, nic?: NicType, flow?: FlowType) => Promise<void>;
+
     getCacheStatus: () => { [key: string]: { lastUpdate: Date; isStale: boolean } };
 }
 
@@ -43,8 +43,8 @@ interface AccessControlProviderProps {
 
 const CACHE_EXPIRE_TIME = 10 * 60 * 1000;
 
-const getCacheKey = (isIPv6: boolean, listType: string): string => {
-    return `${isIPv6 ? 'ipv6' : 'ipv4'}_${listType}`;
+const getCacheKey = (isIPv6: boolean, listType: string, nic: string, flow: string): string => {
+    return `${nic}_${isIPv6 ? 'ipv6' : 'ipv4'}_${flow}_${listType}`;
 }
 
 const isCacheStale = (timestamp: number): boolean => {
@@ -55,21 +55,23 @@ export const AccessControlProvider: React.FC<AccessControlProviderProps> = ({ ch
     const [cache, setCache] = useState<CachedData>({})
     const [filteredData, setFilteredData] = useState<AccessControlItem[]>([])
     const [currentKey, setCurrentKey] = useState<string>('')
-    
+
     const pendingRequests = useRef<Set<string>>(new Set())
 
     const fetchCachedData = useCallback(async (
-        isIPv6: boolean, 
-        listType: string,
+        isIPv6: boolean,
+        listType: ListType,
+        nic: NicType,
+        flow: FlowType,
         forceRefresh: boolean = false
     ): Promise<AccessControlItem[]> => {
-        const key = getCacheKey(isIPv6, listType);
+        const key = getCacheKey(isIPv6, listType, nic, flow);
         const cachedItem = cache[key];
-        
+
         if (!forceRefresh && cachedItem && !isCacheStale(cachedItem.timestamp) && !cachedItem.isLoading) {
             return cachedItem.data;
         }
-        
+
         if (pendingRequests.current.has(key)) {
             return new Promise((resolve) => {
                 const checkInterval = setInterval(() => {
@@ -83,7 +85,7 @@ export const AccessControlProvider: React.FC<AccessControlProviderProps> = ({ ch
         }
 
         pendingRequests.current.add(key);
-        
+
         setCache(prev => ({
             ...prev,
             [key]: {
@@ -94,9 +96,8 @@ export const AccessControlProvider: React.FC<AccessControlProviderProps> = ({ ch
         }));
 
         try {
-            const url = isIPv6
-                ? urls.access_control.ipv6[listType as keyof typeof urls.access_control.ipv6]
-                : urls.access_control.ipv4[listType as keyof typeof urls.access_control.ipv4];
+            const ipVersion: IpVersion = isIPv6 ? 'ipv6' : 'ipv4';
+            const url = urls.access_control(nic, ipVersion, flow, listType);
 
             const data = await new Promise<AccessControlItem[]>((resolve, reject) => {
                 fetchData(
@@ -123,15 +124,10 @@ export const AccessControlProvider: React.FC<AccessControlProviderProps> = ({ ch
 
             setCache(prev => ({
                 ...prev,
-                [key]: {
-                    data,
-                    timestamp: Date.now(),
-                    isLoading: false
-                }
+                [key]: { data, timestamp: Date.now(), isLoading: false }
             }));
 
             return data;
-
         } catch (error) {
             setCache(prev => ({
                 ...prev,
@@ -141,19 +137,18 @@ export const AccessControlProvider: React.FC<AccessControlProviderProps> = ({ ch
                     isLoading: false
                 }
             }));
-            
             throw error;
         } finally {
             pendingRequests.current.delete(key);
         }
     }, [cache]);
 
-    const switchTo = useCallback(async (isIPv6: boolean, listType: string) => {
-        const key = getCacheKey(isIPv6, listType);
+    const switchTo = useCallback(async (isIPv6: boolean, listType: ListType, nic: NicType, flow: FlowType) => {
+        const key = getCacheKey(isIPv6, listType, nic, flow);
         setCurrentKey(key);
 
         try {
-            const data = await fetchCachedData(isIPv6, listType);
+            const data = await fetchCachedData(isIPv6, listType, nic, flow);
             setFilteredData(data);
         } catch (error) {
             console.error(`Failed to switch to ${key}:`, error);
@@ -161,38 +156,43 @@ export const AccessControlProvider: React.FC<AccessControlProviderProps> = ({ ch
         }
     }, [fetchCachedData]);
 
-    const refreshData = useCallback(async (isIPv6?: boolean, listType?: string) => {
-        if (isIPv6 === undefined || listType === undefined) {
+    const refreshData = useCallback(async (
+        isIPv6?: boolean,
+        listType?: ListType,
+        nic?: NicType,
+        flow?: FlowType
+    ) => {
+        if (isIPv6 === undefined || listType === undefined || nic === undefined || flow === undefined) {
             if (!currentKey) return;
-            const [ipVersion, list] = currentKey.split('_');
-            const isV6 = ipVersion === 'ipv6';
-            await switchTo(isV6, list);
+            const parts = currentKey.split('_');
+            const resolvedNic = parts[0] as NicType;
+            const isV6 = parts[1] === 'ipv6';
+            const resolvedFlow = parts[2] as FlowType;
+            const resolvedList = parts[3] as ListType;
+            await switchTo(isV6, resolvedList, resolvedNic, resolvedFlow);
             return;
         }
 
         try {
-            const data = await fetchCachedData(isIPv6, listType, true);
-            const key = getCacheKey(isIPv6, listType);
-            
+            const data = await fetchCachedData(isIPv6, listType, nic, flow, true);
+            const key = getCacheKey(isIPv6, listType, nic, flow);
             if (key === currentKey) {
                 setFilteredData(data);
             }
         } catch (error) {
-            console.error(`Failed to refresh data for ${getCacheKey(isIPv6, listType)}:`, error);
+            console.error(`Failed to refresh data:`, error);
             throw error;
         }
     }, [currentKey, fetchCachedData, switchTo]);
 
     const getCacheStatus = useCallback(() => {
         const status: { [key: string]: { lastUpdate: Date; isStale: boolean } } = {};
-        
         Object.entries(cache).forEach(([key, item]) => {
             status[key] = {
                 lastUpdate: new Date(item.timestamp),
                 isStale: isCacheStale(item.timestamp)
             };
         });
-        
         return status;
     }, [cache]);
 
@@ -205,9 +205,9 @@ export const AccessControlProvider: React.FC<AccessControlProviderProps> = ({ ch
     }, [cache, currentKey]);
 
     React.useEffect(() => {
-        const preloadKey = getCacheKey(false, 'black_list');
+        const preloadKey = getCacheKey(false, 'black_list', 'ingress', 'source');
         if (!cache[preloadKey]) {
-            fetchCachedData(false, 'black_list').catch(error => {
+            fetchCachedData(false, 'black_list', 'ingress', 'source').catch(error => {
                 console.warn('Failed to preload IPv4 blacklist:', error);
             });
         }
@@ -218,13 +218,11 @@ export const AccessControlProvider: React.FC<AccessControlProviderProps> = ({ ch
             setCache(prev => {
                 const now = Date.now();
                 const cleaned: CachedData = {};
-                
                 Object.entries(prev).forEach(([key, item]) => {
                     if (now - item.timestamp < 30 * 60 * 1000) {
                         cleaned[key] = item;
                     }
                 });
-                
                 return cleaned;
             });
         }, 5 * 60 * 1000);

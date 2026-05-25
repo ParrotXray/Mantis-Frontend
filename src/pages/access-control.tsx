@@ -15,14 +15,14 @@ import {
     faTimes,
     faExclamationTriangle,
     faRefresh,
-    faClock
+    faArrowDown,
+    faArrowUp,
 } from '@fortawesome/free-solid-svg-icons'
 import { AccessControlContext } from '../providers/AccessControlProvider'
 import { useTheme } from '../providers/ThemeProvider'
 import { putData, deleteData } from '../utils/connectionUtils'
-import { urls } from '../config'
+import { urls, NicType, FlowType, ListType } from '../config'
 import Layout from '../components/Layout'
-import LoadingSpinner from '../components/LoadingSpinner'
 import {
     AccessControlItem,
     NotificationProps,
@@ -33,10 +33,7 @@ import {
 
 const Notification: React.FC<NotificationProps> = ({ message, type, onClose }) => {
     useEffect(() => {
-        const timer = setTimeout(() => {
-            onClose()
-        }, 4000)
-
+        const timer = setTimeout(() => { onClose() }, 4000)
         return () => clearTimeout(timer)
     }, [onClose])
 
@@ -56,25 +53,13 @@ const Notification: React.FC<NotificationProps> = ({ message, type, onClose }) =
         >
             <div className="flex items-center justify-between">
                 <span className="text-sm font-medium">{message}</span>
-                <button
-                    onClick={onClose}
-                    className="ml-3 text-xl font-bold hover:opacity-70 transition-opacity"
-                >
-                    ×
-                </button>
+                <button onClick={onClose} className="ml-3 text-xl font-bold hover:opacity-70 transition-opacity">×</button>
             </div>
         </motion.div>
     )
 }
 
-const Modal: React.FC<ModalProps> = ({
-                                         title,
-                                         children,
-                                         onClose,
-                                         onSubmit,
-                                         submitLabel = 'Submit',
-                                         submitDisabled = false
-                                     }) => {
+const Modal: React.FC<ModalProps> = ({ title, children, onClose, onSubmit, submitLabel = 'Submit', submitDisabled = false }) => {
     const { actualTheme } = useTheme()
     const isDark = actualTheme === 'dark'
 
@@ -97,25 +82,16 @@ const Modal: React.FC<ModalProps> = ({
                     <div className={`px-6 py-4 border-b ${isDark ? 'border-gray-700' : 'border-gray-200'}`}>
                         <div className="flex items-center justify-between">
                             <h2 className={`text-xl font-semibold ${isDark ? 'text-gray-300' : 'text-gray-900'}`}>{title}</h2>
-                            <button
-                                onClick={onClose}
-                                className={`transition-colors ${isDark ? 'text-gray-400 hover:text-gray-200' : 'text-gray-400 hover:text-gray-600'}`}
-                            >
+                            <button onClick={onClose} className={`transition-colors ${isDark ? 'text-gray-400 hover:text-gray-200' : 'text-gray-400 hover:text-gray-600'}`}>
                                 <FontAwesomeIcon icon={faTimes} />
                             </button>
                         </div>
                     </div>
-
-                    <div className="px-6 py-4">
-                        {children}
-                    </div>
-
+                    <div className="px-6 py-4">{children}</div>
                     <div className={`px-6 py-4 border-t flex justify-end space-x-3 ${isDark ? 'border-gray-700' : 'border-gray-200'}`}>
                         <button
                             onClick={onClose}
-                            className={`px-4 py-2 rounded-lg transition-colors ${
-                                isDark ? 'text-gray-300 bg-gray-700 hover:bg-gray-600' : 'text-gray-700 bg-gray-100 hover:bg-gray-200'
-                            }`}
+                            className={`px-4 py-2 rounded-lg transition-colors ${isDark ? 'text-gray-300 bg-gray-700 hover:bg-gray-600' : 'text-gray-700 bg-gray-100 hover:bg-gray-200'}`}
                         >
                             Cancel
                         </button>
@@ -124,9 +100,7 @@ const Modal: React.FC<ModalProps> = ({
                                 onClick={onSubmit}
                                 disabled={submitDisabled}
                                 className={`px-4 py-2 rounded-lg transition-colors ${
-                                    submitDisabled
-                                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                                        : 'bg-blue-600 text-white hover:bg-blue-700'
+                                    submitDisabled ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-blue-600 text-white hover:bg-blue-700'
                                 }`}
                             >
                                 {submitLabel}
@@ -180,6 +154,16 @@ const StatsCard: React.FC<StatsCardProps> = ({ title, value, icon, color }) => {
     )
 }
 
+const NIC_LABELS: Record<NicType, string> = {
+    ingress: 'Ingress',
+    egress: 'Egress',
+}
+
+const FLOW_LABELS: Record<FlowType, string> = {
+    source: 'Source',
+    destination: 'Destination',
+}
+
 const AccessControl: React.FC = () => {
     const {
         currentData,
@@ -194,8 +178,10 @@ const AccessControl: React.FC = () => {
     const { actualTheme } = useTheme()
     const isDark = actualTheme === 'dark'
 
+    const [nic, setNic] = useState<NicType>('ingress')
+    const [flow, setFlow] = useState<FlowType>('source')
     const [isIPv6, setIsIPv6] = useState(false)
-    const [listType, setListType] = useState<'black_list' | 'white_list'>('black_list')
+    const [listType, setListType] = useState<ListType>('black_list')
     const [searchTerm, setSearchTerm] = useState('')
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [newIp, setNewIp] = useState('')
@@ -206,19 +192,61 @@ const AccessControl: React.FC = () => {
     const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' | 'warning' | 'info' } | null>(null)
     const [isSubmitting, setIsSubmitting] = useState(false)
 
+    const showNotification = useCallback((message: string, type: 'success' | 'error' | 'warning' | 'info' = 'success') => {
+        setNotification({ message, type })
+    }, [])
+
+    const closeNotification = useCallback(() => setNotification(null), [])
+
+    useEffect(() => {
+        switchTo(isIPv6, listType, nic, flow)
+    }, [])
+
+    useEffect(() => {
+        if (!searchTerm.trim()) {
+            setFilteredData(currentData)
+            return
+        }
+        const lower = searchTerm.toLowerCase()
+        setFilteredData(currentData.filter(({ ip }) => ip.toLowerCase().includes(lower)))
+    }, [searchTerm, currentData, setFilteredData])
+
+    const handleNicChange = useCallback((newNic: NicType) => {
+        if (newNic !== nic) {
+            setNic(newNic)
+            switchTo(isIPv6, listType, newNic, flow)
+        }
+    }, [nic, isIPv6, listType, flow, switchTo])
+
+    const handleFlowChange = useCallback((newFlow: FlowType) => {
+        if (newFlow !== flow) {
+            setFlow(newFlow)
+            switchTo(isIPv6, listType, nic, newFlow)
+        }
+    }, [flow, isIPv6, listType, nic, switchTo])
+
     const handleIPVersionChange = useCallback((newIsIPv6: boolean) => {
         if (newIsIPv6 !== isIPv6) {
             setIsIPv6(newIsIPv6)
-            switchTo(newIsIPv6, listType)
+            switchTo(newIsIPv6, listType, nic, flow)
         }
-    }, [isIPv6, listType, switchTo])
+    }, [isIPv6, listType, nic, flow, switchTo])
 
-    const handleListTypeChange = useCallback((newListType: 'black_list' | 'white_list') => {
+    const handleListTypeChange = useCallback((newListType: ListType) => {
         if (newListType !== listType) {
             setListType(newListType)
-            switchTo(isIPv6, newListType)
+            switchTo(isIPv6, newListType, nic, flow)
         }
-    }, [isIPv6, listType, switchTo])
+    }, [isIPv6, listType, nic, flow, switchTo])
+
+    const handleRefresh = useCallback(async () => {
+        try {
+            await refreshData(isIPv6, listType, nic, flow)
+            showNotification('Data updated', 'success')
+        } catch {
+            showNotification('Update failed', 'error')
+        }
+    }, [isIPv6, listType, nic, flow, refreshData, showNotification])
 
     const handleAddItemClick = useCallback(() => {
         setIsModalOpen(true)
@@ -234,44 +262,10 @@ const AccessControl: React.FC = () => {
         setBlockAllPorts(false)
     }, [])
 
-    const showNotification = useCallback((message: string, type: 'success' | 'error' | 'warning' | 'info' = 'success') => {
-        setNotification({ message, type })
-    }, [])
-
-    const closeNotification = useCallback(() => {
-        setNotification(null)
-    }, [])
-
-    const handleRefresh = useCallback(async () => {
-        try {
-            await refreshData(isIPv6, listType)
-            showNotification('Data updated', 'success')
-        } catch (error) {
-            showNotification('Update failed', 'error')
-        }
-    }, [isIPv6, listType, refreshData, showNotification])
-
-    useEffect(() => {
-        switchTo(isIPv6, listType)
-    }, [])
-
-    useEffect(() => {
-        if (!searchTerm.trim()) {
-            setFilteredData(currentData)
-            return
-        }
-
-        const lowerSearchTerm = searchTerm.toLowerCase()
-        const filtered = currentData.filter(({ ip }) =>
-            ip.toLowerCase().includes(lowerSearchTerm)
-        )
-        setFilteredData(filtered)
-    }, [searchTerm, currentData, setFilteredData])
-
     const flatData = useMemo(() =>
-            filteredData.flatMap(({ ip, ports }) =>
-                ports.map((port) => ({ ip, port }))
-            ),
+        filteredData.flatMap(({ ip, ports }) =>
+            ports.map((port) => ({ ip, port }))
+        ),
         [filteredData]
     )
 
@@ -279,7 +273,6 @@ const AccessControl: React.FC = () => {
         const uniqueIPs = new Set(filteredData.map(item => item.ip)).size
         const totalEntries = flatData.length
         const allPortsEntries = flatData.filter(item => item.port === "0" || item.port === 0).length
-
         return {
             uniqueIPs,
             totalEntries,
@@ -292,16 +285,13 @@ const AccessControl: React.FC = () => {
         if (isIPv6) {
             const ipv6Regex = /^([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$|^::1$|^::$/
             return ipv6Regex.test(ip) || ip.includes('::')
-        } else {
-            const ipv4Regex = /^(\d{1,3}\.){3}\d{1,3}$/
-            if (!ipv4Regex.test(ip)) return false
-
-            const parts = ip.split('.')
-            return parts.every(part => {
-                const num = parseInt(part, 10)
-                return num >= 0 && num <= 255
-            })
         }
+        const ipv4Regex = /^(\d{1,3}\.){3}\d{1,3}$/
+        if (!ipv4Regex.test(ip)) return false
+        return ip.split('.').every(part => {
+            const num = parseInt(part, 10)
+            return num >= 0 && num <= 255
+        })
     }, [])
 
     const validatePort = useCallback((port: string): boolean => {
@@ -315,39 +305,32 @@ const AccessControl: React.FC = () => {
             showNotification('Please enter a valid IP address', 'error')
             return
         }
-
         if (!validateIP(newIp.trim(), isIPv6)) {
             showNotification(`Please enter a valid ${isIPv6 ? 'IPv6' : 'IPv4'} address`, 'error')
             return
         }
-
         if (!blockAllPorts && !validatePort(newPort)) {
             showNotification('Please enter a valid port number (1-65535)', 'error')
             return
         }
 
         const portToSend = blockAllPorts ? "0" : newPort
-        const url = isIPv6
-            ? urls.access_control.ipv6[listType]
-            : urls.access_control.ipv4[listType]
+        const ipVersion = isIPv6 ? 'ipv6' as const : 'ipv4' as const
+        const url = urls.access_control(nic, ipVersion, flow, listType)
 
         setIsSubmitting(true)
-
         try {
             await new Promise<void>((resolve, reject) => {
                 putData(
                     url,
                     `${newIp.trim()}:${portToSend}`,
                     () => {
-                        showNotification(
-                            `Successfully added: ${newIp.trim()}:${blockAllPorts ? '*' : portToSend}`,
-                            'success'
-                        )
+                        showNotification(`Successfully added: ${newIp.trim()}:${blockAllPorts ? '*' : portToSend}`, 'success')
                         setIsModalOpen(false)
                         setNewIp('')
                         setNewPort('')
                         setBlockAllPorts(false)
-                        refreshData(isIPv6, listType)
+                        refreshData(isIPv6, listType, nic, flow)
                         resolve()
                     },
                     (error) => {
@@ -361,7 +344,7 @@ const AccessControl: React.FC = () => {
         } finally {
             setIsSubmitting(false)
         }
-    }, [newIp, newPort, blockAllPorts, isIPv6, listType, refreshData, showNotification, validateIP, validatePort])
+    }, [newIp, newPort, blockAllPorts, isIPv6, listType, nic, flow, refreshData, showNotification, validateIP, validatePort])
 
     const handleDeleteClick = useCallback((ip: string, port: string | number) => {
         setItemToDelete({ ip, port })
@@ -378,23 +361,18 @@ const AccessControl: React.FC = () => {
 
         const { ip, port } = itemToDelete
         const formattedIp = isIPv6 ? `[${ip}]` : ip
-        const url = isIPv6
-            ? urls.access_control.ipv6[listType]
-            : urls.access_control.ipv4[listType]
+        const ipVersion = isIPv6 ? 'ipv6' as const : 'ipv4' as const
+        const url = urls.access_control(nic, ipVersion, flow, listType)
 
         setIsSubmitting(true)
-
         try {
             await new Promise<void>((resolve, reject) => {
                 deleteData(
                     url,
                     `${formattedIp}:${port}`,
                     () => {
-                        showNotification(
-                            `Successfully deleted: ${formattedIp}:${port === "0" || port === 0 ? "*" : port}`,
-                            'success'
-                        )
-                        refreshData(isIPv6, listType)
+                        showNotification(`Successfully deleted: ${formattedIp}:${port === "0" || port === 0 ? "*" : port}`, 'success')
+                        refreshData(isIPv6, listType, nic, flow)
                         setIsConfirmModalOpen(false)
                         setItemToDelete(null)
                         resolve()
@@ -412,20 +390,9 @@ const AccessControl: React.FC = () => {
         } finally {
             setIsSubmitting(false)
         }
-    }, [itemToDelete, isIPv6, listType, refreshData, showNotification])
+    }, [itemToDelete, isIPv6, listType, nic, flow, refreshData, showNotification])
 
-    const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-        setSearchTerm(e.target.value)
-    }, [])
-
-    const handleBlockAllPortsChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-        setBlockAllPorts(e.target.checked)
-        if (e.target.checked) {
-            setNewPort('')
-        }
-    }, [])
-
-    const cacheStatus = getCacheStatus()
+    const tableTitle = `${NIC_LABELS[nic]} / ${FLOW_LABELS[flow]} / ${isIPv6 ? 'IPv6' : 'IPv4'} ${listType === 'black_list' ? 'Blacklist' : 'Whitelist'}`
 
     return (
         <>
@@ -437,57 +404,25 @@ const AccessControl: React.FC = () => {
             <Layout>
                 <AnimatePresence>
                     {notification && (
-                        <Notification
-                            message={notification.message}
-                            type={notification.type}
-                            onClose={closeNotification}
-                        />
+                        <Notification message={notification.message} type={notification.type} onClose={closeNotification} />
                     )}
                 </AnimatePresence>
 
-                <motion.div
-                    initial={{ opacity: 0, y: -20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="mb-8"
-                >
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <h1 className={`text-3xl font-bold mb-2 flex items-center ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                                <FontAwesomeIcon icon={faShieldAlt} className="mr-3 text-blue-600" />
-                                Access Control Management
-                            </h1>
-                            <p className={isDark ? 'text-gray-400' : 'text-gray-600'}>
-                                Manage IPv4 and IPv6 network access whitelists and blacklists
-                            </p>
-                        </div>
-                    </div>
+                <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
+                    <h1 className={`text-3xl font-bold mb-2 flex items-center ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                        <FontAwesomeIcon icon={faShieldAlt} className="mr-3 text-blue-600" />
+                        Access Control Management
+                    </h1>
+                    <p className={isDark ? 'text-gray-400' : 'text-gray-600'}>
+                        Manage eBPF ingress/egress IP access rules for source and destination filtering
+                    </p>
                 </motion.div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                    <StatsCard
-                        title="Unique IPs"
-                        value={stats.uniqueIPs}
-                        icon={faGlobe}
-                        color="bg-blue-500"
-                    />
-                    <StatsCard
-                        title="Total Rules"
-                        value={stats.totalEntries}
-                        icon={faNetworkWired}
-                        color="bg-green-500"
-                    />
-                    <StatsCard
-                        title="All Ports Rules"
-                        value={stats.allPortsEntries}
-                        icon={faFilter}
-                        color="bg-purple-500"
-                    />
-                    <StatsCard
-                        title="Specific Port Rules"
-                        value={stats.specificPortEntries}
-                        icon={faCheck}
-                        color="bg-orange-500"
-                    />
+                    <StatsCard title="Unique IPs" value={stats.uniqueIPs} icon={faGlobe} color="bg-blue-500" />
+                    <StatsCard title="Total Rules" value={stats.totalEntries} icon={faNetworkWired} color="bg-green-500" />
+                    <StatsCard title="All Ports Rules" value={stats.allPortsEntries} icon={faFilter} color="bg-purple-500" />
+                    <StatsCard title="Specific Port Rules" value={stats.specificPortEntries} icon={faCheck} color="bg-orange-500" />
                 </div>
 
                 <motion.div
@@ -496,7 +431,7 @@ const AccessControl: React.FC = () => {
                     className={`rounded-lg shadow-md p-6 mb-6 ${isDark ? 'bg-gray-600' : 'bg-white'}`}
                 >
                     <div className="flex flex-wrap items-center gap-4">
-                        <div className="flex-1 min-w-64">
+                        <div className="flex-1 min-w-56">
                             <div className="relative">
                                 <FontAwesomeIcon
                                     icon={faSearch}
@@ -515,37 +450,47 @@ const AccessControl: React.FC = () => {
                         </div>
 
                         <div className="flex items-center space-x-2">
-                            <span className={`text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>IP Version:</span>
+                            <span className={`text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>NIC:</span>
                             <div className="flex space-x-1">
-                                <ToggleButton
-                                    isActive={!isIPv6}
-                                    onClick={() => setIsIPv6(false)}
-                                >
-                                    IPv4
+                                <ToggleButton isActive={nic === 'ingress'} onClick={() => handleNicChange('ingress')}>
+                                    <FontAwesomeIcon icon={faArrowDown} className="mr-1 text-xs" />
+                                    Ingress
                                 </ToggleButton>
-                                <ToggleButton
-                                    isActive={isIPv6}
-                                    onClick={() => setIsIPv6(true)}
-                                >
-                                    IPv6
+                                <ToggleButton isActive={nic === 'egress'} onClick={() => handleNicChange('egress')}>
+                                    <FontAwesomeIcon icon={faArrowUp} className="mr-1 text-xs" />
+                                    Egress
                                 </ToggleButton>
                             </div>
                         </div>
 
                         <div className="flex items-center space-x-2">
-                            <span className={`text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>List Type:</span>
+                            <span className={`text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>Flow:</span>
                             <div className="flex space-x-1">
-                                <ToggleButton
-                                    isActive={listType === "black_list"}
-                                    onClick={() => handleListTypeChange("black_list")}
-                                >
+                                <ToggleButton isActive={flow === 'source'} onClick={() => handleFlowChange('source')}>
+                                    Source
+                                </ToggleButton>
+                                <ToggleButton isActive={flow === 'destination'} onClick={() => handleFlowChange('destination')}>
+                                    Destination
+                                </ToggleButton>
+                            </div>
+                        </div>
+
+                        <div className="flex items-center space-x-2">
+                            <span className={`text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>IP:</span>
+                            <div className="flex space-x-1">
+                                <ToggleButton isActive={!isIPv6} onClick={() => handleIPVersionChange(false)}>IPv4</ToggleButton>
+                                <ToggleButton isActive={isIPv6} onClick={() => handleIPVersionChange(true)}>IPv6</ToggleButton>
+                            </div>
+                        </div>
+
+                        <div className="flex items-center space-x-2">
+                            <span className={`text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>List:</span>
+                            <div className="flex space-x-1">
+                                <ToggleButton isActive={listType === 'black_list'} onClick={() => handleListTypeChange('black_list')}>
                                     <FontAwesomeIcon icon={faFilter} className="mr-1" />
                                     Blacklist
                                 </ToggleButton>
-                                <ToggleButton
-                                    isActive={listType === "white_list"}
-                                    onClick={() => handleListTypeChange("white_list")}
-                                >
+                                <ToggleButton isActive={listType === 'white_list'} onClick={() => handleListTypeChange('white_list')}>
                                     <FontAwesomeIcon icon={faCheck} className="mr-1" />
                                     Whitelist
                                 </ToggleButton>
@@ -558,12 +503,10 @@ const AccessControl: React.FC = () => {
                                     isDark ? 'bg-gray-700 text-gray-300 hover:bg-gray-650' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                                 }`}
                                 onClick={handleRefresh}
-                                title="Update"
                             >
                                 <FontAwesomeIcon icon={faRefresh} className="text-xs" />
                                 <span>Update</span>
                             </button>
-
                             <button
                                 className="px-3 py-1 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors flex items-center space-x-1"
                                 onClick={handleAddItemClick}
@@ -582,13 +525,9 @@ const AccessControl: React.FC = () => {
                 >
                     <div className={`px-6 py-4 border-b ${isDark ? 'border-gray-700' : 'border-gray-200'}`}>
                         <div className="flex justify-between items-center">
-                            <h2 className={`text-xl font-semibold flex items-center ${isDark ? 'text-gray-300' : 'text-gray-900'}`}>
-                                {isIPv6 ? 'IPv6' : 'IPv4'} {listType === 'black_list' ? 'Blacklist' : 'Whitelist'}
-                                {isLoading && (
-                                    <div className="ml-3">
-                                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                                    </div>
-                                )}
+                            <h2 className={`text-xl font-semibold flex items-center gap-3 ${isDark ? 'text-gray-300' : 'text-gray-900'}`}>
+                                {tableTitle}
+                                {isLoading && <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600" />}
                             </h2>
                             <span className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
                                 {flatData.length} Rules
@@ -619,28 +558,28 @@ const AccessControl: React.FC = () => {
                         <div className="overflow-x-auto">
                             <table className={`min-w-full divide-y ${isDark ? 'divide-gray-700' : 'divide-gray-200'}`}>
                                 <thead className={isDark ? 'bg-gray-700' : 'bg-gray-50'}>
-                                <tr>
-                                    <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                                        IP Address
-                                    </th>
-                                    <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                                        Port
-                                    </th>
-                                    <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                                        Action
-                                    </th>
-                                </tr>
+                                    <tr>
+                                        <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                                            IP Address
+                                        </th>
+                                        <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                                            Port
+                                        </th>
+                                        <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                                            Action
+                                        </th>
+                                    </tr>
                                 </thead>
                                 <tbody className={`divide-y ${isDark ? 'bg-gray-600 divide-gray-700' : 'bg-white divide-gray-200'}`}>
-                                {flatData.map(({ ip, port }, index) => (
-                                    <tr
-                                        key={`${ip}-${port}-${index}`}
-                                        className={`transition-colors ${isDark ? 'hover:bg-gray-700' : 'hover:bg-gray-50'}`}
-                                    >
-                                        <td className={`px-6 py-4 whitespace-nowrap text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-900'}`}>
-                                            {ip}
-                                        </td>
-                                        <td className={`px-6 py-4 whitespace-nowrap text-sm ${isDark ? 'text-gray-300' : 'text-gray-900'}`}>
+                                    {flatData.map(({ ip, port }, index) => (
+                                        <tr
+                                            key={`${ip}-${port}-${index}`}
+                                            className={`transition-colors ${isDark ? 'hover:bg-gray-700' : 'hover:bg-gray-50'}`}
+                                        >
+                                            <td className={`px-6 py-4 whitespace-nowrap text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-900'}`}>
+                                                {ip}
+                                            </td>
+                                            <td className={`px-6 py-4 whitespace-nowrap text-sm ${isDark ? 'text-gray-300' : 'text-gray-900'}`}>
                                                 <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
                                                     port === "0" || port === 0
                                                         ? 'bg-red-100 text-red-800'
@@ -648,18 +587,17 @@ const AccessControl: React.FC = () => {
                                                 }`}>
                                                     {port === "0" || port === 0 ? "All ports (*)" : port}
                                                 </span>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                            <button
-                                                className="px-3 py-1 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 transition-colors flex items-center space-x-1"
-                                                onClick={() => handleDeleteClick(ip, port)}
-                                                title="Delete Rule"
-                                            >
-                                                <FontAwesomeIcon icon={faTrash} />
-                                            </button>
-                                        </td>
-                                    </tr>
-                                ))}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                                <button
+                                                    className="px-3 py-1 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 transition-colors flex items-center space-x-1"
+                                                    onClick={() => handleDeleteClick(ip, port)}
+                                                >
+                                                    <FontAwesomeIcon icon={faTrash} />
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))}
                                 </tbody>
                             </table>
                         </div>
@@ -668,7 +606,7 @@ const AccessControl: React.FC = () => {
 
                 {isModalOpen && (
                     <Modal
-                        title={`Add ${isIPv6 ? 'IPv6' : 'IPv4'} ${listType === 'black_list' ? 'Blacklist' : 'Whitelist'} Rule`}
+                        title={`Add ${NIC_LABELS[nic]} / ${FLOW_LABELS[flow]} / ${isIPv6 ? 'IPv6' : 'IPv4'} ${listType === 'black_list' ? 'Blacklist' : 'Whitelist'} Rule`}
                         onClose={handleModalClose}
                         onSubmit={handleAddItemSubmit}
                         submitLabel="Add"
@@ -676,9 +614,7 @@ const AccessControl: React.FC = () => {
                     >
                         <div className="space-y-4">
                             <div>
-                                <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-                                    IP Address
-                                </label>
+                                <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>IP Address</label>
                                 <input
                                     type="text"
                                     value={newIp}
@@ -690,25 +626,24 @@ const AccessControl: React.FC = () => {
                                 />
                             </div>
 
-                            <div>
-                                <div className="flex items-center space-x-2 mb-2">
-                                    <input
-                                        id="block-all-ports"
-                                        type="checkbox"
-                                        checked={blockAllPorts}
-                                        onChange={handleBlockAllPortsChange}
-                                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                                    />
-                                    <label htmlFor="block-all-ports" className={`text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-                                        Block All Ports
-                                    </label>
-                                </div>
+                            <div className="flex items-center space-x-2">
+                                <input
+                                    id="block-all-ports"
+                                    type="checkbox"
+                                    checked={blockAllPorts}
+                                    onChange={(e) => {
+                                        setBlockAllPorts(e.target.checked)
+                                        if (e.target.checked) setNewPort('')
+                                    }}
+                                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                                />
+                                <label htmlFor="block-all-ports" className={`text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                                    Block All Ports
+                                </label>
                             </div>
 
                             <div>
-                                <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-                                    Port
-                                </label>
+                                <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Port</label>
                                 <input
                                     type="text"
                                     value={blockAllPorts ? "" : newPort}
@@ -721,11 +656,6 @@ const AccessControl: React.FC = () => {
                                             : (isDark ? 'bg-gray-700 border-gray-600 text-gray-300' : 'bg-white border-gray-300 text-gray-900')
                                     }`}
                                 />
-                                {blockAllPorts && (
-                                    <p className={`mt-1 text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                                        Block all ports for this IP
-                                    </p>
-                                )}
                             </div>
 
                             <div className={`border rounded-lg p-3 ${isDark ? 'bg-blue-900/30 border-blue-800' : 'bg-blue-50 border-blue-200'}`}>
@@ -733,7 +663,7 @@ const AccessControl: React.FC = () => {
                                     <FontAwesomeIcon icon={faInfoCircle} className={`mt-0.5 mr-2 ${isDark ? 'text-blue-400' : 'text-blue-400'}`} />
                                     <div className={`text-sm ${isDark ? 'text-blue-300' : 'text-blue-700'}`}>
                                         <p className="font-medium mb-1">
-                                            Add to {listType === 'black_list' ? 'Blacklist' : 'Whitelist'}
+                                            {NIC_LABELS[nic]} {FLOW_LABELS[flow]} → {listType === 'black_list' ? 'Blacklist' : 'Whitelist'}
                                         </p>
                                         <p>
                                             {listType === 'black_list'
@@ -762,11 +692,7 @@ const AccessControl: React.FC = () => {
                                 <FontAwesomeIcon icon={faExclamationTriangle} className="mr-2" />
                                 <span className="font-medium">Warning</span>
                             </div>
-
-                            <p className={isDark ? 'text-gray-300' : 'text-gray-700'}>
-                                Are you sure you want to delete this rule?
-                            </p>
-
+                            <p className={isDark ? 'text-gray-300' : 'text-gray-700'}>Are you sure you want to delete this rule?</p>
                             {itemToDelete && (
                                 <div className={`border rounded-lg p-4 ${isDark ? 'bg-gray-700 border-gray-600' : 'bg-gray-50 border-gray-200'}`}>
                                     <div className="space-y-2">
@@ -777,22 +703,18 @@ const AccessControl: React.FC = () => {
                                         <div className="flex justify-between">
                                             <span className={`font-medium ${isDark ? 'text-gray-400' : 'text-gray-700'}`}>Port:</span>
                                             <span className={isDark ? 'text-gray-300' : 'text-gray-900'}>
-                                                {itemToDelete.port === "0" || itemToDelete.port === 0
-                                                    ? "All Ports (*)"
-                                                    : itemToDelete.port
-                                                }
+                                                {itemToDelete.port === "0" || itemToDelete.port === 0 ? "All Ports (*)" : itemToDelete.port}
                                             </span>
                                         </div>
                                         <div className="flex justify-between">
-                                            <span className={`font-medium ${isDark ? 'text-gray-400' : 'text-gray-700'}`}>List Type:</span>
+                                            <span className={`font-medium ${isDark ? 'text-gray-400' : 'text-gray-700'}`}>Target:</span>
                                             <span className={isDark ? 'text-gray-300' : 'text-gray-900'}>
-                                                {listType === 'black_list' ? 'Blacklist' : 'Whitelist'}
+                                                {NIC_LABELS[nic]} / {FLOW_LABELS[flow]} / {listType === 'black_list' ? 'Blacklist' : 'Whitelist'}
                                             </span>
                                         </div>
                                     </div>
                                 </div>
                             )}
-
                             <div className={`border rounded-lg p-3 ${isDark ? 'bg-red-900/30 border-red-800' : 'bg-red-50 border-red-200'}`}>
                                 <div className="flex items-start">
                                     <FontAwesomeIcon icon={faExclamationTriangle} className={`mt-0.5 mr-2 ${isDark ? 'text-red-400' : 'text-red-400'}`} />

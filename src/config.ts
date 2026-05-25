@@ -5,18 +5,28 @@ const port = 8080;
 export const host = `${hostname}:${port}`;
 export const siteUrl = `${httpProtocol}://${host}`
 
+export type NicType = 'ingress' | 'egress'
+export type FlowType = 'source' | 'destination'
+export type ListType = 'white_list' | 'black_list'
+export type IpVersion = 'ipv4' | 'ipv6'
+
 export const urls = {
     bootTime: `${httpProtocol}://${host}/misc/boot_time`,
-    access_control: {
-        ipv4: {
-            white_list: `${httpProtocol}://${host}/ebpf/access_control/ipv4/source/white_list`,
-            black_list: `${httpProtocol}://${host}/ebpf/access_control/ipv4/source/black_list`,
-        },
-        ipv6: {
-            white_list: `${httpProtocol}://${host}/ebpf/access_control/ipv6/source/white_list`,
-            black_list: `${httpProtocol}://${host}/ebpf/access_control/ipv6/source/black_list`,
-        }
-    }
+
+    auth: {
+        status: `${httpProtocol}://${host}/auth/status`,
+        register: `${httpProtocol}://${host}/auth/register`,
+        login: `${httpProtocol}://${host}/auth/login`,
+        me: `${httpProtocol}://${host}/auth/me`,
+        logout: `${httpProtocol}://${host}/auth/logout`,
+    },
+
+    access_control: (
+        nic: NicType,
+        ipVersion: IpVersion,
+        flow: FlowType,
+        listType: ListType
+    ) => `${httpProtocol}://${host}/ebpf/access_control/${nic}/${ipVersion}/${flow}/${listType}`,
 } as const;
 
 export const websocketUrl = {
