@@ -17,6 +17,7 @@ import {
     faMoon,
     faDesktop,
     faChevronUp,
+    faScroll,
 } from '@fortawesome/free-solid-svg-icons'
 import { useTheme } from '../providers/ThemeProvider'
 import { useAuth } from '../contexts/AuthContext'
@@ -36,6 +37,7 @@ const menuItems = [
     { href: '/traffic-map',    icon: faMapMarkedAlt,  label: 'Traffic Map' },
     { href: '/access-control', icon: faShieldAlt,     label: 'Access Control' },
     { href: '/detection',      icon: faRobot,         label: 'Detection' },
+    { href: '/logs',           icon: faScroll,        label: 'Logs' },
 ]
 
 interface SidebarProps {
@@ -74,20 +76,18 @@ export const Sidebar: React.FC<SidebarProps> = ({ children }) => {
     return (
         <div className={`flex min-h-screen transition-colors duration-300 ${isDark ? 'bg-gray-900' : 'bg-gray-100'}`}>
             <motion.aside
-                className={`fixed top-0 left-0 h-screen flex flex-col shadow-xl z-50 overflow-hidden transition-colors duration-300 ${
-                    isDark ? 'bg-gray-800 text-gray-100' : 'bg-slate-800 text-white'
-                }`}
+                className="fixed top-0 left-0 h-screen flex flex-col shadow-xl z-50 overflow-hidden bg-[#0a2330] text-white"
                 initial="expanded"
                 animate={isCollapsed ? 'collapsed' : 'expanded'}
                 variants={sidebarVariants}
                 transition={{ duration: 0.3, ease: 'easeInOut' }}
             >
                 {/* Header */}
-                <div className={`flex items-center justify-between p-4 min-h-[70px] border-b ${isDark ? 'border-gray-700' : 'border-white/10'}`}>
+                <div className="flex items-center justify-between p-4 min-h-[70px] border-b border-white/8">
                     {!isCollapsed && (
                         <Link href="/" className="no-underline text-inherit">
                             <motion.h1
-                                className="text-2xl font-bold text-blue-400 m-0 whitespace-nowrap"
+                                className="text-2xl font-bold text-teal-300 m-0 whitespace-nowrap"
                                 initial={{ opacity: 0 }}
                                 animate={{ opacity: 1 }}
                                 transition={{ duration: 0.3 }}
@@ -98,9 +98,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ children }) => {
                     )}
                     <button
                         onClick={() => setIsCollapsed(!isCollapsed)}
-                        className={`bg-transparent border-none cursor-pointer p-2 rounded-md flex items-center justify-center w-10 h-10 transition-colors duration-200 ${
-                            isDark ? 'text-gray-300 hover:bg-gray-700' : 'text-white hover:bg-white/10'
-                        }`}
+                        className="bg-transparent border-none cursor-pointer p-2 rounded-md flex items-center justify-center w-10 h-10 transition-colors duration-200 text-teal-200/70 hover:bg-white/10 hover:text-white"
                     >
                         <FontAwesomeIcon icon={faBars} />
                     </button>
@@ -116,10 +114,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ children }) => {
                                 flex items-center no-underline transition-all duration-200 mx-2 rounded-lg
                                 ${isCollapsed ? 'px-2 py-2 justify-center h-12 w-12' : 'px-4 py-3'}
                                 ${isActive(item.href)
-                                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30'
-                                    : isDark
-                                        ? 'text-gray-400 hover:bg-gray-700 hover:text-gray-200'
-                                        : 'text-slate-300 hover:bg-white/10 hover:text-white'
+                                    ? 'bg-teal-600 text-white shadow-lg shadow-teal-900/50'
+                                    : 'text-teal-100/60 hover:bg-white/8 hover:text-teal-100'
                                 }
                             `}
                         >
@@ -142,16 +138,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ children }) => {
                 </nav>
 
                 {/* Bottom section */}
-                <div className={`border-t ${isDark ? 'border-gray-700' : 'border-white/10'}`}>
+                <div className="border-t border-white/8">
                     {isCollapsed ? (
-                        /* Collapsed: two centered icon buttons */
                         <div className="flex flex-col items-center py-2 gap-1">
                             <button
                                 onClick={handleLogout}
                                 title="Logout"
-                                className={`w-12 h-10 flex items-center justify-center rounded-lg transition-colors duration-200 ${
-                                    isDark ? 'text-gray-400 hover:bg-red-900/40 hover:text-red-400' : 'text-slate-300 hover:bg-red-600/20 hover:text-red-300'
-                                }`}
+                                className="w-12 h-10 flex items-center justify-center rounded-lg transition-colors duration-200 text-teal-100/60 hover:bg-red-900/40 hover:text-red-300"
                             >
                                 <FontAwesomeIcon icon={faSignOutAlt} />
                             </button>
@@ -161,15 +154,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ children }) => {
                                     setTheme(THEME_OPTIONS[(idx + 1) % THEME_OPTIONS.length].value)
                                 }}
                                 title={`Theme: ${currentTheme.label}`}
-                                className={`w-12 h-10 flex items-center justify-center rounded-lg transition-colors duration-200 ${
-                                    isDark ? 'text-gray-400 hover:bg-gray-700 hover:text-gray-200' : 'text-slate-300 hover:bg-white/10 hover:text-white'
-                                }`}
+                                className="w-12 h-10 flex items-center justify-center rounded-lg transition-colors duration-200 text-teal-100/60 hover:bg-white/10 hover:text-white"
                             >
                                 <FontAwesomeIcon icon={currentTheme.icon} />
                             </button>
                         </div>
                     ) : (
-                        /* Expanded: user row + theme row */
                         <div className="relative">
                             {/* Theme picker popup */}
                             <AnimatePresence>
@@ -179,9 +169,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ children }) => {
                                         animate={{ opacity: 1, y: 0, scale: 1 }}
                                         exit={{ opacity: 0, y: 6, scale: 0.97 }}
                                         transition={{ duration: 0.15 }}
-                                        className={`absolute bottom-full left-3 right-3 mb-2 rounded-xl shadow-2xl border overflow-hidden z-50 ${
-                                            isDark ? 'bg-gray-700 border-gray-600' : 'bg-slate-700 border-slate-600'
-                                        }`}
+                                        className="absolute bottom-full left-3 right-3 mb-2 rounded-xl shadow-2xl border border-white/10 overflow-hidden z-50 bg-[#0d2d3a]"
                                     >
                                         {THEME_OPTIONS.map((option) => (
                                             <button
@@ -189,10 +177,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ children }) => {
                                                 onClick={() => { setTheme(option.value); setShowThemePicker(false) }}
                                                 className={`w-full px-4 py-2.5 flex items-center gap-3 text-sm transition-colors duration-150 ${
                                                     theme === option.value
-                                                        ? 'bg-blue-600 text-white'
-                                                        : isDark
-                                                            ? 'text-gray-300 hover:bg-gray-600'
-                                                            : 'text-slate-200 hover:bg-slate-600'
+                                                        ? 'bg-teal-600 text-white'
+                                                        : 'text-teal-100/70 hover:bg-white/8 hover:text-white'
                                                 }`}
                                             >
                                                 <FontAwesomeIcon icon={option.icon} className="w-4 text-center" />
@@ -211,24 +197,22 @@ export const Sidebar: React.FC<SidebarProps> = ({ children }) => {
                             )}
 
                             {/* User info + logout */}
-                            <div className={`flex items-center gap-3 px-4 py-3 ${isDark ? 'border-b border-gray-700' : 'border-b border-white/10'}`}>
-                                <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center flex-shrink-0">
+                            <div className="flex items-center gap-3 px-4 py-3 border-b border-white/8">
+                                <div className="w-8 h-8 rounded-full bg-teal-600 flex items-center justify-center flex-shrink-0">
                                     <FontAwesomeIcon icon={faUser} className="text-xs text-white" />
                                 </div>
                                 <div className="flex-1 min-w-0">
                                     <p className="text-sm font-semibold text-white truncate leading-tight">
                                         {user?.username ?? '—'}
                                     </p>
-                                    <p className={`text-xs truncate leading-tight capitalize ${isDark ? 'text-gray-400' : 'text-slate-400'}`}>
+                                    <p className="text-xs truncate leading-tight capitalize text-teal-300/60">
                                         {user?.role ?? ''}
                                     </p>
                                 </div>
                                 <button
                                     onClick={handleLogout}
                                     title="Logout"
-                                    className={`w-8 h-8 flex-shrink-0 flex items-center justify-center rounded-lg transition-colors duration-200 ${
-                                        isDark ? 'text-gray-400 hover:bg-red-900/40 hover:text-red-400' : 'text-slate-400 hover:bg-red-600/20 hover:text-red-300'
-                                    }`}
+                                    className="w-8 h-8 flex-shrink-0 flex items-center justify-center rounded-lg transition-colors duration-200 text-teal-100/50 hover:bg-red-900/40 hover:text-red-300"
                                 >
                                     <FontAwesomeIcon icon={faSignOutAlt} className="text-sm" />
                                 </button>
@@ -237,9 +221,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ children }) => {
                             {/* Theme row */}
                             <button
                                 onClick={() => setShowThemePicker(!showThemePicker)}
-                                className={`w-full flex items-center gap-3 px-4 py-3 transition-colors duration-200 ${
-                                    isDark ? 'text-gray-400 hover:bg-gray-700/60' : 'text-slate-300 hover:bg-white/10'
-                                }`}
+                                className="w-full flex items-center gap-3 px-4 py-3 transition-colors duration-200 text-teal-100/60 hover:bg-white/8 hover:text-teal-100"
                             >
                                 <FontAwesomeIcon icon={currentTheme.icon} className="w-4 text-center flex-shrink-0" />
                                 <span className="flex-1 text-sm text-left">{currentTheme.label} Mode</span>

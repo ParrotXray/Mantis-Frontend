@@ -30,39 +30,35 @@ svg.svg-inline--fa {
 }
 
 ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+    width: 6px;
+    height: 6px;
 }
 
 ::-webkit-scrollbar-thumb {
-    background: rgba(59, 130, 246, 0.3); /* 使用 Tailwind blue-500 */
+    background: rgba(20, 184, 166, 0.35);
     border-radius: 10px;
-    transition: background 0.2s ease-in-out; /* 使用完整的 transition 屬性 */
+    transition: background 0.2s ease-in-out;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: rgba(59, 130, 246, 0.6); /* 懸停時加深 */
+    background: rgba(20, 184, 166, 0.65);
 }
 
 ::-webkit-scrollbar-track {
-    background: rgba(243, 244, 246, 0.5); /* 淺灰色背景，提供更好的對比 */
+    background: rgba(13, 45, 58, 0.15);
     border-radius: 10px;
-    transition: background 0.15s ease; /* 軌道也加上過渡效果 */
 }
 
-/* 可選：為暗色主題準備的樣式 */
 @media (prefers-color-scheme: dark) {
     ::-webkit-scrollbar-thumb {
-        background: rgba(96, 165, 250, 0.4); /* 暗色主題下使用 blue-400 */
-        transition: background 0.2s ease-in-out;
+        background: rgba(20, 184, 166, 0.4);
     }
-    
+
     ::-webkit-scrollbar-thumb:hover {
-        background: rgba(96, 165, 250, 0.7);
+        background: rgba(20, 184, 166, 0.7);
     }
-    
+
     ::-webkit-scrollbar-track {
-        background: rgba(31, 41, 55, 0.3); /* 暗色主題下的軌道背景 */
-        transition: background 0.15s ease;
+        background: rgba(13, 45, 58, 0.4);
     }
 }

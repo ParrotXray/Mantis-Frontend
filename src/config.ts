@@ -37,6 +37,7 @@ export const websocketUrl = {
 
     systemHealth: `${websocketProtocol}://${host}/health/websocket/metrics`,
     detectionAlert: `${websocketProtocol}://${host}/detection/websocket/alert`,
+    logs: `${websocketProtocol}://${host}/logs/websocket`,
 } as const;
 
 export const REFRESH_INTERVAL = 50000;
