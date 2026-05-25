@@ -48,36 +48,36 @@ const Custom404: React.FC = () => {
   const getColorClasses = (color: string) => {
     const colorMap = {
       blue: {
-        bg: "bg-blue-500",
-        hover: "hover:bg-blue-600",
-        border: "border-blue-200",
-        hoverBorder: "hover:border-blue-300",
-        hoverBg: "hover:bg-blue-50",
-        text: "text-blue-600"
+        bg: "bg-[#4ab5cc]",
+        hover: "hover:bg-[#3da5bc]",
+        border: "border-sky-200",
+        hoverBorder: "hover:border-sky-300",
+        hoverBg: "hover:bg-sky-50",
+        text: "text-sky-600"
       },
       purple: {
-        bg: "bg-purple-500",
-        hover: "hover:bg-purple-600",
-        border: "border-purple-200",
-        hoverBorder: "hover:border-purple-300",
-        hoverBg: "hover:bg-purple-50",
-        text: "text-purple-600"
+        bg: "bg-indigo-500",
+        hover: "hover:bg-indigo-600",
+        border: "border-indigo-200",
+        hoverBorder: "hover:border-indigo-300",
+        hoverBg: "hover:bg-indigo-50",
+        text: "text-indigo-600"
       },
       green: {
-        bg: "bg-green-500",
-        hover: "hover:bg-green-600",
-        border: "border-green-200",
-        hoverBorder: "hover:border-green-300",
-        hoverBg: "hover:bg-green-50",
-        text: "text-green-600"
+        bg: "bg-emerald-500",
+        hover: "hover:bg-emerald-600",
+        border: "border-emerald-200",
+        hoverBorder: "hover:border-emerald-300",
+        hoverBg: "hover:bg-emerald-50",
+        text: "text-emerald-600"
       },
       red: {
-        bg: "bg-red-500",
-        hover: "hover:bg-red-600",
-        border: "border-red-200",
-        hoverBorder: "hover:border-red-300",
-        hoverBg: "hover:bg-red-50",
-        text: "text-red-600"
+        bg: "bg-slate-500",
+        hover: "hover:bg-slate-600",
+        border: "border-slate-200",
+        hoverBorder: "hover:border-slate-300",
+        hoverBg: "hover:bg-slate-50",
+        text: "text-slate-600"
       }
     };
     return colorMap[color as keyof typeof colorMap];
@@ -90,7 +90,7 @@ const Custom404: React.FC = () => {
         <meta name="description" content="The page you are looking for does not exist." />
       </Head>
 
-      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100">
+      <div className="min-h-screen bg-slate-50">
         <div className="container mx-auto px-4 py-16">
           <div className="max-w-4xl mx-auto">
             
@@ -168,7 +168,7 @@ const Custom404: React.FC = () => {
                 <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  className="w-full sm:w-auto bg-gradient-to-r from-blue-600 to-blue-700 text-white px-8 py-4 rounded-lg font-semibold hover:from-blue-700 hover:to-blue-800 transition-all duration-300 flex items-center justify-center gap-3 shadow-lg"
+                  className="w-full sm:w-auto bg-[#4ab5cc] text-white px-8 py-4 rounded-lg font-semibold hover:bg-[#4ab5cc] transition-all duration-300 flex items-center justify-center gap-3 shadow-lg shadow-[#4ab5cc]/15"
                 >
                   <FontAwesomeIcon icon={faHome} />
                   Back to Home
@@ -179,7 +179,7 @@ const Custom404: React.FC = () => {
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => window.history.back()}
-                className="w-full sm:w-auto bg-gray-600 text-white px-8 py-4 rounded-lg font-semibold hover:bg-gray-700 transition-all duration-300 flex items-center justify-center gap-3 shadow-lg"
+                className="w-full sm:w-auto bg-slate-700 text-white px-8 py-4 rounded-lg font-semibold hover:bg-slate-600 transition-all duration-300 flex items-center justify-center gap-3 shadow-lg"
               >
                 <FontAwesomeIcon icon={faArrowLeft} />
                 Back to Previous Page

@@ -137,93 +137,71 @@ const SystemDetailModal: React.FC<SystemDetailModalProps> = ({ isOpen, onClose, 
 
     if (!isOpen || !systemHealth) return null
 
+    const SectionHeader: React.FC<{ icon: any; iconColor: string; label: string }> = ({ icon, iconColor, label }) => (
+        <div className="flex items-center gap-2 mb-3">
+            <div className={`w-5 h-5 rounded-md flex items-center justify-center flex-shrink-0 ${isDark ? 'bg-slate-700/60' : 'bg-slate-100'}`}>
+                <FontAwesomeIcon icon={icon} className={`text-[10px] ${iconColor}`} />
+            </div>
+            <span className={`text-sm font-semibold ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>{label}</span>
+        </div>
+    )
+
+    const sectionCls = isDark ? 'bg-[#131929] border-slate-700/40' : 'bg-slate-50 border-slate-200'
+    const innerCellCls = isDark ? 'bg-[#0e1e2c] border-slate-700/40' : 'bg-white border-slate-200'
+    const labelCls = isDark ? 'text-slate-400' : 'text-slate-500'
+    const valueCls = isDark ? 'text-slate-200' : 'text-slate-800'
+
     const getModalContent = () => {
         switch (type) {
             case 'cpu':
                 return {
                     title: 'CPU Details',
                     icon: faMicrochip,
-                    color: 'text-blue-600',
+                    color: 'text-[#4ab5cc]',
                     content: (
-                        <div className="space-y-6">
-                            <div className={`rounded-lg p-4 ${isDark ? 'bg-slate-600' : 'bg-blue-50'}`}>
-                                <h4 className={`font-semibold mb-3 flex items-center ${isDark ? 'text-gray-300' : 'text-gray-900'}`}>
-                                    <FontAwesomeIcon icon={faMicrochip}
-                                                     className={`mr-2 ${isDark ? 'text-blue-400' : 'text-blue-900'}`}/>
-                                    Processor Information
-                                </h4>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-                                    <div>
-                                        <span
-                                            className={isDark ? 'text-gray-300' : 'text-gray-600'}>Processor model:</span>
-                                        <div
-                                            className={`font-medium ${isDark ? 'text-gray-300' : 'text-gray-900'}`}>{systemHealth.cpu_details?.cpu_brand}</div>
-                                    </div>
-                                    <div>
-                                        <span
-                                            className={isDark ? 'text-gray-300' : 'text-gray-600'}>Number of cores:</span>
-                                        <div
-                                            className={`font-medium ${isDark ? 'text-gray-300' : 'text-gray-900'}`}>{systemHealth.cpu_details?.core_count} cores
+                        <div className="space-y-4">
+                            {/* Processor Information */}
+                            <div className={`rounded-xl border p-4 ${sectionCls}`}>
+                                <SectionHeader icon={faMicrochip} iconColor="text-[#4ab5cc]" label="Processor Information" />
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                    {[
+                                        { label: 'Processor model', value: systemHealth.cpu_details?.cpu_brand },
+                                        { label: 'Number of cores', value: `${systemHealth.cpu_details?.core_count} cores` },
+                                        { label: 'Base frequency', value: `${systemHealth.cpu_details?.cpu_frequency} MHz` },
+                                        { label: 'Overall usage', value: `${systemHealth.cpu_details?.cpu_usage.toFixed(1)}%` },
+                                    ].map(({ label, value }) => (
+                                        <div key={label} className={`rounded-lg border p-3 ${innerCellCls}`}>
+                                            <div className={`text-xs mb-0.5 ${labelCls}`}>{label}</div>
+                                            <div className={`text-sm font-medium ${valueCls}`}>{value}</div>
                                         </div>
-                                    </div>
-                                    <div>
-                                        <span
-                                            className={isDark ? 'text-gray-300' : 'text-gray-600'}>Base frequency:</span>
-                                        <div
-                                            className={`font-medium ${isDark ? 'text-gray-300' : 'text-gray-900'}`}>{systemHealth.cpu_details?.cpu_frequency} MHz
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <span
-                                            className={isDark ? 'text-gray-300' : 'text-gray-600'}>Overall usage:</span>
-                                        <div
-                                            className={`font-medium ${isDark ? 'text-gray-300' : 'text-gray-900'}`}>{systemHealth.cpu_details?.cpu_usage.toFixed(1)}%
-                                        </div>
-                                    </div>
+                                    ))}
                                 </div>
                             </div>
 
+                            {/* Usage per core */}
                             {systemHealth.cpu_details?.cores && (
-                                <div className={`rounded-lg p-4 ${isDark ? 'bg-slate-600' : 'bg-blue-50'}`}>
-                                    <h4 className={`font-semibold mb-3 flex items-center ${isDark ? 'text-gray-300' : 'text-gray-900'}`}>
-                                        <FontAwesomeIcon icon={faTachometerAlt}
-                                                         className={`mr-2 ${isDark ? 'text-purple-400' : 'text-purple-600'}`}/>
-                                        Usage per core
-                                    </h4>
-                                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                                <div className={`rounded-xl border p-4 ${sectionCls}`}>
+                                    <SectionHeader icon={faTachometerAlt} iconColor="text-[#4ab5cc]" label="Usage per core" />
+                                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
                                         {systemHealth.cpu_details.cores.map((core) => {
                                             const usage = core.usage_percent
                                             const status = getStatusFromValue(usage, 'cpu')
                                             const statusColors = getStatusColor(status)
-
                                             return (
-                                                <div key={core.core_id}
-                                                     className={`rounded-lg p-3 border border-gray-200 ${isDark ? 'bg-gray-700' : 'bg-white'}`}>
+                                                <div key={core.core_id} className={`rounded-lg border p-3 ${innerCellCls}`}>
                                                     <div className="flex justify-between items-center mb-2">
-                                                        <span className={`text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-                                                          Core {core.core_id}
-                                                        </span>
-                                                        <span
-                                                            className={`text-xs px-2 py-1 rounded-full ${statusColors.bgColor} ${statusColors.color}`}>
-                                                          {usage.toFixed(1)}%
+                                                        <span className={`text-xs font-medium ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>Core {core.core_id}</span>
+                                                        <span className={`text-xs px-1.5 py-0.5 rounded-full ${statusColors.bgColor} ${statusColors.color}`}>
+                                                            {usage.toFixed(1)}%
                                                         </span>
                                                     </div>
-
-                                                    <div
-                                                        className={`w-full rounded-full h-2 mb-2 ${isDark ? 'bg-gray-500' : 'bg-gray-200'}`}>
+                                                    <div className={`w-full rounded-full h-1.5 mb-1.5 ${isDark ? 'bg-slate-700' : 'bg-slate-200'}`}>
                                                         <div
-                                                            className={`h-2 rounded-full transition-all duration-300 ${
-                                                                status === 'good' ? 'bg-green-500' :
-                                                                    status === 'warning' ? 'bg-yellow-500' : 'bg-red-500'
-                                                            }`}
-                                                            style={{width: `${Math.min(usage, 100)}%`}}
-                                                        ></div>
+                                                            className={`h-1.5 rounded-full transition-all duration-300 ${status === 'good' ? 'bg-emerald-500' : status === 'warning' ? 'bg-yellow-500' : 'bg-red-500'}`}
+                                                            style={{ width: `${Math.min(usage, 100)}%` }}
+                                                        />
                                                     </div>
-
-                                                    <div
-                                                        className={`text-xs text-center ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                                                        {core.frequency} MHz
-                                                    </div>
+                                                    <div className={`text-xs text-center ${labelCls}`}>{core.frequency} MHz</div>
                                                 </div>
                                             )
                                         })}
@@ -231,43 +209,29 @@ const SystemDetailModal: React.FC<SystemDetailModalProps> = ({ isOpen, onClose, 
                                 </div>
                             )}
 
+                            {/* System load average */}
                             {systemHealth.load_average ? (
-                                <div className={`rounded-lg p-4 ${isDark ? 'bg-slate-600' : 'bg-blue-50'}`}>
-                                    <h4 className={`font-semibold mb-3 flex items-center ${isDark ? 'text-gray-300' : 'text-gray-900'}`}>
-                                        <FontAwesomeIcon icon={faWeight}
-                                                         className={`mr-2 ${isDark ? 'text-yellow-400' : 'text-yellow-900'}`}/>
-                                        System load average
-                                    </h4>
-                                    <div className="grid grid-cols-3 gap-4">
+                                <div className={`rounded-xl border p-4 ${sectionCls}`}>
+                                    <SectionHeader icon={faWeight} iconColor="text-amber-400" label="System load average" />
+                                    <div className="grid grid-cols-3 gap-3">
                                         {[
-                                            {label: '1 minute', value: systemHealth.load_average.one_minute},
-                                            {label: '5 minutes', value: systemHealth.load_average.five_minute},
-                                            {label: '15 minutes', value: systemHealth.load_average.fifteen_minute}
+                                            { label: '1 minute',   value: systemHealth.load_average.one_minute    },
+                                            { label: '5 minutes',  value: systemHealth.load_average.five_minute   },
+                                            { label: '15 minutes', value: systemHealth.load_average.fifteen_minute },
                                         ].map((load) => {
                                             const status = getStatusFromValue(load.value, 'load')
                                             const statusColors = getStatusColor(status)
-
                                             return (
-                                                <div key={load.label}
-                                                     className={`rounded-lg p-3 text-center border border-gray-200 ${isDark ? 'bg-gray-700' : 'bg-white'}`}>
-                                                    <div
-                                                        className={`text-sm mb-1 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>{load.label}</div>
-                                                    <div
-                                                        className={`text-lg font-bold mb-2 ${isDark ? 'text-gray-300' : 'text-gray-900'}`}>
-                                                        {load.value.toFixed(2)}
-                                                    </div>
-                                                    <div
-                                                        className={`w-full rounded-full h-2 mb-2 ${isDark ? 'bg-gray-500' : 'bg-gray-200'}`}>
+                                                <div key={load.label} className={`rounded-lg border p-3 text-center ${innerCellCls}`}>
+                                                    <div className={`text-xs mb-1 ${labelCls}`}>{load.label}</div>
+                                                    <div className={`text-lg font-bold mb-2 ${valueCls}`}>{load.value.toFixed(2)}</div>
+                                                    <div className={`w-full rounded-full h-1.5 mb-2 ${isDark ? 'bg-slate-700' : 'bg-slate-200'}`}>
                                                         <div
-                                                            className={`h-2 rounded-full transition-all duration-300 ${
-                                                                status === 'good' ? 'bg-green-500' :
-                                                                    status === 'warning' ? 'bg-yellow-500' : 'bg-red-500'
-                                                            }`}
-                                                            style={{width: `${Math.min(load.value, 100)}%`}}
-                                                        ></div>
+                                                            className={`h-1.5 rounded-full transition-all duration-300 ${status === 'good' ? 'bg-emerald-500' : status === 'warning' ? 'bg-yellow-500' : 'bg-red-500'}`}
+                                                            style={{ width: `${Math.min(load.value * 20, 100)}%` }}
+                                                        />
                                                     </div>
-                                                    <div
-                                                        className={`text-xs px-2 py-1 rounded-full ${statusColors.bgColor} ${statusColors.color}`}>
+                                                    <div className={`text-xs px-2 py-0.5 rounded-full ${statusColors.bgColor} ${statusColors.color}`}>
                                                         {status === 'good' ? 'Normal' : status === 'warning' ? 'Warning' : 'Overloaded'}
                                                     </div>
                                                 </div>
@@ -276,11 +240,9 @@ const SystemDetailModal: React.FC<SystemDetailModalProps> = ({ isOpen, onClose, 
                                     </div>
                                 </div>
                             ) : (
-                                <div className={`rounded-lg p-4 ${isDark ? 'bg-slate-600' : 'bg-blue-50'}`}>
-                                    <div className={`text-center py-8 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                                        <FontAwesomeIcon icon={faExclamationCircle} className="text-4xl mb-2"/>
-                                        <p>System load data unavailable</p>
-                                    </div>
+                                <div className={`rounded-xl border p-4 text-center py-8 ${sectionCls}`}>
+                                    <FontAwesomeIcon icon={faExclamationCircle} className={`text-3xl mb-2 ${labelCls}`} />
+                                    <p className={`text-sm ${labelCls}`}>System load data unavailable</p>
                                 </div>
                             )}
                         </div>
@@ -299,121 +261,70 @@ const SystemDetailModal: React.FC<SystemDetailModalProps> = ({ isOpen, onClose, 
                 return {
                     title: 'Memory Details',
                     icon: faMemory,
-                    color: 'text-green-600',
+                    color: 'text-emerald-400',
                     content: (
-                        <div className="space-y-6">
-                            <div className={`rounded-lg p-4 ${isDark ? 'bg-slate-600' : 'bg-blue-50'}`}>
-                                <h4 className={`font-semibold mb-4 flex items-center ${isDark ? 'text-gray-300' : 'text-gray-900'}`}>
-                                    <FontAwesomeIcon icon={faMemory}
-                                                     className={`mr-2 ${isDark ? ' text-green-400' : ' text-green-900'}`}/>
-                                    Physical Memory (RAM)
-                                </h4>
-
+                        <div className="space-y-4">
+                            {/* Physical Memory */}
+                            <div className={`rounded-xl border p-4 ${sectionCls}`}>
+                                <SectionHeader icon={faMemory} iconColor="text-emerald-400" label="Physical Memory (RAM)" />
                                 <div className="flex items-center justify-center mb-4">
-                                    <div className="relative w-32 h-32">
-                                        <svg className="w-32 h-32 transform -rotate-90" viewBox="0 0 100 100">
+                                    <div className="relative w-28 h-28">
+                                        <svg className="w-28 h-28 transform -rotate-90" viewBox="0 0 100 100">
+                                            <circle cx="50" cy="50" r="45" stroke={isDark ? '#334155' : '#e2e8f0'} strokeWidth="8" fill="none" />
                                             <circle
-                                                cx="50"
-                                                cy="50"
-                                                r="45"
-                                                stroke={isDark ? "#6a7282" : "#e5e7eb"}
-                                                strokeWidth="8"
-                                                fill="none"
-                                            />
-                                            <circle
-                                                cx="50"
-                                                cy="50"
-                                                r="45"
-                                                stroke={memoryPercent < 60 ? "#10b981" : memoryPercent < 85 ? "#f59e0b" : "#ef4444"}
-                                                strokeWidth="8"
-                                                fill="none"
-                                                strokeLinecap="round"
+                                                cx="50" cy="50" r="45"
+                                                stroke={memoryPercent < 60 ? '#10b981' : memoryPercent < 85 ? '#f59e0b' : '#ef4444'}
+                                                strokeWidth="8" fill="none" strokeLinecap="round"
                                                 strokeDasharray={`${(memoryPercent / 100) * 283} 283`}
                                                 className="transition-all duration-500"
                                             />
                                         </svg>
                                         <div className="absolute inset-0 flex items-center justify-center">
                                             <div className="text-center">
-                                                <div
-                                                    className={`text-xl font-bold ${isDark ? 'text-gray-300' : 'text-gray-900'}`}>{memoryPercent.toFixed(1)}%
-                                                </div>
-                                                <div
-                                                    className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Used
-                                                </div>
+                                                <div className={`text-lg font-bold ${valueCls}`}>{memoryPercent.toFixed(1)}%</div>
+                                                <div className={`text-xs ${labelCls}`}>Used</div>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
-
-                                <div className="grid grid-cols-2 gap-4 text-sm">
-                                    <div className={`rounded-lg p-3 ${isDark ? 'bg-slate-600' : 'bg-blue-50'}`}>
-                                        <div className={isDark ? 'text-gray-300' : 'text-gray-600'}>Total Capacity</div>
-                                        <div
-                                            className={`font-semibold ${isDark ? 'text-gray-300' : 'text-gray-900'}`}>{formatBytes(memoryTotal)}</div>
-                                    </div>
-                                    <div className={`rounded-lg p-3 ${isDark ? 'bg-slate-600' : 'bg-blue-50'}`}>
-                                        <div className={isDark ? 'text-gray-300' : 'text-gray-600'}>Used</div>
-                                        <div
-                                            className={`font-semibold ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>{formatBytes(memoryUsed)}</div>
-                                    </div>
-                                    <div className={`rounded-lg p-3 ${isDark ? 'bg-slate-600' : 'bg-blue-50'}`}>
-                                        <div className={isDark ? 'text-gray-300' : 'text-gray-600'}>Available</div>
-                                        <div
-                                            className={`font-semibold ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>{formatBytes(memoryAvailable)}</div>
-                                    </div>
-                                    <div className={`rounded-lg p-3 ${isDark ? 'bg-slate-600' : 'bg-blue-50'}`}>
-                                        <div className={isDark ? 'text-gray-300' : 'text-gray-600'}>Usage</div>
-                                        <div className={`font-semibold ${
-                                            memoryPercent < 60 ? 'text-green-600' :
-                                                memoryPercent < 85 ? 'text-yellow-600' : 'text-red-600'
-                                        }`}>
-                                            {memoryPercent.toFixed(1)}%
+                                <div className="grid grid-cols-2 gap-3">
+                                    {[
+                                        { label: 'Total Capacity', value: formatBytes(memoryTotal),    color: valueCls },
+                                        { label: 'Used',           value: formatBytes(memoryUsed),     color: valueCls },
+                                        { label: 'Available',      value: formatBytes(memoryAvailable), color: valueCls },
+                                        { label: 'Usage',          value: `${memoryPercent.toFixed(1)}%`,
+                                          color: memoryPercent < 60 ? 'text-emerald-400' : memoryPercent < 85 ? 'text-yellow-400' : 'text-red-400' },
+                                    ].map(({ label, value, color }) => (
+                                        <div key={label} className={`rounded-lg border p-3 ${innerCellCls}`}>
+                                            <div className={`text-xs mb-0.5 ${labelCls}`}>{label}</div>
+                                            <div className={`text-sm font-semibold ${color}`}>{value}</div>
                                         </div>
-                                    </div>
+                                    ))}
                                 </div>
                             </div>
 
+                            {/* Swap */}
                             {swapTotal > 0 && (
-                                <div className={`rounded-lg p-4 ${isDark ? 'bg-slate-600' : 'bg-blue-50'}`}>
-                                    <h4 className={`font-semibold mb-3 flex items-center ${isDark ? 'text-gray-300' : 'text-gray-900'}`}>
-                                        <FontAwesomeIcon icon={faHdd}
-                                                         className={`mr-2 ${isDark ? 'text-blue-400' : 'text-blue-900'}`}/>
-                                        Swap
-                                    </h4>
-
-                                    <div className="mb-3">
-                                        <div className="flex justify-between text-sm mb-2">
-                                            <span className={isDark ? 'text-gray-300' : 'text-gray-600'}>Usage</span>
-                                            <span
-                                                className={`font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>{swapPercent.toFixed(1)}%
-                                            </span>
-                                        </div>
-                                        <div
-                                            className={`w-full rounded-full h-3 ${isDark ? 'bg-gray-500' : 'bg-gray-200'}`}>
-                                            <div
-                                                className={`h-3 rounded-full transition-all duration-300 ${
-                                                    swapPercent < 30 ? 'bg-green-500' : swapPercent < 70 ? 'bg-yellow-500' : 'bg-red-500'
-                                                }`}
-                                                style={{width: `${swapPercent}%`}}
-                                            ></div>
-                                        </div>
+                                <div className={`rounded-xl border p-4 ${sectionCls}`}>
+                                    <SectionHeader icon={faHdd} iconColor="text-[#4ab5cc]" label="Swap" />
+                                    <div className="flex justify-between text-xs mb-1.5">
+                                        <span className={labelCls}>Usage</span>
+                                        <span className={`font-medium ${valueCls}`}>{swapPercent.toFixed(1)}%</span>
                                     </div>
-
-                                    <div className="grid grid-cols-2 gap-3 text-sm">
+                                    <div className={`w-full rounded-full h-2 mb-3 ${isDark ? 'bg-slate-700' : 'bg-slate-200'}`}>
                                         <div
-                                            className={`rounded-lg p-3 border border-gray-200 ${isDark ? 'bg-gray-700' : 'bg-white'}`}>
-                                            <div className={isDark ? 'text-gray-300' : 'text-gray-600'}>Total Capacity
-                                            </div>
-                                            <div
-                                                className={`font-medium ${isDark ? 'text-gray-300' : 'text-gray-900'}`}>
-                                            </div>
+                                            className={`h-2 rounded-full transition-all duration-300 ${swapPercent < 30 ? 'bg-emerald-500' : swapPercent < 70 ? 'bg-yellow-500' : 'bg-red-500'}`}
+                                            style={{ width: `${swapPercent}%` }}
+                                        />
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div className={`rounded-lg border p-3 ${innerCellCls}`}>
+                                            <div className={`text-xs mb-0.5 ${labelCls}`}>Total Capacity</div>
+                                            <div className={`text-sm font-semibold ${valueCls}`}>{formatBytes(swapTotal)}</div>
                                         </div>
-                                        <div
-                                            className={`rounded-lg p-3 border border-gray-200 ${isDark ? 'bg-gray-700' : 'bg-white'}`}>
-                                            <div className={isDark ? 'text-gray-300' : 'text-gray-600'}>Used</div>
-                                            <div
-                                                className={`font-medium ${isDark ? 'text-gray-300' : 'text-gray-900'}`}>{formatBytes(swapUsed)}
-                                            </div>
+                                        <div className={`rounded-lg border p-3 ${innerCellCls}`}>
+                                            <div className={`text-xs mb-0.5 ${labelCls}`}>Used</div>
+                                            <div className={`text-sm font-semibold ${valueCls}`}>{formatBytes(swapUsed)}</div>
                                         </div>
                                     </div>
                                 </div>
@@ -431,44 +342,26 @@ const SystemDetailModal: React.FC<SystemDetailModalProps> = ({ isOpen, onClose, 
                 return {
                     title: 'Temperature Details',
                     icon: faThermometerHalf,
-                    color: 'text-orange-600',
+                    color: 'text-orange-400',
                     content: (
-                        <div className="space-y-6">
-                            <div className={`rounded-lg p-6 ${isDark ? 'bg-slate-600' : 'bg-blue-50'}`}>
-                                <h4 className={`font-semibold mb-4 flex items-center ${isDark ? 'text-gray-300' : 'text-gray-900'}`}>
-                                    <FontAwesomeIcon icon={faThermometerHalf}
-                                                     className={`mr-2 ${isDark ? 'text-orange-400' : 'text-orange-900'}`}/>
-                                    Current system temperature
-                                </h4>
-
-                                <div className="text-center mb-6">
-                                    <div
-                                        className={`text-5xl font-bold mb-2 ${isDark ? 'text-gray-300' : 'text-gray-900'}`}>
+                        <div className="space-y-4">
+                            {/* Current temperature */}
+                            <div className={`rounded-xl border p-4 ${sectionCls}`}>
+                                <SectionHeader icon={faThermometerHalf} iconColor="text-orange-400" label="Current system temperature" />
+                                <div className="text-center mb-5">
+                                    <div className={`text-5xl font-bold mb-2 ${valueCls}`}>
                                         {temp.toFixed(1)}<span className="text-3xl">°C</span>
                                     </div>
-                                    <div
-                                        className={`inline-flex items-center space-x-2 text-sm px-4 py-2 rounded-full ${tempColors.bgColor} ${tempColors.color}`}>
-                                        <FontAwesomeIcon icon={
-                                            tempStatus === 'good' ? faCheckCircle :
-                                                tempStatus === 'warning' ? faExclamationTriangle : faFire
-                                        }/>
+                                    <div className={`inline-flex items-center gap-2 text-sm px-4 py-1.5 rounded-full ${tempColors.bgColor} ${tempColors.color}`}>
+                                        <FontAwesomeIcon icon={tempStatus === 'good' ? faCheckCircle : tempStatus === 'warning' ? faExclamationTriangle : faFire} className="text-xs" />
                                         <span className="font-medium">
-                                            {tempStatus === 'good' ? 'Normal temperature' :
-                                            tempStatus === 'warning' ? 'High temperature' : 'Too high a temperature'}
+                                            {tempStatus === 'good' ? 'Normal temperature' : tempStatus === 'warning' ? 'High temperature' : 'Too high a temperature'}
                                         </span>
                                     </div>
                                 </div>
-
-                                <div className="relative mb-6">
-                                    <div
-                                        className={`relative h-8 rounded-full overflow-hidden ${isDark ? 'bg-gray-700' : 'bg-gray-200'}`}>
-                                        <div
-                                            className="absolute inset-0 opacity-30"
-                                            style={{
-                                                background: 'linear-gradient(to right, #3b82f6 0%, #10b981 20%, #84cc16 40%, #fbbf24 60%, #f97316 80%, #ef4444 100%)'
-                                            }}
-                                        ></div>
-
+                                <div className="relative">
+                                    <div className={`relative h-7 rounded-full overflow-hidden ${isDark ? 'bg-slate-700' : 'bg-slate-200'}`}>
+                                        <div className="absolute inset-0 opacity-25" style={{ background: 'linear-gradient(to right, #3b82f6 0%, #10b981 20%, #84cc16 40%, #fbbf24 60%, #f97316 80%, #ef4444 100%)' }} />
                                         <div
                                             className="absolute inset-y-0 left-0 transition-all duration-500 rounded-full"
                                             style={{
@@ -478,72 +371,42 @@ const SystemDetailModal: React.FC<SystemDetailModalProps> = ({ isOpen, onClose, 
                                                     : tempStatus === 'warning'
                                                         ? 'linear-gradient(to right, #10b981, #fbbf24, #f97316)'
                                                         : 'linear-gradient(to right, #fbbf24, #f97316, #ef4444)',
-                                                boxShadow: '0 0 15px rgba(0,0,0,0.2)'
                                             }}
-                                        ></div>
+                                        />
                                     </div>
-
-                                    <div className="flex justify-between mt-2 px-1">
+                                    <div className="flex justify-between mt-1.5 px-0.5">
                                         {[0, 25, 45, 70, 100].map((value) => (
                                             <div key={value} className="flex flex-col items-center">
-                                                <div
-                                                    className={`w-0.5 h-2 ${isDark ? 'bg-gray-500' : 'bg-gray-400'}`}></div>
-                                                <span className={`text-xs mt-1 ${
-                                                    isDark ? 'text-gray-400' : 'text-gray-600'
-                                                }`}>
-                                                    {value}°
-                                                </span>
+                                                <span className={`text-xs ${labelCls}`}>{value}°</span>
                                             </div>
                                         ))}
                                     </div>
                                 </div>
                             </div>
 
-                            <div className={`rounded-lg p-4 ${isDark ? 'bg-slate-600' : 'bg-blue-50'}`}>
-                                <div className="grid grid-cols-3 gap-3 text-center text-sm">
-                                    <div className={`rounded-lg p-3 border border-gray-200 ${isDark ? 'bg-gray-700' : 'bg-white'}`}>
-                                        <div className="flex items-center justify-center mb-2">
-                                            <div
-                                                className="w-8 h-2 rounded-full bg-gradient-to-r from-blue-500 to-green-500"></div>
+                            {/* Legend */}
+                            <div className={`rounded-xl border p-4 ${sectionCls}`}>
+                                <div className="grid grid-cols-3 gap-3 text-center">
+                                    {[
+                                        { gradient: 'from-blue-500 to-emerald-500', textColor: 'text-emerald-400', label: 'Normal',  range: '0–45°C'   },
+                                        { gradient: 'from-yellow-400 to-orange-500', textColor: 'text-yellow-400', label: 'Warn',    range: '45–70°C'  },
+                                        { gradient: 'from-orange-500 to-red-500',   textColor: 'text-red-400',    label: 'Danger',  range: '70–100°C' },
+                                    ].map(({ gradient, textColor, label, range }) => (
+                                        <div key={label} className={`rounded-lg border p-3 ${innerCellCls}`}>
+                                            <div className="flex justify-center mb-2">
+                                                <div className={`w-8 h-1.5 rounded-full bg-gradient-to-r ${gradient}`} />
+                                            </div>
+                                            <div className={`text-sm font-semibold mb-0.5 ${textColor}`}>{label}</div>
+                                            <div className={`text-xs ${labelCls}`}>{range}</div>
                                         </div>
-                                        <div
-                                            className={`font-bold mb-1 ${isDark ? 'text-green-400' : 'text-green-600'}`}>Normal
-                                        </div>
-                                        <div
-                                            className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>0-45°C
-                                        </div>
-                                    </div>
-                                    <div className={`rounded-lg p-3 border border-gray-200 ${isDark ? 'bg-gray-700' : 'bg-white'}`}>
-                                        <div className="flex items-center justify-center mb-2">
-                                            <div
-                                                className="w-8 h-2 rounded-full bg-gradient-to-r from-yellow-400 to-orange-500"></div>
-                                        </div>
-                                        <div
-                                            className={`font-bold mb-1 ${isDark ? 'text-yellow-400' : 'text-yellow-600'}`}>Warn
-                                        </div>
-                                        <div
-                                            className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>45-70°C
-                                        </div>
-                                    </div>
-                                    <div className={`rounded-lg p-3 border border-gray-200 ${isDark ? 'bg-gray-700' : 'bg-white'}`}>
-                                        <div className="flex items-center justify-center mb-2">
-                                            <div
-                                                className="w-8 h-2 rounded-full bg-gradient-to-r from-orange-500 to-red-500"></div>
-                                        </div>
-                                        <div
-                                            className={`font-bold mb-1 ${isDark ? 'text-red-400' : 'text-red-600'}`}>Danger
-                                        </div>
-                                        <div
-                                            className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>70-100°C
-                                        </div>
-                                    </div>
+                                    ))}
                                 </div>
                             </div>
                         </div>
                     )
                 }
             default:
-                return {title: '', icon: faServer, color: 'text-gray-600', content: <div>No Data</div>}
+                return {title: '', icon: faServer, color: 'text-slate-400', content: <div>No Data</div>}
         }
     }
 
@@ -562,23 +425,24 @@ const SystemDetailModal: React.FC<SystemDetailModalProps> = ({ isOpen, onClose, 
                     initial={{opacity: 0, scale: 0.95, y: 20}}
                     animate={{opacity: 1, scale: 1, y: 0}}
                     exit={{opacity: 0, scale: 0.95, y: 20}}
-                    className={`rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden ${isDark ? 'bg-gray-800' : 'bg-white'}`}
+                    className={`rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden ${isDark ? 'bg-[#0b111c] border border-slate-700/40' : 'bg-white border border-slate-200'}`}
                     onClick={(e) => e.stopPropagation()}
                 >
-                    <div
-                        className={`sticky top-0 border-b border-gray-200 px-6 py-4 rounded-t-xl ${isDark ? 'bg-gray-800' : 'bg-white'}`}>
-                        <div className="flex items-center justify-between">
-                            <h2 className={`text-2xl font-bold flex items-center ${modalContent.color}`}>
-                                <FontAwesomeIcon icon={modalContent.icon} className="mr-3"/>
+                    <div className={`sticky top-0 border-b px-5 py-3.5 rounded-t-xl flex items-center justify-between ${isDark ? 'bg-[#0e1e2c] border-slate-700/40' : 'bg-white border-slate-200'}`}>
+                        <div className="flex items-center gap-2.5">
+                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isDark ? 'bg-[#4ab5cc]/15' : 'bg-slate-100'}`}>
+                                <FontAwesomeIcon icon={modalContent.icon} className={`text-sm ${modalContent.color}`}/>
+                            </div>
+                            <h2 className={`text-base font-semibold ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
                                 {modalContent.title}
                             </h2>
-                            <button
-                                onClick={onClose}
-                                className="text-gray-400 hover:text-gray-600 transition-colors p-2"
-                            >
-                                <FontAwesomeIcon icon={faTimes} className="text-xl"/>
-                            </button>
                         </div>
+                        <button
+                            onClick={onClose}
+                            className={`p-1.5 rounded-lg transition-colors ${isDark ? 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/40' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'}`}
+                        >
+                            <FontAwesomeIcon icon={faTimes}/>
+                        </button>
                     </div>
 
                     <div className="p-6 overflow-y-auto max-h-[calc(90vh-64px)]">
@@ -592,124 +456,71 @@ const SystemDetailModal: React.FC<SystemDetailModalProps> = ({ isOpen, onClose, 
 
 const HealthCard: React.FC<HealthCardProps> = ({metric, index, systemHealth, onClick}) => {
     const {actualTheme} = useTheme()
-    const statusColors = getStatusColor(metric.status)
-    const [showTooltip, setShowTooltip] = useState(false)
     const isDark = actualTheme === 'dark'
-
-    const getProgressPercentage = (): number => {
-        if (typeof metric.value !== 'number') return 0
-
-        switch (metric.name) {
-            case 'CPU usage':
-            case 'Memory usage':
-                return metric.value
-            case 'System temperature':
-                return Math.min((metric.value / 100) * 100, 100)
-            default:
-                return 0
-        }
-    }
-
-    const getDetailedInfo = (): string => {
-        if (!systemHealth) return ''
-
-        switch (metric.name) {
-            case 'CPU usage':
-                return `Processor Load: ${systemHealth.cpu_details?.cpu_usage.toFixed(1)}%\nStatus: ${metric.status === 'good' ? 'Normal' : metric.status === 'warning' ? 'Warning' : 'Critical'}`
-            case 'Memory usage':
-                return `Total Memory: ${formatBytes(systemHealth.memory_usage.total)}\nUsed: ${formatBytes(systemHealth.memory_usage.used)}\nAvailable Memory: ${formatBytes(systemHealth.memory_usage.available)}\nUsage: ${systemHealth.memory_usage.usage_percent.toFixed(1)}%`
-            case 'System temperature':
-                return `Current Temperature: ${systemHealth.temperature.toFixed(1)}°C\nStatus: ${metric.status === 'good' ? 'Normal' : metric.status === 'warning' ? 'High' : 'Critical'}`
-            default:
-                return metric.description || ''
-        }
-    }
-
-    const progressPercentage = getProgressPercentage()
-    const hasProgressBar = metric.name.includes('usage') || metric.name.includes('temperature')
     const isClickable = ['CPU Usage', 'Memory Usage', 'System Temperature'].includes(metric.name)
+
+    const pct = typeof metric.value === 'number'
+        ? Math.min(Math.max(metric.value, 0), 100)
+        : 0
+
+    const barColor = metric.status === 'good' ? '#22c55e'
+        : metric.status === 'warning' ? '#f59e0b'
+        : '#ef4444'
+
+    const statusLabel = metric.status === 'good' ? 'Normal'
+        : metric.status === 'warning' ? 'Warning'
+        : 'Critical'
 
     return (
         <motion.div
-            initial={{opacity: 0, y: 20}}
+            initial={{opacity: 0, y: 16}}
             animate={{opacity: 1, y: 0}}
-            transition={{delay: index * 0.1}}
-            className={`rounded-lg shadow-md p-6 transition-all duration-300 group border-l-4 relative ${
-                isClickable ? 'hover:shadow-lg cursor-pointer hover:scale-105' : 'hover:shadow-lg'
-            } ${isDark ? 'bg-gray-600' : 'bg-white'}`}
-            style={{
-                borderLeftColor: statusColors.dotColor.replace('bg-', '').replace('-500', '') === 'green' ? '#10b981' :
-                    statusColors.dotColor.replace('bg-', '').replace('-500', '') === 'yellow' ? '#f59e0b' :
-                        statusColors.dotColor.replace('bg-', '').replace('-500', '') === 'red' ? '#ef4444' : '#6b7280'
-            }}
-            onMouseEnter={() => setShowTooltip(true)}
-            onMouseLeave={() => setShowTooltip(false)}
+            transition={{delay: index * 0.08}}
             onClick={isClickable ? onClick : undefined}
+            className={`rounded-xl border p-5 transition-all duration-200 ${
+                isClickable ? 'cursor-pointer hover:shadow-lg hover:-translate-y-0.5' : ''
+            } ${isDark ? 'bg-[#0e1e2c] border-slate-700/40' : 'bg-white border-slate-200'}`}
         >
-            <div className="flex items-center justify-between">
-                <div className="flex-1">
-                    <div className="flex items-center space-x-2 mb-1">
-                        <p className={`text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
-                            {metric.name}
-                        </p>
-                        <div className={`w-2 h-2 rounded-full ${statusColors.dotColor} ${
-                            metric.status === 'good' ? 'animate-pulse' : ''
-                        }`}></div>
+            {/* Top row: icon + name + status badge */}
+            <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                        style={{ background: 'rgba(74,181,204,0.12)' }}>
+                        <FontAwesomeIcon icon={metric.icon} className="text-sm" style={{ color: '#4ab5cc' }} />
                     </div>
-                    <p className={`text-2xl font-bold mb-1 ${isDark ? 'text-gray-300' : 'text-gray-900'}`}>
-                        {typeof metric.value === 'number' ?
-                            metric.value.toFixed(metric.name.includes('Usage') || metric.name.includes('Temperature') ? 1 : 0) :
-                            metric.value
-                        }
-                        {metric.unit && <span
-                            className={`text-lg ml-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{metric.unit}</span>}
-                    </p>
-                    {metric.description && (
-                        <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{metric.description}</p>
-                    )}
-
-                    {hasProgressBar && (
-                        <div className="mt-2 mb-2">
-                            <div className={`w-3/4 rounded-full h-1.5 ${isDark ? 'bg-gray-700' : 'bg-gray-200'}`}>
-                                <div
-                                    className={`h-1.5 rounded-full transition-all duration-500 ${
-                                        metric.status === 'good' ? 'bg-green-500' :
-                                            metric.status === 'warning' ? 'bg-yellow-500' : 'bg-red-500'
-                                    }`}
-                                    style={{width: `${progressPercentage}%`}}
-                                ></div>
-                            </div>
-                        </div>
-                    )}
-
-                    <div className="flex items-center justify-between mt-2">
-            <span className={`text-xs uppercase tracking-wide font-medium ${statusColors.color}`}>
-              {metric.status === 'good' ? 'Normal' :
-                  metric.status === 'warning' ? 'Warn' :
-                      metric.status === 'critical' ? 'Urgent' : 'Unknown'}
-            </span>
-                    </div>
+                    <span className={`text-sm font-medium ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                        {metric.name}
+                    </span>
                 </div>
-                <div
-                    className={`${statusColors.bgColor} p-3 rounded-lg group-hover:scale-110 transition-transform duration-300`}>
-                    <FontAwesomeIcon
-                        icon={metric.icon}
-                        className={`${statusColors.iconColor} text-xl`}
-                    />
-                </div>
+                <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full`}
+                    style={{ color: barColor, background: `${barColor}18` }}>
+                    {statusLabel}
+                </span>
             </div>
 
-            {showTooltip && getDetailedInfo() && !isClickable && (
+            {/* Value */}
+            <div className={`text-3xl font-bold tabular-nums mb-3 ${isDark ? 'text-slate-100' : 'text-slate-800'}`}>
+                {typeof metric.value === 'number'
+                    ? metric.value.toFixed(1)
+                    : metric.value}
+                <span className={`text-base font-normal ml-1 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+                    {metric.unit}
+                </span>
+            </div>
+
+            {/* Progress bar */}
+            <div className={`w-full h-1.5 rounded-full overflow-hidden ${isDark ? 'bg-slate-700/60' : 'bg-slate-100'}`}>
                 <div
-                    className={`absolute z-50 bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 text-xs rounded-lg shadow-lg min-w-max max-w-xs ${
-                        isDark ? 'bg-gray-700 text-gray-200' : 'bg-gray-900 text-white'
-                    }`}>
-                    <div className="whitespace-pre-line">{getDetailedInfo()}</div>
-                    <div
-                        className={`absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent ${
-                            isDark ? 'border-t-gray-700' : 'border-t-gray-900'
-                        }`}></div>
-                </div>
+                    className="h-full rounded-full transition-all duration-700"
+                    style={{ width: `${pct}%`, background: barColor }}
+                />
+            </div>
+
+            {/* Sub label */}
+            {metric.description && (
+                <p className={`text-xs mt-2 ${isDark ? 'text-slate-600' : 'text-slate-400'}`}>
+                    {metric.description}
+                </p>
             )}
         </motion.div>
     )
@@ -722,7 +533,7 @@ const LoadAverageDetails: React.FC<LoadAverageProps> = ({loadAverage}) => {
                 initial={{opacity: 0, y: 20}}
                 animate={{opacity: 1, y: 0}}
                 transition={{delay: 0.8}}
-                className="bg-white rounded-lg shadow-md p-6"
+                className="bg-white rounded-xl border border-slate-200 p-6"
             >
                 <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
                     <FontAwesomeIcon icon={faTachometerAlt} className="mr-2 text-yellow-600"/>
@@ -772,7 +583,7 @@ const LoadAverageDetails: React.FC<LoadAverageProps> = ({loadAverage}) => {
             initial={{opacity: 0, y: 20}}
             animate={{opacity: 1, y: 0}}
             transition={{delay: 0.8}}
-            className="bg-white rounded-lg shadow-md p-6"
+            className="bg-white rounded-xl border border-slate-200 p-6"
         >
             <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
                 <FontAwesomeIcon icon={faTachometerAlt} className="mr-2 text-yellow-600"/>
@@ -833,7 +644,7 @@ const NetworkStats: React.FC<NetworkStatsProps> = ({networkStats}) => {
     const {actualTheme} = useTheme();
     const isDark = actualTheme === 'dark';
     const interfaces = [
-        {key: 'ingress', name: 'Ingress Network', icon: faArrowDown, color: 'text-blue-600'},
+        {key: 'ingress', name: 'Ingress Network', icon: faArrowDown, color: 'text-[#4ab5cc]'},
         {key: 'egress', name: 'Egress Network', icon: faArrowUp, color: 'text-green-600'},
     ]
 
@@ -842,68 +653,62 @@ const NetworkStats: React.FC<NetworkStatsProps> = ({networkStats}) => {
             initial={{opacity: 0, y: 20}}
             animate={{opacity: 1, y: 0}}
             transition={{delay: 0.7}}
-            className={`rounded-lg shadow-md p-6 ${isDark ? 'bg-gray-600' : 'bg-white'}`}
+            className={`rounded-xl border p-5 h-full flex flex-col ${isDark ? 'bg-[#0e1e2c] border-slate-700/40' : 'bg-white border-slate-200'}`}
         >
-            <h3 className={`text-lg font-semibold mb-4 flex items-center ${isDark ? 'text-gray-300' : 'text-gray-900'}`}>
-                <FontAwesomeIcon icon={faWifi} className="mr-2 text-blue-600"/>
-                Network Interface Status
-            </h3>
+            <div className="flex items-center gap-2.5 mb-4">
+                <div className="w-8 h-8 rounded-lg bg-[#4ab5cc]/15 flex items-center justify-center flex-shrink-0">
+                    <FontAwesomeIcon icon={faWifi} className="text-[#4ab5cc] text-sm"/>
+                </div>
+                <h3 className={`text-sm font-semibold ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
+                    Network Interface Status
+                </h3>
+            </div>
 
-            <div className="space-y-4">
+            <div className="flex-1 flex flex-col gap-4">
                 {interfaces.map((iface, index) => {
                     const stats = networkStats[iface.key as keyof typeof networkStats]
                     const hasErrors = stats.errors_received > 0 || stats.errors_transmitted > 0
 
                     return (
-                        <motion.div
+                        <div
                             key={iface.key}
-                            initial={{opacity: 0, x: -20}}
-                            animate={{opacity: 1, x: 0}}
-                            transition={{delay: 0.8 + index * 0.1}}
-                            className="border border-gray-200 rounded-lg p-4"
+                            className={`flex-1 rounded-lg border p-4 ${isDark ? 'border-slate-700/40 bg-[#131929]' : 'border-slate-100 bg-slate-50'}`}
                         >
-                            <div className="flex items-center justify-between mb-3">
-                                <div className="flex items-center space-x-2">
-                                    <FontAwesomeIcon icon={iface.icon} className={iface.color}/>
-                                    <span
-                                        className={`font-medium ${isDark ? 'text-gray-300' : 'text-gray-900'}`}>{iface.name}</span>
-                                    <span
-                                        className={`text-sm ${isDark ? 'text-gray-300' : 'text-gray-500'}`}>({stats.interface})</span>
+                            <div className="flex items-center justify-between mb-2.5">
+                                <div className="flex items-center gap-2">
+                                    <FontAwesomeIcon icon={iface.icon} className={`text-sm ${iface.color}`}/>
+                                    <span className={`text-sm font-medium ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
+                                        {iface.name}
+                                    </span>
+                                    <span className={`text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+                                        ({stats.interface})
+                                    </span>
                                 </div>
-                                {hasErrors ? (
-                                    <FontAwesomeIcon icon={faExclamationTriangle} className="text-yellow-500"/>
-                                ) : (
-                                    <FontAwesomeIcon icon={faCheckCircle} className="text-green-500"/>
-                                )}
+                                {hasErrors
+                                    ? <FontAwesomeIcon icon={faExclamationTriangle} className="text-amber-500 text-xs"/>
+                                    : <FontAwesomeIcon icon={faCheckCircle} className="text-green-500 text-xs"/>
+                                }
                             </div>
 
-                            <div className="grid grid-cols-2 gap-4 text-sm">
+                            <div className="grid grid-cols-2 gap-3 text-sm">
                                 <div>
-                                    <div className={isDark ? 'text-white' : 'text-gray-600'}>Received</div>
-                                    <div
-                                        className={`font-medium ${isDark ? 'text-white' : 'text-gray-600'}`}>{formatBytes(stats.bytes_received)}</div>
-                                    <div
-                                        className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{stats.packets_received.toLocaleString()} packets
-                                    </div>
+                                    <div className={`text-xs mb-0.5 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Received</div>
+                                    <div className={`font-semibold ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>{formatBytes(stats.bytes_received)}</div>
+                                    <div className={`text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>{stats.packets_received.toLocaleString()} packets</div>
                                 </div>
                                 <div>
-                                    <div className={isDark ? 'text-white' : 'text-gray-600'}>Transmitted</div>
-                                    <div
-                                        className={`font-medium ${isDark ? 'text-white' : 'text-gray-600'}`}>{formatBytes(stats.bytes_transmitted)}</div>
-                                    <div
-                                        className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{stats.packets_transmitted.toLocaleString()} packets
-                                    </div>
+                                    <div className={`text-xs mb-0.5 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Transmitted</div>
+                                    <div className={`font-semibold ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>{formatBytes(stats.bytes_transmitted)}</div>
+                                    <div className={`text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>{stats.packets_transmitted.toLocaleString()} packets</div>
                                 </div>
                             </div>
 
                             {hasErrors && (
-                                <div className="mt-2 pt-2 border-t border-gray-200">
-                                    <div className="text-sm text-yellow-600">
-                                        Errors: Received {stats.errors_received}, Transmitted {stats.errors_transmitted}
-                                    </div>
+                                <div className={`mt-2 pt-2 border-t text-xs text-amber-500 ${isDark ? 'border-slate-700/40' : 'border-slate-200'}`}>
+                                    Errors: RX {stats.errors_received} · TX {stats.errors_transmitted}
                                 </div>
                             )}
-                        </motion.div>
+                        </div>
                     )
                 })}
             </div>
@@ -1077,7 +882,7 @@ export default function Home() {
                 unit: '%',
                 status: getStatusFromValue(cpuUsage, 'cpu'),
                 icon: faMicrochip,
-                color: 'bg-blue-500',
+                color: 'bg-[#4ab5cc]',
                 bgColor: 'bg-blue-50',
                 description: `Processor Load`
             },
@@ -1135,7 +940,7 @@ export default function Home() {
             title: 'Network Traffic Monitoring',
             description: 'View IPv4/IPv6 traffic statistics and trend analysis',
             icon: faChartLine,
-            color: 'bg-blue-500',
+            color: 'bg-[#4ab5cc]',
             href: '/dashboard',
             badge: 'Real-time'
         },
@@ -1191,83 +996,67 @@ export default function Home() {
                     type={modalState.type!}
                 />
 
+                {/* Compact status bar */}
                 <motion.div
-                    initial={{opacity: 0, y: -20}}
+                    initial={{opacity: 0, y: -10}}
                     animate={{opacity: 1, y: 0}}
-                    className="mb-8"
+                    className={`flex items-center justify-between mb-6 px-4 py-2.5 rounded-xl border ${
+                        isDark ? 'bg-[#0e1e2c] border-slate-700/40' : 'bg-white border-slate-200'
+                    }`}
                 >
-                    <div className="flex items-center justify-between flex-wrap gap-4">
-                        <div>
-                            <h1 className={`text-3xl font-bold mb-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                                Welcome to Mantis
-                            </h1>
-                            <p className={isDark ? 'text-gray-400' : 'text-gray-600'}>
-                                Network Security Monitoring System - Protecting your network environment with
-                                comprehensive security monitoring
-                            </p>
-                        </div>
-
-                        <div className="flex items-center space-x-4">
-                            <div className={`rounded-lg shadow-md px-3 py-1 flex items-center ${
-                                isDark ? 'bg-gray-600' : 'bg-white'
-                            }`}>
-                                <div className={`w-3 h-3 rounded-full mr-2 ${
-                                    error ? 'bg-red-500' :
-                                        systemHealth ? 'bg-green-500 animate-pulse' : 'bg-yellow-500'
-                                }`}></div>
-                                <span className={`text-sm font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                  {error ? 'System Error' : systemHealth ? 'System Normal' : 'Connecting'}
-                </span>
-                            </div>
-
-                            <button
-                                onClick={() => setIsPaused(!isPaused)}
-                                className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
-                                    isPaused
-                                        ? "bg-green-100 text-green-700 hover:bg-green-200"
-                                        : "bg-orange-100 text-orange-700 hover:bg-orange-200"
-                                }`}
-                            >
-                                <FontAwesomeIcon icon={isPaused ? faPlay : faPause} className="mr-1"/>
-                                {isPaused ? "Resume" : "Pause"}
-                            </button>
-
-                            <button
-                                onClick={() => window.location.reload()}
-                                className="px-3 py-1 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 transition-colors flex items-center space-x-1"
-                            >
-                                <FontAwesomeIcon icon={faRefresh} className="text-xs"/>
-                                <span>Update</span>
-                            </button>
-
-                            {lastUpdateTime && (
-                                <div className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                                    Last Updated: {lastUpdateTime.toLocaleTimeString()}
-                                </div>
-                            )}
-                        </div>
+                    <div className="flex items-center gap-3">
+                        <div className={`w-2 h-2 rounded-full ${
+                            error ? 'bg-red-500' : systemHealth ? 'bg-green-500 animate-pulse' : 'bg-yellow-500'
+                        }`}/>
+                        <span className={`text-sm font-medium ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
+                            {error ? 'Connection Error' : systemHealth ? 'All Systems Operational' : 'Connecting…'}
+                        </span>
+                        {lastUpdateTime && (
+                            <span className={`text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+                                · Updated {lastUpdateTime.toLocaleTimeString()}
+                            </span>
+                        )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={() => setIsPaused(!isPaused)}
+                            className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
+                                isPaused
+                                    ? 'bg-green-500/10 text-green-500 hover:bg-green-500/20'
+                                    : 'bg-amber-500/10 text-amber-500 hover:bg-amber-500/20'
+                            }`}
+                        >
+                            <FontAwesomeIcon icon={isPaused ? faPlay : faPause} className="mr-1.5"/>
+                            {isPaused ? 'Resume' : 'Pause'}
+                        </button>
+                        <button
+                            onClick={() => window.location.reload()}
+                            className="px-3 py-1 bg-[#4ab5cc]/10 text-[#4ab5cc] hover:bg-[#4ab5cc]/20 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5"
+                        >
+                            <FontAwesomeIcon icon={faRefresh} className="text-xs"/>
+                            Refresh
+                        </button>
                     </div>
                 </motion.div>
 
                 {error && (
                     <motion.div
-                        initial={{opacity: 0, y: 20}}
+                        initial={{opacity: 0, y: 10}}
                         animate={{opacity: 1, y: 0}}
-                        className={`border rounded-lg p-4 mb-6 ${
+                        className={`border rounded-xl p-4 mb-6 flex items-center gap-3 ${
                             isDark
-                                ? 'bg-red-900/20 border-red-800 text-red-300'
+                                ? 'bg-red-900/20 border-red-800/50 text-red-300'
                                 : 'bg-red-50 border-red-200 text-red-700'
                         }`}
                     >
-                        <div className="flex items-center">
-                            <FontAwesomeIcon icon={faExclamationTriangle} className="text-red-500 mr-2"/>
-                            <span className="font-medium">System status loading failed: {error}</span>
-                        </div>
+                        <FontAwesomeIcon icon={faExclamationTriangle} className="text-red-500 flex-shrink-0"/>
+                        <span className="text-sm font-medium">System status loading failed: {error}</span>
                     </motion.div>
                 )}
 
+                {/* Health metric cards */}
                 {healthMetrics.length > 0 && (
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-6">
                         {healthMetrics.map((metric, index) => (
                             <HealthCard
                                 key={metric.name}
@@ -1280,124 +1069,58 @@ export default function Home() {
                     </div>
                 )}
 
+                {/* System Info + Network Stats side by side */}
                 {systemHealth && (
-                    <div className="space-y-8 mb-8">
-                                <motion.div
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-6 items-stretch">
+                        {/* System Information */}
+                        <motion.div
                             initial={{opacity: 0, y: 20}}
                             animate={{opacity: 1, y: 0}}
-                            transition={{delay: 1.0}}
-                            className={`rounded-lg shadow-md p-6 ${isDark ? 'bg-gray-600' : 'bg-white'}`}
+                            transition={{delay: 0.4}}
+                            className={`rounded-xl border p-5 ${isDark ? 'bg-[#0e1e2c] border-slate-700/40' : 'bg-white border-slate-200'}`}
                         >
-                            <h3 className={`text-lg font-semibold mb-4 flex items-center ${isDark ? 'text-gray-300' : 'text-gray-900'}`}>
-                                <FontAwesomeIcon icon={faServer} className="mr-2 text-blue-600"/>
-                                System Information
-                            </h3>
-
-                            <div className="max-h-60 overflow-y-auto pr-2 space-y-4">
-                                <div className="space-y-3">
-                                    <div className="flex justify-between">
-                                        <span className={isDark ? 'text-white' : 'text-gray-600'}>System</span>
-                                        <span
-                                            className={`font-medium ${isDark ? 'text-white' : 'text-gray-600'}`}>{systemHealth.system_info.os_name} {systemHealth.system_info.os_version} ({systemHealth.system_info.architecture}, {systemHealth.system_info.kernel_version})</span>
-                                    </div>
-                                    {systemHealth.cpu_details && (
-                                        <>
-                                            <div className="flex justify-between">
-                                                <span
-                                                    className={isDark ? 'text-white' : 'text-gray-600'}>CPU Model</span>
-                                                <span
-                                                    className={`font-medium ${isDark ? 'text-white' : 'text-gray-600'}`}>{systemHealth.cpu_details.cpu_brand}</span>
-                                            </div>
-                                            <div className="flex justify-between">
-                                                <span
-                                                    className={isDark ? 'text-white' : 'text-gray-600'}>CPU Cores</span>
-                                                <span
-                                                    className={`font-medium ${isDark ? 'text-white' : 'text-gray-600'}`}>{systemHealth.cpu_details.core_count}</span>
-                                            </div>
-                                            <div className="flex justify-between">
-                                                <span
-                                                    className={isDark ? 'text-white' : 'text-gray-600'}>CPU Frequency</span>
-                                                <span
-                                                    className={`font-medium ${isDark ? 'text-white' : 'text-gray-600'}`}>{systemHealth.cpu_details.cpu_frequency} MHz</span>
-                                            </div>
-                                        </>
-                                    )}
-                                    <div className="flex justify-between">
-                                        <span className={isDark ? 'text-white' : 'text-gray-600'}>RAM Size</span>
-                                        <span
-                                            className={`font-medium ${isDark ? 'text-white' : 'text-gray-600'}`}>{formatBytes(systemHealth.memory_usage.total)}</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <span className={isDark ? 'text-white' : 'text-gray-600'}>System Time</span>
-                                        <span
-                                            className={`font-medium ${isDark ? 'text-white' : 'text-gray-600'}`}>{new Date(systemHealth.timestamp * 1000).toLocaleString('zh-TW')}</span>
-                                    </div>
-                                    {systemHealth.uptime_seconds && (
-                                        <div className="flex justify-between">
-                                            <span className={isDark ? 'text-white' : 'text-gray-600'}>Uptime</span>
-                                            <span
-                                                className={`font-medium ${isDark ? 'text-white' : 'text-gray-600'}`}>{formatUptimeFromSeconds(systemHealth.uptime_seconds)}</span>
-                                        </div>
-                                    )}
+                            <div className="flex items-center gap-2.5 mb-4">
+                                <div className="w-8 h-8 rounded-lg bg-[#4ab5cc]/15 flex items-center justify-center flex-shrink-0">
+                                    <FontAwesomeIcon icon={faServer} className="text-[#4ab5cc] text-sm"/>
                                 </div>
+                                <h3 className={`text-sm font-semibold ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
+                                    System Information
+                                </h3>
                             </div>
+                            <div className="space-y-2.5">
+                                {[
+                                    { label: 'Platform', value: `${systemHealth.system_info.os_name} ${systemHealth.system_info.os_version}` },
+                                    { label: 'Architecture', value: `${systemHealth.system_info.architecture}` },
+                                    { label: 'Kernel', value: systemHealth.system_info.kernel_version },
+                                    ...(systemHealth.cpu_details ? [
+                                        { label: 'CPU', value: systemHealth.cpu_details.cpu_brand },
+                                        { label: 'Cores', value: `${systemHealth.cpu_details.core_count} cores · ${systemHealth.cpu_details.cpu_frequency} MHz` },
+                                    ] : []),
+                                    { label: 'Memory', value: formatBytes(systemHealth.memory_usage.total) },
+                                    { label: 'System Time', value: new Date(systemHealth.timestamp * 1000).toLocaleString('zh-TW') },
+                                    ...(systemHealth.uptime_seconds ? [{ label: 'Uptime', value: formatUptimeFromSeconds(systemHealth.uptime_seconds) }] : []),
+                                ].map(({ label, value }) => (
+                                    <div key={label} className={`flex items-baseline justify-between gap-4 text-sm py-1 border-b last:border-b-0 ${
+                                        isDark ? 'border-slate-700/30' : 'border-slate-100'
+                                    }`}>
+                                        <span className={`flex-shrink-0 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>{label}</span>
+                                        <span className={`text-right font-medium truncate ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>{value}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </motion.div>
+
+                        {/* Network Stats */}
+                        <motion.div
+                            initial={{opacity: 0, y: 20}}
+                            animate={{opacity: 1, y: 0}}
+                            transition={{delay: 0.5}}
+                            className="h-full"
+                        >
+                            <NetworkStats networkStats={systemHealth.network_stats}/>
                         </motion.div>
                     </div>
                 )}
-
-                {systemHealth && (
-                    <div className="space-y-8 mb-8">
-                        <NetworkStats networkStats={systemHealth.network_stats}/>
-                    </div>
-                )}
-
-                <motion.div
-                    initial={{opacity: 0, y: 20}}
-                    animate={{opacity: 1, y: 0}}
-                    transition={{delay: 1.2}}
-                    className="mb-8"
-                >
-                    <h2 className={`text-2xl font-bold mb-6 ${isDark ? 'text-gray-300' : 'text-gray-900'}`}>Quick
-                        Navigation</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                        {quickNavigation.map((item, index) => (
-                            <motion.div
-                                key={item.title}
-                                initial={{opacity: 0, y: 20}}
-                                animate={{opacity: 1, y: 0}}
-                                transition={{delay: 1.3 + index * 0.1}}
-                                whileHover={{y: -4}}
-                                className="group"
-                            >
-                                <Link href={item.href}>
-                                    <div
-                                        className={`rounded-xl p-6 shadow-md hover:shadow-lg transition-all duration-300 border-l-4 border-transparent hover:border-blue-500 ${
-                                            isDark ? 'bg-gray-600' : 'bg-white'
-                                        }`}>
-                                        <div className="flex items-start justify-between mb-4">
-                                            <div
-                                                className={`${item.color} p-3 rounded-lg group-hover:scale-110 transition-transform duration-300`}>
-                                                <FontAwesomeIcon icon={item.icon} className="text-white text-xl"/>
-                                            </div>
-                                            <span
-                                                className="px-2 py-1 bg-blue-100 text-blue-600 text-xs font-medium rounded-full">
-                        {item.badge}
-                      </span>
-                                        </div>
-                                        <h3 className={`text-lg font-semibold mb-2 group-hover:text-blue-600 transition-colors ${
-                                            isDark ? 'text-gray-300' : 'text-gray-900'
-                                        }`}>
-                                            {item.title}
-                                        </h3>
-                                        <p className={`text-sm leading-relaxed ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-                                            {item.description}
-                                        </p>
-                                    </div>
-                                </Link>
-                            </motion.div>
-                        ))}
-                    </div>
-                </motion.div>
             </Layout>
         </>
     )

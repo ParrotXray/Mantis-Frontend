@@ -5,6 +5,8 @@ const port = 8080;
 export const host = `${hostname}:${port}`;
 export const siteUrl = `${httpProtocol}://${host}`
 
+export const TokenKey = 'mantis_auth_token'
+
 export type NicType = 'ingress' | 'egress'
 export type FlowType = 'source' | 'destination'
 export type ListType = 'white_list' | 'black_list'

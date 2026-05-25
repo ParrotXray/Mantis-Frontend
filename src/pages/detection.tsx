@@ -87,7 +87,7 @@ const UPDATE_INTERVALS = [
 ]
 
 const SOURCE_CONFIG: Record<AlertSource, { label: string; color: string; bgColor: string }> = {
-    ml:     { label: 'ML',     color: '#7c3aed', bgColor: 'rgba(124,58,237,0.1)' },
+    ml:     { label: 'ML',     color: '#818cf8', bgColor: 'rgba(129,140,248,0.1)' },
     rule:   { label: 'Rule',   color: '#0284c7', bgColor: 'rgba(2,132,199,0.1)'  },
     fusion: { label: 'Fusion', color: '#0f766e', bgColor: 'rgba(15,118,110,0.1)' },
 }
@@ -224,163 +224,176 @@ const AlertDetails: React.FC<AlertDetailsProps> = ({ log, onClose, showNotificat
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 20 }}
-                className={`rounded-lg shadow-md p-6 max-h-[600px] overflow-y-auto ${isDark ? 'bg-gray-600' : 'bg-white'}`}
+                className={`rounded-xl border flex flex-col h-full ${isDark ? 'bg-[#0e1e2c] border-slate-700/40' : 'bg-white border-slate-200'}`}
+                style={{ maxHeight: 'calc(100vh - 280px)', minHeight: '400px' }}
             >
-                <div className="flex items-center justify-between mb-6">
-                    <h3 className={`text-xl font-semibold flex items-center ${isDark ? 'text-gray-300' : 'text-gray-900'}`}>
-                        <FontAwesomeIcon icon={faEye} className="mr-2 text-blue-600" />
-                        Alert Details
-                    </h3>
+                {/* Header */}
+                <div className={`px-5 py-3 border-b flex items-center justify-between flex-shrink-0 ${isDark ? 'border-slate-700/40' : 'border-slate-200'}`}>
+                    <div className="flex items-center gap-2">
+                        <div className="w-6 h-6 rounded-md bg-[#4ab5cc]/15 flex items-center justify-center">
+                            <FontAwesomeIcon icon={faEye} className="text-[#4ab5cc] text-xs" />
+                        </div>
+                        <span className={`text-sm font-semibold ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>Alert Details</span>
+                    </div>
                     <button
                         onClick={onClose}
-                        className={`transition-colors ${isDark ? 'text-gray-400 hover:text-gray-200' : 'text-gray-400 hover:text-gray-600'}`}
+                        className={`w-6 h-6 rounded-md flex items-center justify-center transition-colors ${isDark ? 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/50' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'}`}
                     >
-                        <FontAwesomeIcon icon={faTimes} />
+                        <FontAwesomeIcon icon={faTimes} className="text-xs" />
                     </button>
                 </div>
 
-                <div className="space-y-4 mb-6">
-                    <div className="flex justify-between">
-                        <span className={`text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>Timestamp:</span>
-                        <span className={`text-sm ${isDark ? 'text-gray-300' : 'text-gray-900'}`}>{formatTimestamp(log.timestamp)}</span>
+                {/* Scrollable content */}
+                <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                    {/* Basic info */}
+                    <div className={`rounded-lg border p-3 space-y-2.5 ${isDark ? 'bg-[#131929] border-slate-700/40' : 'bg-slate-50 border-slate-200'}`}>
+                        {[
+                            { label: 'Timestamp', value: formatTimestamp(log.timestamp) },
+                            { label: 'Attack Type', value: log.attack_type ?? '—' },
+                            { label: 'Protocol', value: getProtocolName(log.protocol) },
+                        ].map(({ label, value }) => (
+                            <div key={label} className="flex justify-between items-center">
+                                <span className={`text-xs font-medium ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>{label}</span>
+                                <span className={`text-xs ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>{value}</span>
+                            </div>
+                        ))}
+                        <div className="flex justify-between items-center">
+                            <span className={`text-xs font-medium ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Severity</span>
+                            <span
+                                className="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full"
+                                style={{ backgroundColor: priorityInfo.bgColor, color: priorityInfo.color }}
+                            >
+                                <FontAwesomeIcon icon={faExclamationTriangle} className="mr-1 text-[10px]" />
+                                {priorityInfo.label}
+                            </span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                            <span className={`text-xs font-medium ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Source</span>
+                            <span
+                                className="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full"
+                                style={{ backgroundColor: sourceInfo.bgColor, color: sourceInfo.color }}
+                            >
+                                {sourceInfo.label}
+                            </span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                            <span className={`text-xs font-medium ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Is Attack</span>
+                            <span className={`text-xs font-semibold ${log.is_attack ? 'text-amber-400' : 'text-emerald-400'}`}>
+                                {log.is_attack ? 'Yes' : 'No'}
+                            </span>
+                        </div>
                     </div>
-                    <div className="flex justify-between items-center">
-                        <span className={`text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>Severity:</span>
-                        <span
-                            className="inline-flex px-2 py-1 text-xs font-medium rounded-full"
-                            style={{ backgroundColor: priorityInfo.bgColor, color: priorityInfo.color }}
-                        >
-                            <FontAwesomeIcon icon={faExclamationTriangle} className="mr-1" />
-                            {priorityInfo.label}
-                        </span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                        <span className={`text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>Source:</span>
-                        <span
-                            className="inline-flex px-2 py-1 text-xs font-medium rounded-full"
-                            style={{ backgroundColor: sourceInfo.bgColor, color: sourceInfo.color }}
-                        >
-                            {sourceInfo.label}
-                        </span>
-                    </div>
-                    <div className="flex justify-between">
-                        <span className={`text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>Attack Type:</span>
-                        <span className={`text-sm ${isDark ? 'text-gray-300' : 'text-gray-900'}`}>{log.attack_type ?? '—'}</span>
-                    </div>
-                    <div className="flex justify-between">
-                        <span className={`text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>Protocol:</span>
-                        <span className={`text-sm ${isDark ? 'text-gray-300' : 'text-gray-900'}`}>{getProtocolName(log.protocol)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                        <span className={`text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>Is Attack:</span>
-                        <span className={`text-sm font-medium ${log.is_attack ? 'text-red-500' : 'text-green-500'}`}>
-                            {log.is_attack ? 'Yes' : 'No'}
-                        </span>
-                    </div>
-                </div>
 
-                {(log.source === 'ml' || log.source === 'fusion') && (
-                    <div className="mb-6">
-                        <span className={`text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>ML Score Details:</span>
-                        <div className={`mt-2 p-3 rounded-lg space-y-2 ${isDark ? 'bg-gray-700' : 'bg-gray-50'}`}>
+                    {/* ML Score Details */}
+                    {(log.source === 'ml' || log.source === 'fusion') && (
+                        <div>
+                            <span className={`text-xs font-semibold uppercase tracking-wider ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>ML Score Details</span>
+                            <div className={`mt-2 rounded-lg border p-3 space-y-2 ${isDark ? 'bg-[#131929] border-slate-700/40' : 'bg-slate-50 border-slate-200'}`}>
+                                {[
+                                    { label: 'Confidence', value: log.confidence },
+                                    { label: 'AE Score',   value: log.ae_score   },
+                                ].map(({ label, value }) => (
+                                    <div key={label} className="flex justify-between items-center">
+                                        <span className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>{label}</span>
+                                        <span className={`text-xs font-mono font-semibold ${
+                                            value >= 1.0 ? 'text-red-400' :
+                                                value >= 0.5 ? 'text-orange-400' :
+                                                    value >= 0.1 ? 'text-yellow-400' :
+                                                        'text-emerald-400'
+                                        }`}>
+                                            {value.toFixed(4)}
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Rule Match */}
+                    {(log.source === 'rule' || log.source === 'fusion') && (log.rule_sid !== null || log.rule_msg !== null) && (
+                        <div>
+                            <span className={`text-xs font-semibold uppercase tracking-wider ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Rule Match</span>
+                            <div className={`mt-2 rounded-lg border p-3 space-y-2 ${isDark ? 'bg-[#131929] border-slate-700/40' : 'bg-slate-50 border-slate-200'}`}>
+                                {log.rule_sid !== null && (
+                                    <div className="flex justify-between items-center">
+                                        <span className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>SID</span>
+                                        <span className={`text-xs font-mono ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>{log.rule_sid}</span>
+                                    </div>
+                                )}
+                                {log.rule_msg !== null && (
+                                    <div className="flex justify-between gap-4">
+                                        <span className={`text-xs flex-shrink-0 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Message</span>
+                                        <span className={`text-xs text-right ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>{log.rule_msg}</span>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Connection Details */}
+                    <div>
+                        <span className={`text-xs font-semibold uppercase tracking-wider ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Connection</span>
+                        <div className={`mt-2 rounded-lg border p-3 flex items-center justify-between ${isDark ? 'bg-[#131929] border-slate-700/40' : 'bg-slate-50 border-slate-200'}`}>
+                            <div className="text-center">
+                                <div className={`text-xs font-medium mb-1 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Source</div>
+                                <div className="text-sm font-semibold text-[#4ab5cc] font-mono">{log.src_ip}</div>
+                                <div className={`text-xs mt-0.5 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>:{log.src_port}</div>
+                            </div>
+                            <FontAwesomeIcon icon={faArrowRight} className={`text-xs ${isDark ? 'text-slate-600' : 'text-slate-400'}`} />
+                            <div className="text-center">
+                                <div className={`text-xs font-medium mb-1 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Destination</div>
+                                <div className="text-sm font-semibold text-amber-400 font-mono">{log.dst_ip}</div>
+                                <div className={`text-xs mt-0.5 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>:{log.dst_port}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* IP Management */}
+                    <div>
+                        <span className={`text-xs font-semibold uppercase tracking-wider ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>IP Management</span>
+                        <div className="mt-2 space-y-2">
                             {[
-                                { label: 'Confidence', value: log.confidence },
-                                { label: 'AE Score',   value: log.ae_score   },
-                            ].map(({ label, value }) => (
-                                <div key={label} className="flex justify-between items-center">
-                                    <span className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>{label}:</span>
-                                    <span className={`text-sm font-mono font-semibold ${
-                                        value >= 1.0 ? 'text-red-500' :
-                                            value >= 0.5 ? 'text-orange-500' :
-                                                value >= 0.1 ? 'text-yellow-500' :
-                                                    'text-green-500'
-                                    }`}>
-                                        {value.toFixed(4)}
-                                    </span>
+                                { label: 'Source IP',      ip: log.src_ip, port: log.src_port, isSource: true  },
+                                { label: 'Destination IP', ip: log.dst_ip, port: log.dst_port, isSource: false },
+                            ].map(({ label, ip, port, isSource }) => (
+                                <div key={label} className={`rounded-lg border p-3 ${isDark ? 'bg-[#131929] border-slate-700/40' : 'bg-slate-50 border-slate-200'}`}>
+                                    <div className={`text-xs font-medium mb-2 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
+                                        {label}: <span className={`font-mono ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{ip}</span>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-1.5">
+                                        <button
+                                            className={`px-2 py-1.5 rounded-lg text-xs font-medium transition-colors border ${isDark ? 'bg-red-500/10 border-red-500/20 text-red-400 hover:bg-red-500/20' : 'bg-red-50 border-red-200 text-red-600 hover:bg-red-100'}`}
+                                            onClick={() => handleBlockIP(ip, port, isSource)}
+                                        >
+                                            <FontAwesomeIcon icon={faFilter} className="mr-1 text-[10px]" />
+                                            Block :{port}
+                                        </button>
+                                        <button
+                                            className={`px-2 py-1.5 rounded-lg text-xs font-medium transition-colors border ${isDark ? 'bg-red-500/10 border-red-500/20 text-red-400 hover:bg-red-500/20' : 'bg-red-50 border-red-200 text-red-600 hover:bg-red-100'}`}
+                                            onClick={() => handleBlockIP(ip, port, isSource, true)}
+                                        >
+                                            <FontAwesomeIcon icon={faFilter} className="mr-1 text-[10px]" />
+                                            Block All
+                                        </button>
+                                        <button
+                                            className={`px-2 py-1.5 rounded-lg text-xs font-medium transition-colors border ${isDark ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20' : 'bg-green-50 border-green-200 text-green-600 hover:bg-green-100'}`}
+                                            onClick={() => handleAllowIP(ip, port, isSource)}
+                                        >
+                                            <FontAwesomeIcon icon={faCheck} className="mr-1 text-[10px]" />
+                                            Allow :{port}
+                                        </button>
+                                        <button
+                                            className={`px-2 py-1.5 rounded-lg text-xs font-medium transition-colors border ${isDark ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20' : 'bg-green-50 border-green-200 text-green-600 hover:bg-green-100'}`}
+                                            onClick={() => handleAllowIP(ip, port, isSource, true)}
+                                        >
+                                            <FontAwesomeIcon icon={faCheck} className="mr-1 text-[10px]" />
+                                            Allow All
+                                        </button>
+                                    </div>
                                 </div>
                             ))}
                         </div>
                     </div>
-                )}
-
-                {(log.source === 'rule' || log.source === 'fusion') && (log.rule_sid !== null || log.rule_msg !== null) && (
-                    <div className="mb-6">
-                        <span className={`text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>Rule Match:</span>
-                        <div className={`mt-2 p-3 rounded-lg space-y-2 ${isDark ? 'bg-gray-700' : 'bg-gray-50'}`}>
-                            {log.rule_sid !== null && (
-                                <div className="flex justify-between">
-                                    <span className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>SID:</span>
-                                    <span className={`text-sm font-mono ${isDark ? 'text-gray-300' : 'text-gray-900'}`}>{log.rule_sid}</span>
-                                </div>
-                            )}
-                            {log.rule_msg !== null && (
-                                <div className="flex justify-between gap-4">
-                                    <span className={`text-sm flex-shrink-0 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>Message:</span>
-                                    <span className={`text-sm text-right ${isDark ? 'text-gray-300' : 'text-gray-900'}`}>{log.rule_msg}</span>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                )}
-
-                <div className="mb-6">
-                    <h4 className={`text-lg font-medium mb-3 ${isDark ? 'text-gray-300' : 'text-gray-900'}`}>Connection Details</h4>
-                    <div className={`flex items-center justify-between rounded-lg p-4 ${isDark ? 'bg-gray-700' : 'bg-gray-50'}`}>
-                        <div className="text-center">
-                            <div className={`text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>Source</div>
-                            <div className="text-lg font-semibold text-blue-600">{log.src_ip}</div>
-                            <div className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Port: {log.src_port}</div>
-                        </div>
-                        <FontAwesomeIcon icon={faArrowRight} className={isDark ? 'text-gray-500' : 'text-gray-400'} />
-                        <div className="text-center">
-                            <div className={`text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>Destination</div>
-                            <div className="text-lg font-semibold text-red-600">{log.dst_ip}</div>
-                            <div className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Port: {log.dst_port}</div>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="space-y-6">
-                    <h4 className={`text-lg font-medium ${isDark ? 'text-gray-300' : 'text-gray-900'}`}>IP Management</h4>
-
-                    {[
-                        { label: 'Source IP',      ip: log.src_ip, port: log.src_port, isSource: true,  bgClass: isDark ? 'bg-blue-900/30' : 'bg-blue-50' },
-                        { label: 'Destination IP', ip: log.dst_ip, port: log.dst_port, isSource: false, bgClass: isDark ? 'bg-red-900/30'  : 'bg-red-50'  },
-                    ].map(({ label, ip, port, isSource, bgClass }) => (
-                        <div key={label} className={`rounded-lg p-4 ${bgClass}`}>
-                            <h5 className={`font-medium mb-3 ${isDark ? 'text-gray-300' : 'text-gray-900'}`}>{label}: {ip}</h5>
-                            <div className="grid grid-cols-2 gap-2">
-                                <button
-                                    className="px-3 py-2 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 transition-colors"
-                                    onClick={() => handleBlockIP(ip, port, isSource)}
-                                >
-                                    <FontAwesomeIcon icon={faFilter} className="mr-1" />
-                                    Block Port {port}
-                                </button>
-                                <button
-                                    className="px-3 py-2 bg-red-700 text-white text-sm rounded-lg hover:bg-red-800 transition-colors"
-                                    onClick={() => handleBlockIP(ip, port, isSource, true)}
-                                >
-                                    <FontAwesomeIcon icon={faFilter} className="mr-1" />
-                                    Block All Ports
-                                </button>
-                                <button
-                                    className="px-3 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-colors"
-                                    onClick={() => handleAllowIP(ip, port, isSource)}
-                                >
-                                    <FontAwesomeIcon icon={faCheck} className="mr-1" />
-                                    Allow Port {port}
-                                </button>
-                                <button
-                                    className="px-3 py-2 bg-green-700 text-white text-sm rounded-lg hover:bg-green-800 transition-colors"
-                                    onClick={() => handleAllowIP(ip, port, isSource, true)}
-                                >
-                                    <FontAwesomeIcon icon={faCheck} className="mr-1" />
-                                    Allow All Ports
-                                </button>
-                            </div>
-                        </div>
-                    ))}
                 </div>
             </motion.div>
         </AnimatePresence>
@@ -401,7 +414,7 @@ const AlertItem: React.FC<AlertItemProps> = ({ log, index, onClick }) => {
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: index * 0.05 }}
             className={`border rounded-lg p-4 cursor-pointer hover:shadow-md transition-shadow duration-200 ${
-                isDark ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-200'
+                isDark ? 'bg-[#131929] border-slate-700/50' : 'bg-white border-slate-200'
             }`}
             onClick={handleClick}
         >
@@ -472,10 +485,10 @@ const FilterButton: React.FC<FilterButtonProps> = ({
 
     return (
         <button
-            className={`px-4 py-2 rounded-lg transition-all duration-200 font-medium ${
+            className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
                 isActive
-                    ? `${activeClassName || 'bg-blue-600 text-white shadow-lg'} ${activeHoverClassName}`
-                    : `${isDark ? 'bg-gray-700 text-gray-300 border border-gray-600 hover:bg-gray-650' : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'} ${className}`
+                    ? `${activeClassName || 'bg-[#4ab5cc] text-white shadow-sm'} ${activeHoverClassName}`
+                    : `${isDark ? 'bg-[#131929] text-slate-300 hover:bg-slate-700/40' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'} ${className}`
             }`}
             onClick={onClick}
         >
@@ -615,172 +628,141 @@ const Detection: React.FC = () => {
                     )}
                 </AnimatePresence>
 
-                <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
-                    <h1 className={`text-3xl font-bold mb-2 flex items-center ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                        <FontAwesomeIcon icon={faRobot} className="mr-3 text-purple-600" />
-                        Threat Detection
-                    </h1>
-                    <p className={isDark ? 'text-gray-400' : 'text-gray-600'}>
-                        Real-time alerts from ML inference, rule matching, and fusion engine
-                    </p>
-                </motion.div>
-
-                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4 mb-8">
+                {/* Stats strip */}
+                <div className="grid grid-cols-4 lg:grid-cols-7 gap-3 mb-5">
                     {[
-                        { label: 'Total',      value: stats.total,     icon: faList,                bg: 'bg-blue-500'   },
-                        { label: 'Critical',   value: stats.critical,  icon: faExclamationTriangle, bg: 'bg-red-500'    },
-                        { label: 'High',       value: stats.high,      icon: faExclamationTriangle, bg: 'bg-orange-500' },
-                        { label: 'ML',         value: stats.ml,        icon: faRobot,               bg: 'bg-purple-500' },
-                        { label: 'Rule',       value: stats.rule,      icon: faShieldAlt,           bg: 'bg-sky-500'    },
-                        { label: 'Fusion',     value: stats.fusion,    icon: faShieldAlt,           bg: 'bg-teal-500'   },
-                        { label: 'Unique IPs', value: stats.uniqueIPs, icon: faGlobe,               bg: 'bg-indigo-500' },
-                    ].map(({ label, value, icon, bg }, i) => (
+                        { label: 'Total',      value: stats.total,     icon: faList,                color: '#4ab5cc' },
+                        { label: 'Critical',   value: stats.critical,  icon: faExclamationTriangle, color: '#ef4444' },
+                        { label: 'High',       value: stats.high,      icon: faExclamationTriangle, color: '#f97316' },
+                        { label: 'ML',         value: stats.ml,        icon: faRobot,               color: '#64748b' },
+                        { label: 'Rule',       value: stats.rule,      icon: faShieldAlt,           color: '#4ab5cc' },
+                        { label: 'Fusion',     value: stats.fusion,    icon: faShieldAlt,           color: '#14b8a6' },
+                        { label: 'Unique IPs', value: stats.uniqueIPs, icon: faGlobe,               color: '#6366f1' },
+                    ].map(({ label, value, icon, color }, i) => (
                         <motion.div
                             key={label}
-                            initial={{ opacity: 0, y: 20 }}
+                            initial={{ opacity: 0, y: 16 }}
                             animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: i * 0.05 }}
-                            className={`rounded-lg shadow-md p-4 ${isDark ? 'bg-gray-600' : 'bg-white'}`}
+                            transition={{ delay: i * 0.04 }}
+                            className={`rounded-xl border p-3 ${isDark ? 'bg-[#0e1e2c] border-slate-700/40' : 'bg-white border-slate-200'}`}
                         >
+                            <p className={`text-xs mb-1 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{label}</p>
                             <div className="flex items-center justify-between">
-                                <div>
-                                    <p className={`text-xs font-medium mb-1 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>{label}</p>
-                                    <p className={`text-xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{value}</p>
-                                </div>
-                                <div className={`${bg} p-2 rounded-lg`}>
-                                    <FontAwesomeIcon icon={icon} className="text-white" />
-                                </div>
+                                <span className={`text-xl font-bold tabular-nums ${isDark ? 'text-white' : 'text-slate-900'}`}>{value}</span>
+                                <FontAwesomeIcon icon={icon} style={{ color }} className="text-sm opacity-80" />
                             </div>
                         </motion.div>
                     ))}
                 </div>
 
+                {/* Compact controls + filter bar */}
                 <motion.div
-                    initial={{ opacity: 0, y: -20 }}
+                    initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className={`rounded-lg shadow-md p-6 mb-6 ${isDark ? 'bg-gray-600' : 'bg-white'}`}
+                    className={`flex flex-wrap items-center gap-3 px-4 py-2.5 rounded-xl border mb-5 ${
+                        isDark ? 'bg-[#0e1e2c] border-slate-700/40' : 'bg-white border-slate-200'
+                    }`}
                 >
-                    <div className={`flex flex-wrap items-center gap-4 p-3 rounded-lg mb-4 ${isDark ? 'bg-gray-700' : 'bg-gray-50'}`}>
-                        <div className="flex items-center space-x-2">
-                            <FontAwesomeIcon icon={faClock} className={isDark ? 'text-gray-400' : 'text-gray-500'} />
-                            <span className={`text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>Update Interval:</span>
-                            <select
-                                value={updateInterval}
-                                onChange={(e) => setUpdateInterval(Number(e.target.value))}
-                                className={`px-3 py-1 border rounded-md text-sm focus:outline-none focus:border-blue-500 ${
-                                    isDark ? 'bg-gray-600 border-gray-500 text-gray-300' : 'bg-white border-gray-300 text-gray-700'
-                                }`}
-                            >
-                                {UPDATE_INTERVALS.map(i => (
-                                    <option key={i.value} value={i.value}>{i.label}</option>
-                                ))}
-                            </select>
-                        </div>
-
-                        <button
-                            onClick={togglePause}
-                            className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
-                                isPaused
-                                    ? 'bg-green-100 text-green-700 hover:bg-green-200'
-                                    : 'bg-orange-100 text-orange-700 hover:bg-orange-200'
+                    {/* Update interval */}
+                    <div className="flex items-center gap-1.5">
+                        <FontAwesomeIcon icon={faClock} className="text-[#4ab5cc] text-xs" />
+                        <select
+                            value={updateInterval}
+                            onChange={(e) => setUpdateInterval(Number(e.target.value))}
+                            className={`text-xs border rounded-lg px-2 py-1 focus:outline-none focus:border-[#4ab5cc] ${
+                                isDark ? 'bg-[#131929] border-slate-600 text-slate-300' : 'bg-white border-slate-300 text-slate-700'
                             }`}
                         >
-                            <FontAwesomeIcon icon={isPaused ? faPlay : faPause} className="mr-1" />
-                            {isPaused ? 'Resume' : 'Pause'}
-                        </button>
-
-                        {lastUpdateTime && (
-                            <div className={`text-xs ml-auto ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                                Last Update: {lastUpdateTime.toLocaleTimeString()}
-                            </div>
-                        )}
+                            {UPDATE_INTERVALS.map(i => (
+                                <option key={i.value} value={i.value}>{i.label}</option>
+                            ))}
+                        </select>
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-2 mb-3">
-                        <span className={`text-sm font-medium mr-1 ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>Severity:</span>
-                        <FilterButton isActive={severityFilter === 'all'} onClick={() => { setSeverityFilter('all'); setSelectedLogIndex(null) }}>
-                            All
+                    <button
+                        onClick={togglePause}
+                        className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-colors ${
+                            isPaused
+                                ? 'bg-green-500/10 text-green-500 hover:bg-green-500/20'
+                                : 'bg-amber-500/10 text-amber-500 hover:bg-amber-500/20'
+                        }`}
+                    >
+                        <FontAwesomeIcon icon={isPaused ? faPlay : faPause} className="mr-1" />
+                        {isPaused ? 'Resume' : 'Pause'}
+                    </button>
+
+                    <div className={`w-px h-4 ${isDark ? 'bg-slate-700' : 'bg-slate-200'}`} />
+
+                    {/* Severity filters */}
+                    <div className="flex items-center gap-1.5">
+                        <span className={`text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Severity:</span>
+                        <FilterButton isActive={severityFilter === 'all'} onClick={() => { setSeverityFilter('all'); setSelectedLogIndex(null) }}>All</FilterButton>
+                        <FilterButton isActive={severityFilter === 'critical'} onClick={() => { setSeverityFilter('critical'); setSelectedLogIndex(null) }}
+                            activeClassName="bg-red-600 text-white shadow-sm" activeHoverClassName="hover:bg-red-700">
+                            Critical
                         </FilterButton>
-                        <FilterButton
-                            isActive={severityFilter === 'critical'}
-                            onClick={() => { setSeverityFilter('critical'); setSelectedLogIndex(null) }}
-                            activeClassName="bg-red-600 text-white shadow-lg" activeHoverClassName="hover:bg-red-700"
-                        >
-                            Critical ({stats.critical})
-                        </FilterButton>
-                        <FilterButton
-                            isActive={severityFilter === 'high'}
-                            onClick={() => { setSeverityFilter('high'); setSelectedLogIndex(null) }}
-                            activeClassName="bg-orange-600 text-white shadow-lg" activeHoverClassName="hover:bg-orange-700"
-                        >
-                            High ({stats.high})
+                        <FilterButton isActive={severityFilter === 'high'} onClick={() => { setSeverityFilter('high'); setSelectedLogIndex(null) }}
+                            activeClassName="bg-orange-600 text-white shadow-sm" activeHoverClassName="hover:bg-orange-700">
+                            High
                         </FilterButton>
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-2">
-                        <span className={`text-sm font-medium mr-1 ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>Source:</span>
-                        <FilterButton isActive={sourceFilter === 'all'} onClick={() => { setSourceFilter('all'); setSelectedLogIndex(null) }}>
-                            All
-                        </FilterButton>
-                        <FilterButton
-                            isActive={sourceFilter === 'ml'}
-                            onClick={() => { setSourceFilter('ml'); setSelectedLogIndex(null) }}
-                            activeClassName="bg-purple-600 text-white shadow-lg" activeHoverClassName="hover:bg-purple-700"
-                        >
-                            ML ({stats.ml})
-                        </FilterButton>
-                        <FilterButton
-                            isActive={sourceFilter === 'rule'}
-                            onClick={() => { setSourceFilter('rule'); setSelectedLogIndex(null) }}
-                            activeClassName="bg-sky-600 text-white shadow-lg" activeHoverClassName="hover:bg-sky-700"
-                        >
-                            Rule ({stats.rule})
-                        </FilterButton>
-                        <FilterButton
-                            isActive={sourceFilter === 'fusion'}
-                            onClick={() => { setSourceFilter('fusion'); setSelectedLogIndex(null) }}
-                            activeClassName="bg-teal-600 text-white shadow-lg" activeHoverClassName="hover:bg-teal-700"
-                        >
-                            Fusion ({stats.fusion})
-                        </FilterButton>
+                    <div className={`w-px h-4 ${isDark ? 'bg-slate-700' : 'bg-slate-200'}`} />
+
+                    {/* Source filters */}
+                    <div className="flex items-center gap-1.5">
+                        <span className={`text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Source:</span>
+                        <FilterButton isActive={sourceFilter === 'all'} onClick={() => { setSourceFilter('all'); setSelectedLogIndex(null) }}>All</FilterButton>
+                        <FilterButton isActive={sourceFilter === 'ml'} onClick={() => { setSourceFilter('ml'); setSelectedLogIndex(null) }}
+                            activeClassName="bg-[#4ab5cc] text-white shadow-sm" activeHoverClassName="hover:bg-[#3da5bc]">ML</FilterButton>
+                        <FilterButton isActive={sourceFilter === 'rule'} onClick={() => { setSourceFilter('rule'); setSelectedLogIndex(null) }}
+                            activeClassName="bg-sky-600 text-white shadow-sm" activeHoverClassName="hover:bg-sky-700">Rule</FilterButton>
+                        <FilterButton isActive={sourceFilter === 'fusion'} onClick={() => { setSourceFilter('fusion'); setSelectedLogIndex(null) }}
+                            activeClassName="bg-teal-600 text-white shadow-sm" activeHoverClassName="hover:bg-teal-700">Fusion</FilterButton>
                     </div>
+
+                    {lastUpdateTime && (
+                        <span className={`ml-auto text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+                            Updated {lastUpdateTime.toLocaleTimeString()}
+                        </span>
+                    )}
                 </motion.div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                {/* Alert list + detail panel */}
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
                     <motion.div
-                        initial={{ opacity: 0, x: -50 }}
+                        initial={{ opacity: 0, x: -30 }}
                         animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.1, duration: 0.25, ease: 'linear' }}
+                        transition={{ delay: 0.1, duration: 0.2, ease: 'easeOut' }}
                         className={selectedLogIndex !== null && filteredLogs[selectedLogIndex] ? 'lg:col-span-7' : 'lg:col-span-12'}
                     >
-                        <div className={`rounded-lg shadow-md overflow-hidden flex flex-col max-h-[600px] ${isDark ? 'bg-gray-600' : 'bg-white'}`}>
-                            <div className={`px-6 py-4 border-b flex-shrink-0 ${isDark ? 'border-gray-700' : 'border-gray-200'}`}>
-                                <div className="flex justify-between items-center">
-                                    <h2 className={`text-xl font-semibold flex items-center ${isDark ? 'text-gray-300' : 'text-gray-900'}`}>
-                                        <FontAwesomeIcon icon={faShieldAlt} className="mr-2 text-blue-600" />
-                                        Security Alerts
-                                    </h2>
-                                    <span className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                                        {filteredLogs.length} Alerts
-                                    </span>
+                        <div className={`rounded-xl border overflow-hidden flex flex-col ${isDark ? 'bg-[#0e1e2c] border-slate-700/40' : 'bg-white border-slate-200'}`}
+                            style={{ maxHeight: 'calc(100vh - 280px)', minHeight: '400px' }}>
+                            <div className={`px-5 py-3 border-b flex items-center justify-between flex-shrink-0 ${isDark ? 'border-slate-700/40' : 'border-slate-200'}`}>
+                                <div className="flex items-center gap-2">
+                                    <div className="w-6 h-6 rounded-md bg-[#4ab5cc]/15 flex items-center justify-center">
+                                        <FontAwesomeIcon icon={faShieldAlt} className="text-[#4ab5cc] text-xs" />
+                                    </div>
+                                    <span className={`text-sm font-semibold ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>Security Alerts</span>
                                 </div>
+                                <span className={`text-xs px-2 py-0.5 rounded-full ${isDark ? 'bg-slate-700/50 text-slate-400' : 'bg-slate-100 text-slate-500'}`}>
+                                    {filteredLogs.length} alerts
+                                </span>
                             </div>
 
                             <div className="flex-1 overflow-y-auto">
                                 {filteredLogs.length === 0 ? (
-                                    <div className="p-12 text-center">
-                                        <FontAwesomeIcon icon={faShieldAlt} className={`text-6xl mb-4 ${isDark ? 'text-gray-500' : 'text-gray-300'}`} />
-                                        <h3 className={`text-xl font-semibold mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                                    <div className="py-16 text-center">
+                                        <FontAwesomeIcon icon={faShieldAlt} className={`text-4xl mb-3 ${isDark ? 'text-slate-600' : 'text-slate-300'}`} />
+                                        <p className={`text-sm font-medium mb-1 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
                                             {logs.length === 0 ? 'No Alerts Detected' : 'No Matching Alerts'}
-                                        </h3>
-                                        <p className={isDark ? 'text-gray-400' : 'text-gray-500'}>
-                                            {logs.length === 0
-                                                ? 'Alerts will appear here when threats are detected'
-                                                : 'Try adjusting filter criteria'}
+                                        </p>
+                                        <p className={`text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+                                            {logs.length === 0 ? 'Threats will appear here when detected' : 'Try adjusting filter criteria'}
                                         </p>
                                     </div>
                                 ) : (
-                                    <div className="p-4 space-y-4">
+                                    <div className="p-4 space-y-3">
                                         {filteredLogs.map((log, index) => (
                                             <AlertItem
                                                 key={`${log.flow_key}-${log.timestamp}-${index}`}
@@ -799,7 +781,7 @@ const Detection: React.FC = () => {
                         <motion.div
                             initial={{ opacity: 0, x: 20 }}
                             animate={{ opacity: 1, x: 0 }}
-                            className="lg:col-span-5"
+                            className="lg:col-span-5 h-full"
                         >
                             <AlertDetails
                                 log={filteredLogs[selectedLogIndex]}

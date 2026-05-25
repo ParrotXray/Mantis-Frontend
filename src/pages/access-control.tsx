@@ -76,7 +76,7 @@ const Modal: React.FC<ModalProps> = ({ title, children, onClose, onSubmit, submi
                     initial={{ opacity: 0, scale: 0.95, y: 20 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                    className={`rounded-lg shadow-xl max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto ${isDark ? 'bg-gray-800' : 'bg-white'}`}
+                    className={`rounded-lg shadow-xl max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto ${isDark ? 'bg-[#1a2236]' : 'bg-white'}`}
                     onClick={(e) => e.stopPropagation()}
                 >
                     <div className={`px-6 py-4 border-b ${isDark ? 'border-gray-700' : 'border-gray-200'}`}>
@@ -91,7 +91,7 @@ const Modal: React.FC<ModalProps> = ({ title, children, onClose, onSubmit, submi
                     <div className={`px-6 py-4 border-t flex justify-end space-x-3 ${isDark ? 'border-gray-700' : 'border-gray-200'}`}>
                         <button
                             onClick={onClose}
-                            className={`px-4 py-2 rounded-lg transition-colors ${isDark ? 'text-gray-300 bg-gray-700 hover:bg-gray-600' : 'text-gray-700 bg-gray-100 hover:bg-gray-200'}`}
+                            className={`px-4 py-2 rounded-lg transition-colors ${isDark ? 'text-gray-300 bg-gray-700 hover:bg-[#1a2236]' : 'text-gray-700 bg-gray-100 hover:bg-gray-200'}`}
                         >
                             Cancel
                         </button>
@@ -100,7 +100,7 @@ const Modal: React.FC<ModalProps> = ({ title, children, onClose, onSubmit, submi
                                 onClick={onSubmit}
                                 disabled={submitDisabled}
                                 className={`px-4 py-2 rounded-lg transition-colors ${
-                                    submitDisabled ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-blue-600 text-white hover:bg-blue-700'
+                                    submitDisabled ? 'bg-slate-600 text-slate-400 cursor-not-allowed' : 'bg-[#4ab5cc] text-white hover:bg-[#4ab5cc]'
                                 }`}
                             >
                                 {submitLabel}
@@ -121,8 +121,8 @@ const ToggleButton: React.FC<ToggleButtonProps> = ({ isActive, onClick, children
         <button
             className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${className} ${
                 isActive
-                    ? "bg-blue-600 text-white"
-                    : `${isDark ? 'bg-gray-700 text-gray-300 hover:bg-gray-650' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`
+                    ? "bg-[#4ab5cc] text-white"
+                    : `${isDark ? 'bg-[#131929] text-slate-300 hover:bg-slate-700/40' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`
             }`}
             onClick={onClick}
         >
@@ -139,15 +139,15 @@ const StatsCard: React.FC<StatsCardProps> = ({ title, value, icon, color }) => {
         <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className={`rounded-lg shadow-md p-6 ${isDark ? 'bg-gray-600' : 'bg-white'}`}
+            className={`rounded-xl border p-4 ${isDark ? 'bg-[#0e1e2c] border-slate-700/40' : 'bg-white border-slate-200'}`}
         >
             <div className="flex items-center justify-between">
                 <div>
-                    <p className={`text-sm font-medium mb-1 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>{title}</p>
-                    <p className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{value.toLocaleString()}</p>
+                    <p className={`text-xs font-medium mb-1 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{title}</p>
+                    <p className={`text-2xl font-bold tabular-nums ${isDark ? 'text-white' : 'text-slate-900'}`}>{value.toLocaleString()}</p>
                 </div>
-                <div className={`${color} p-3 rounded-lg`}>
-                    <FontAwesomeIcon icon={icon} className="text-white text-xl" />
+                <div className={`${color} w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0`}>
+                    <FontAwesomeIcon icon={icon} className="text-white" />
                 </div>
             </div>
         </motion.div>
@@ -408,131 +408,109 @@ const AccessControl: React.FC = () => {
                     )}
                 </AnimatePresence>
 
-                <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
-                    <h1 className={`text-3xl font-bold mb-2 flex items-center ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                        <FontAwesomeIcon icon={faShieldAlt} className="mr-3 text-blue-600" />
-                        Access Control Management
-                    </h1>
-                    <p className={isDark ? 'text-gray-400' : 'text-gray-600'}>
-                        Manage eBPF ingress/egress IP access rules for source and destination filtering
-                    </p>
-                </motion.div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                    <StatsCard title="Unique IPs" value={stats.uniqueIPs} icon={faGlobe} color="bg-blue-500" />
+                {/* Stats strip */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-5">
+                    <StatsCard title="Unique IPs" value={stats.uniqueIPs} icon={faGlobe} color="bg-[#4ab5cc]" />
                     <StatsCard title="Total Rules" value={stats.totalEntries} icon={faNetworkWired} color="bg-green-500" />
-                    <StatsCard title="All Ports Rules" value={stats.allPortsEntries} icon={faFilter} color="bg-purple-500" />
+                    <StatsCard title="All Ports Rules" value={stats.allPortsEntries} icon={faFilter} color="bg-slate-500" />
                     <StatsCard title="Specific Port Rules" value={stats.specificPortEntries} icon={faCheck} color="bg-orange-500" />
                 </div>
 
+                {/* Compact controls bar */}
                 <motion.div
-                    initial={{ opacity: 0, y: -20 }}
+                    initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className={`rounded-lg shadow-md p-6 mb-6 ${isDark ? 'bg-gray-600' : 'bg-white'}`}
+                    className={`flex flex-wrap items-center gap-3 px-4 py-2.5 rounded-xl border mb-5 ${
+                        isDark ? 'bg-[#0e1e2c] border-slate-700/40' : 'bg-white border-slate-200'
+                    }`}
                 >
-                    <div className="flex flex-wrap items-center gap-4">
-                        <div className="flex-1 min-w-56">
-                            <div className="relative">
-                                <FontAwesomeIcon
-                                    icon={faSearch}
-                                    className={`absolute left-2.5 top-1/2 transform -translate-y-1/2 text-sm ${isDark ? 'text-gray-400' : 'text-gray-400'}`}
-                                />
-                                <input
-                                    type="text"
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                    placeholder="Search IP Address..."
-                                    className={`w-full pl-8 pr-3 py-1 text-sm border rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 ${
-                                        isDark ? 'bg-gray-700 border-gray-500 text-gray-300 placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400'
-                                    }`}
-                                />
-                            </div>
-                        </div>
+                    {/* Search */}
+                    <div className="relative flex-1 min-w-40">
+                        <FontAwesomeIcon icon={faSearch} className={`absolute left-2.5 top-1/2 -translate-y-1/2 text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`} />
+                        <input
+                            type="text"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            placeholder="Search IP…"
+                            className={`w-full pl-7 pr-3 py-1 text-xs border rounded-lg focus:outline-none focus:border-[#4ab5cc] ${
+                                isDark ? 'bg-[#131929] border-slate-600 text-slate-300 placeholder-slate-500' : 'bg-white border-slate-300 text-slate-700 placeholder-slate-400'
+                            }`}
+                        />
+                    </div>
 
-                        <div className="flex items-center space-x-2">
-                            <span className={`text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>NIC:</span>
-                            <div className="flex space-x-1">
-                                <ToggleButton isActive={nic === 'ingress'} onClick={() => handleNicChange('ingress')}>
-                                    <FontAwesomeIcon icon={faArrowDown} className="mr-1 text-xs" />
-                                    Ingress
-                                </ToggleButton>
-                                <ToggleButton isActive={nic === 'egress'} onClick={() => handleNicChange('egress')}>
-                                    <FontAwesomeIcon icon={faArrowUp} className="mr-1 text-xs" />
-                                    Egress
-                                </ToggleButton>
-                            </div>
-                        </div>
+                    <div className={`w-px h-4 ${isDark ? 'bg-slate-700' : 'bg-slate-200'}`} />
 
-                        <div className="flex items-center space-x-2">
-                            <span className={`text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>Flow:</span>
-                            <div className="flex space-x-1">
-                                <ToggleButton isActive={flow === 'source'} onClick={() => handleFlowChange('source')}>
-                                    Source
-                                </ToggleButton>
-                                <ToggleButton isActive={flow === 'destination'} onClick={() => handleFlowChange('destination')}>
-                                    Destination
-                                </ToggleButton>
-                            </div>
-                        </div>
+                    <div className="flex items-center gap-1.5">
+                        <span className={`text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>NIC:</span>
+                        <ToggleButton isActive={nic === 'ingress'} onClick={() => handleNicChange('ingress')}>
+                            <FontAwesomeIcon icon={faArrowDown} className="mr-1 text-xs" />Ingress
+                        </ToggleButton>
+                        <ToggleButton isActive={nic === 'egress'} onClick={() => handleNicChange('egress')}>
+                            <FontAwesomeIcon icon={faArrowUp} className="mr-1 text-xs" />Egress
+                        </ToggleButton>
+                    </div>
 
-                        <div className="flex items-center space-x-2">
-                            <span className={`text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>IP:</span>
-                            <div className="flex space-x-1">
-                                <ToggleButton isActive={!isIPv6} onClick={() => handleIPVersionChange(false)}>IPv4</ToggleButton>
-                                <ToggleButton isActive={isIPv6} onClick={() => handleIPVersionChange(true)}>IPv6</ToggleButton>
-                            </div>
-                        </div>
+                    <div className="flex items-center gap-1.5">
+                        <span className={`text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Flow:</span>
+                        <ToggleButton isActive={flow === 'source'} onClick={() => handleFlowChange('source')}>Source</ToggleButton>
+                        <ToggleButton isActive={flow === 'destination'} onClick={() => handleFlowChange('destination')}>Destination</ToggleButton>
+                    </div>
 
-                        <div className="flex items-center space-x-2">
-                            <span className={`text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>List:</span>
-                            <div className="flex space-x-1">
-                                <ToggleButton isActive={listType === 'black_list'} onClick={() => handleListTypeChange('black_list')}>
-                                    <FontAwesomeIcon icon={faFilter} className="mr-1" />
-                                    Blacklist
-                                </ToggleButton>
-                                <ToggleButton isActive={listType === 'white_list'} onClick={() => handleListTypeChange('white_list')}>
-                                    <FontAwesomeIcon icon={faCheck} className="mr-1" />
-                                    Whitelist
-                                </ToggleButton>
-                            </div>
-                        </div>
+                    <div className="flex items-center gap-1.5">
+                        <span className={`text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>IP:</span>
+                        <ToggleButton isActive={!isIPv6} onClick={() => handleIPVersionChange(false)}>IPv4</ToggleButton>
+                        <ToggleButton isActive={isIPv6} onClick={() => handleIPVersionChange(true)}>IPv6</ToggleButton>
+                    </div>
 
-                        <div className="flex items-center space-x-2 ml-auto">
-                            <button
-                                className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors flex items-center space-x-1 ${
-                                    isDark ? 'bg-gray-700 text-gray-300 hover:bg-gray-650' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                                }`}
-                                onClick={handleRefresh}
-                            >
-                                <FontAwesomeIcon icon={faRefresh} className="text-xs" />
-                                <span>Update</span>
-                            </button>
-                            <button
-                                className="px-3 py-1 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors flex items-center space-x-1"
-                                onClick={handleAddItemClick}
-                            >
-                                <FontAwesomeIcon icon={faPlus} className="text-xs" />
-                                <span>Add Rule</span>
-                            </button>
-                        </div>
+                    <div className="flex items-center gap-1.5">
+                        <span className={`text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>List:</span>
+                        <ToggleButton isActive={listType === 'black_list'} onClick={() => handleListTypeChange('black_list')}>
+                            <FontAwesomeIcon icon={faFilter} className="mr-1 text-xs" />Blacklist
+                        </ToggleButton>
+                        <ToggleButton isActive={listType === 'white_list'} onClick={() => handleListTypeChange('white_list')}>
+                            <FontAwesomeIcon icon={faCheck} className="mr-1 text-xs" />Whitelist
+                        </ToggleButton>
+                    </div>
+
+                    <div className="flex items-center gap-2 ml-auto">
+                        <button
+                            className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 ${
+                                isDark ? 'bg-slate-700/50 text-slate-300 hover:bg-slate-700' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                            }`}
+                            onClick={handleRefresh}
+                        >
+                            <FontAwesomeIcon icon={faRefresh} className="text-xs" />
+                            Refresh
+                        </button>
+                        <button
+                            className="px-3 py-1 bg-[#4ab5cc] text-white rounded-lg text-xs font-medium hover:bg-[#3da5bc] transition-colors flex items-center gap-1.5"
+                            onClick={handleAddItemClick}
+                        >
+                            <FontAwesomeIcon icon={faPlus} className="text-xs" />
+                            Add Rule
+                        </button>
                     </div>
                 </motion.div>
 
+                {/* Rules table */}
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className={`rounded-lg shadow-md overflow-hidden ${isDark ? 'bg-gray-600' : 'bg-white'}`}
+                    className={`rounded-xl border overflow-hidden ${isDark ? 'bg-[#0e1e2c] border-slate-700/40' : 'bg-white border-slate-200'}`}
                 >
-                    <div className={`px-6 py-4 border-b ${isDark ? 'border-gray-700' : 'border-gray-200'}`}>
-                        <div className="flex justify-between items-center">
-                            <h2 className={`text-xl font-semibold flex items-center gap-3 ${isDark ? 'text-gray-300' : 'text-gray-900'}`}>
+                    <div className={`px-5 py-3 border-b flex items-center justify-between ${isDark ? 'border-slate-700/40' : 'border-slate-200'}`}>
+                        <div className="flex items-center gap-2">
+                            <div className="w-6 h-6 rounded-md bg-[#4ab5cc]/15 flex items-center justify-center">
+                                <FontAwesomeIcon icon={faShieldAlt} className="text-[#4ab5cc] text-xs" />
+                            </div>
+                            <span className={`text-sm font-semibold flex items-center gap-2 ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
                                 {tableTitle}
-                                {isLoading && <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600" />}
-                            </h2>
-                            <span className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                                {flatData.length} Rules
+                                {isLoading && <div className="animate-spin rounded-full h-3.5 w-3.5 border-b-2 border-[#4ab5cc]" />}
                             </span>
                         </div>
+                        <span className={`text-xs px-2 py-0.5 rounded-full ${isDark ? 'bg-slate-700/50 text-slate-400' : 'bg-slate-100 text-slate-500'}`}>
+                            {flatData.length} rules
+                        </span>
                     </div>
 
                     {flatData.length === 0 ? (
@@ -546,7 +524,7 @@ const AccessControl: React.FC = () => {
                             </p>
                             {!searchTerm && (
                                 <button
-                                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                                    className="px-4 py-2 bg-[#4ab5cc] text-white rounded-lg hover:bg-[#4ab5cc] transition-colors"
                                     onClick={handleAddItemClick}
                                 >
                                     <FontAwesomeIcon icon={faPlus} className="mr-2" />
@@ -557,7 +535,7 @@ const AccessControl: React.FC = () => {
                     ) : (
                         <div className="overflow-x-auto">
                             <table className={`min-w-full divide-y ${isDark ? 'divide-gray-700' : 'divide-gray-200'}`}>
-                                <thead className={isDark ? 'bg-gray-700' : 'bg-gray-50'}>
+                                <thead className={isDark ? 'bg-[#131929]' : 'bg-slate-50'}>
                                     <tr>
                                         <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
                                             IP Address
@@ -570,11 +548,11 @@ const AccessControl: React.FC = () => {
                                         </th>
                                     </tr>
                                 </thead>
-                                <tbody className={`divide-y ${isDark ? 'bg-gray-600 divide-gray-700' : 'bg-white divide-gray-200'}`}>
+                                <tbody className={`divide-y ${isDark ? 'bg-[#1a2236] divide-gray-700' : 'bg-white divide-gray-200'}`}>
                                     {flatData.map(({ ip, port }, index) => (
                                         <tr
                                             key={`${ip}-${port}-${index}`}
-                                            className={`transition-colors ${isDark ? 'hover:bg-gray-700' : 'hover:bg-gray-50'}`}
+                                            className={`transition-colors ${isDark ? 'hover:bg-slate-700/30' : 'hover:bg-slate-50'}`}
                                         >
                                             <td className={`px-6 py-4 whitespace-nowrap text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-900'}`}>
                                                 {ip}
@@ -620,8 +598,8 @@ const AccessControl: React.FC = () => {
                                     value={newIp}
                                     onChange={(e) => setNewIp(e.target.value)}
                                     placeholder={isIPv6 ? "2001:db8::" : "192.168.1.1"}
-                                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 ${
-                                        isDark ? 'bg-gray-700 border-gray-600 text-gray-300 placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400'
+                                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:border-[#4ab5cc] focus:ring-1 focus:ring-[#4ab5cc] ${
+                                        isDark ? 'bg-[#131929] border-slate-600 text-slate-300 placeholder-slate-500' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400'
                                     }`}
                                 />
                             </div>
@@ -635,7 +613,7 @@ const AccessControl: React.FC = () => {
                                         setBlockAllPorts(e.target.checked)
                                         if (e.target.checked) setNewPort('')
                                     }}
-                                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                                    className="h-4 w-4 text-[#4ab5cc] focus:ring-[#4ab5cc] border-gray-300 rounded"
                                 />
                                 <label htmlFor="block-all-ports" className={`text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
                                     Block All Ports
@@ -650,9 +628,9 @@ const AccessControl: React.FC = () => {
                                     onChange={(e) => setNewPort(e.target.value)}
                                     placeholder="80"
                                     disabled={blockAllPorts}
-                                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 ${
+                                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:border-[#4ab5cc] focus:ring-1 focus:ring-[#4ab5cc] ${
                                         blockAllPorts
-                                            ? (isDark ? 'bg-gray-600 text-gray-500 border-gray-600' : 'bg-gray-100 text-gray-500 border-gray-300')
+                                            ? (isDark ? 'bg-[#1a2236] text-gray-500 border-gray-600' : 'bg-gray-100 text-gray-500 border-gray-300')
                                             : (isDark ? 'bg-gray-700 border-gray-600 text-gray-300' : 'bg-white border-gray-300 text-gray-900')
                                     }`}
                                 />
@@ -694,7 +672,7 @@ const AccessControl: React.FC = () => {
                             </div>
                             <p className={isDark ? 'text-gray-300' : 'text-gray-700'}>Are you sure you want to delete this rule?</p>
                             {itemToDelete && (
-                                <div className={`border rounded-lg p-4 ${isDark ? 'bg-gray-700 border-gray-600' : 'bg-gray-50 border-gray-200'}`}>
+                                <div className={`border rounded-lg p-4 ${isDark ? 'bg-[#131929] border-slate-700/50' : 'bg-slate-50 border-slate-200'}`}>
                                     <div className="space-y-2">
                                         <div className="flex justify-between">
                                             <span className={`font-medium ${isDark ? 'text-gray-400' : 'text-gray-700'}`}>IP Address:</span>

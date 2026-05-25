@@ -30,7 +30,7 @@ const SetupPage: React.FC = () => {
     if (pw.length < 8) return { label: 'Too short', color: 'bg-red-500', width: '25%' }
     if (pw.length < 12) return { label: 'Fair', color: 'bg-yellow-500', width: '50%' }
     if (/[A-Z]/.test(pw) && /[0-9]/.test(pw)) return { label: 'Strong', color: 'bg-green-500', width: '100%' }
-    return { label: 'Good', color: 'bg-blue-500', width: '75%' }
+    return { label: 'Good', color: 'bg-[#4ab5cc]', width: '75%' }
   }
 
   const strength = passwordStrength(password)
@@ -71,27 +71,34 @@ const SetupPage: React.FC = () => {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </Head>
 
-      <div className={`min-h-screen flex items-center justify-center transition-colors duration-300 ${
-        isDark ? 'bg-gray-900' : 'bg-gray-100'
-      }`}>
+      <div
+        className="min-h-screen flex items-center justify-center transition-colors duration-300"
+        style={{ background: isDark ? '#0b0f17' : '#f1f5f9' }}
+      >
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="w-full max-w-md px-4"
         >
-          <div className={`rounded-2xl shadow-2xl overflow-hidden ${isDark ? 'bg-gray-800' : 'bg-white'}`}>
-            <div className="px-8 py-10 text-center" style={{ background: 'linear-gradient(135deg, #1a4a5c 0%, #0d2d3a 100%)' }}>
+          <div
+            className="rounded-2xl shadow-2xl overflow-hidden"
+            style={{
+              background: isDark ? '#131929' : '#ffffff',
+              border: isDark ? '1px solid rgba(74,181,204,0.1)' : '1px solid #e2e8f0',
+            }}
+          >
+            <div className="px-8 py-8 text-center" style={{ background: 'linear-gradient(135deg, #0a1c28 0%, #0c2130 100%)' }}>
               <div className="flex justify-center mb-4">
-                <img src="/mantis-logo.png" alt="Mantis" className="w-20 h-20 object-contain drop-shadow-lg" />
+                <img src="/mantis-logo.png" alt="Mantis" className="w-16 h-16 object-contain drop-shadow-lg" />
               </div>
               <h1 className="text-2xl font-bold text-white mb-1">First-time Setup</h1>
-              <p className="text-blue-200 text-sm">Create your administrator account</p>
+              <p className="text-[#4ab5cc]/70 text-sm">Create your administrator account</p>
             </div>
 
-            <div className={`px-6 py-4 border-b ${isDark ? 'border-gray-700 bg-blue-900/20' : 'border-blue-100 bg-blue-50'}`}>
+            <div className={`px-6 py-3.5 border-b ${isDark ? 'border-slate-700/50 bg-[#4ab5cc]/5' : 'border-[#4ab5cc]/20 bg-[#4ab5cc]/5'}`}>
               <div className="flex items-start gap-3">
-                <FontAwesomeIcon icon={faCheckCircle} className="text-blue-400 mt-0.5 flex-shrink-0" />
-                <p className={`text-sm ${isDark ? 'text-blue-300' : 'text-blue-700'}`}>
+                <FontAwesomeIcon icon={faCheckCircle} className="text-[#4ab5cc] mt-0.5 flex-shrink-0 text-sm" />
+                <p className={`text-sm ${isDark ? 'text-slate-400' : 'text-[#3da5bc]'}`}>
                   No accounts exist yet. Create the first administrator account to get started.
                   This setup page will be unavailable after the account is created.
                 </p>
@@ -114,9 +121,9 @@ const SetupPage: React.FC = () => {
                     onChange={(e) => setUsername(e.target.value)}
                     placeholder="Choose a username"
                     autoComplete="username"
-                    className={`w-full pl-9 pr-3 py-2.5 border rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors ${
+                    className={`w-full pl-9 pr-3 py-2.5 border rounded-lg focus:outline-none focus:border-[#4ab5cc] focus:ring-1 focus:ring-[#4ab5cc] transition-colors ${
                       isDark
-                        ? 'bg-gray-700 border-gray-600 text-gray-200 placeholder-gray-500'
+                        ? 'bg-slate-800/60 border-slate-700 text-slate-200 placeholder-slate-600'
                         : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400'
                     }`}
                   />
@@ -138,9 +145,9 @@ const SetupPage: React.FC = () => {
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="At least 8 characters"
                     autoComplete="new-password"
-                    className={`w-full pl-9 pr-10 py-2.5 border rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors ${
+                    className={`w-full pl-9 pr-10 py-2.5 border rounded-lg focus:outline-none focus:border-[#4ab5cc] focus:ring-1 focus:ring-[#4ab5cc] transition-colors ${
                       isDark
-                        ? 'bg-gray-700 border-gray-600 text-gray-200 placeholder-gray-500'
+                        ? 'bg-slate-800/60 border-slate-700 text-slate-200 placeholder-slate-600'
                         : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400'
                     }`}
                   />
@@ -156,7 +163,7 @@ const SetupPage: React.FC = () => {
                 </div>
                 {strength && (
                   <div className="mt-2">
-                    <div className={`h-1 rounded-full overflow-hidden ${isDark ? 'bg-gray-600' : 'bg-gray-200'}`}>
+                    <div className={`h-1 rounded-full overflow-hidden ${isDark ? 'bg-slate-700' : 'bg-slate-200'}`}>
                       <div
                         className={`h-full rounded-full transition-all duration-300 ${strength.color}`}
                         style={{ width: strength.width }}
@@ -182,11 +189,11 @@ const SetupPage: React.FC = () => {
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="Re-enter password"
                     autoComplete="new-password"
-                    className={`w-full pl-9 pr-10 py-2.5 border rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors ${
+                    className={`w-full pl-9 pr-10 py-2.5 border rounded-lg focus:outline-none focus:border-[#4ab5cc] focus:ring-1 focus:ring-[#4ab5cc] transition-colors ${
                       confirmPassword && password !== confirmPassword
                         ? 'border-red-400 focus:border-red-400 focus:ring-red-400'
                         : isDark
-                          ? 'bg-gray-700 border-gray-600 text-gray-200 placeholder-gray-500'
+                          ? 'bg-slate-800/60 border-slate-700 text-slate-200 placeholder-slate-600'
                           : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400'
                     } ${isDark ? 'bg-gray-700 text-gray-200' : 'bg-white text-gray-900'}`}
                   />
@@ -220,8 +227,8 @@ const SetupPage: React.FC = () => {
                 disabled={isLoading}
                 className={`w-full py-2.5 rounded-lg font-semibold transition-colors ${
                   isLoading
-                    ? 'bg-blue-400 text-white cursor-not-allowed'
-                    : 'bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800'
+                    ? 'bg-[#4ab5cc]/40 text-sky-200 cursor-not-allowed'
+                    : 'bg-[#4ab5cc] text-white hover:bg-[#4ab5cc] active:bg-sky-600 shadow-lg shadow-[#4ab5cc]/15'
                 }`}
               >
                 {isLoading ? (

@@ -8,57 +8,60 @@ svg.svg-inline--fa {
     vertical-align: -0.125em;
 }
 
-/* 確保圖標尺寸穩定 */
 .svg-inline--fa {
     width: 1em;
 }
 
-/* 針對有固定寬高的圖標 */
 .svg-inline--fa.fa-fw {
     width: 1.25em;
 }
 
-/* 防止尺寸跳動 */
 .svg-inline--fa {
     transition: none !important;
 }
 
-/* 確保初始渲染就有正確尺寸 */
 .svg-inline--fa:not(:root) {
     overflow: visible;
     box-sizing: content-box;
 }
 
+/* Light mode: html/body background + scrollbar color-scheme */
+html, body {
+    color-scheme: light;
+    background-color: #f1f5f9;
+    scrollbar-color: rgba(74, 181, 204, 0.30) transparent;
+}
+
+/* Dark mode driven by .dark class set by ThemeProvider */
+html.dark, html.dark body {
+    color-scheme: dark;
+    background-color: #0c2130;
+    scrollbar-color: rgba(74, 181, 204, 0.20) transparent;
+}
+
+/* Scrollbar — slim, slate-sky palette */
 ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-}
-
-::-webkit-scrollbar-thumb {
-    background: rgba(20, 184, 166, 0.35);
-    border-radius: 10px;
-    transition: background 0.2s ease-in-out;
-}
-
-::-webkit-scrollbar-thumb:hover {
-    background: rgba(20, 184, 166, 0.65);
+    width: 5px;
+    height: 5px;
 }
 
 ::-webkit-scrollbar-track {
-    background: rgba(13, 45, 58, 0.15);
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(74, 181, 204, 0.30);
     border-radius: 10px;
 }
 
-@media (prefers-color-scheme: dark) {
-    ::-webkit-scrollbar-thumb {
-        background: rgba(20, 184, 166, 0.4);
-    }
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(74, 181, 204, 0.55);
+}
 
-    ::-webkit-scrollbar-thumb:hover {
-        background: rgba(20, 184, 166, 0.7);
-    }
+html.dark ::-webkit-scrollbar-thumb {
+    background: rgba(74, 181, 204, 0.20);
+}
 
-    ::-webkit-scrollbar-track {
-        background: rgba(13, 45, 58, 0.4);
-    }
+html.dark ::-webkit-scrollbar-thumb:hover {
+    background: rgba(74, 181, 204, 0.45);
 }

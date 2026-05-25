@@ -118,8 +118,8 @@ const ToggleButton: React.FC<ToggleButtonProps> = ({ isActive, onClick, children
         <button
             className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${className} ${
                 isActive
-                    ? "bg-blue-600 text-white"
-                    : `${isDark ? 'bg-gray-700 text-gray-300 hover:bg-gray-650' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`
+                    ? "bg-[#4ab5cc] text-white"
+                    : `${isDark ? 'bg-[#131929] text-slate-300 hover:bg-slate-700/40' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`
             }`}
             onClick={onClick}
         >
@@ -167,49 +167,41 @@ const UpdateControl: React.FC<UpdateControlProps> = ({
     const isDark = actualTheme === 'dark';
 
     return (
-        <div className={`flex flex-wrap items-center gap-4 p-3 rounded-lg ${isDark ? 'bg-gray-700' : 'bg-gray-50'}`}>
-            <div className="flex items-center space-x-2">
-                <FontAwesomeIcon icon={faClock} className={isDark ? 'text-gray-400' : 'text-gray-500'} />
-                <span className={`text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>Update Interval:</span>
-                <select
-                    value={updateInterval}
-                    onChange={(e) => setUpdateInterval(Number(e.target.value))}
-                    className={`px-3 py-1 border rounded-md text-sm focus:outline-none focus:border-blue-500 ${
-                        isDark ? 'bg-gray-600 border-gray-500 text-gray-300' : 'bg-white border-gray-300 text-gray-700'
-                    }`}
-                >
-                    {UPDATE_INTERVALS.map(interval => (
-                        <option key={interval.value} value={interval.value}>
-                            {interval.label}
-                        </option>
-                    ))}
-                </select>
-            </div>
-
+        <div className="flex items-center gap-2">
+            <FontAwesomeIcon icon={faClock} className="text-[#4ab5cc] text-xs" />
+            <select
+                value={updateInterval}
+                onChange={(e) => setUpdateInterval(Number(e.target.value))}
+                className={`text-xs border rounded-lg px-2 py-1 focus:outline-none focus:border-[#4ab5cc] ${
+                    isDark ? 'bg-[#131929] border-slate-600 text-slate-300' : 'bg-white border-slate-300 text-slate-700'
+                }`}
+            >
+                {UPDATE_INTERVALS.map(interval => (
+                    <option key={interval.value} value={interval.value}>{interval.label}</option>
+                ))}
+            </select>
             <button
                 onClick={() => setIsPaused(!isPaused)}
-                className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
+                className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-colors ${
                     isPaused
-                        ? "bg-green-100 text-green-700 hover:bg-green-200"
-                        : "bg-orange-100 text-orange-700 hover:bg-orange-200"
+                        ? 'bg-green-500/10 text-green-500 hover:bg-green-500/20'
+                        : 'bg-amber-500/10 text-amber-500 hover:bg-amber-500/20'
                 }`}
             >
                 <FontAwesomeIcon icon={isPaused ? faPlay : faPause} className="mr-1" />
-                {isPaused ? "resume" : "pause"}
+                {isPaused ? 'Resume' : 'Pause'}
             </button>
-
             <button
                 onClick={() => window.location.reload()}
-                className="px-3 py-1 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 transition-colors flex items-center space-x-1"
+                className="px-2.5 py-1 bg-[#4ab5cc]/10 text-[#4ab5cc] hover:bg-[#4ab5cc]/20 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5"
             >
                 <FontAwesomeIcon icon={faRefresh} className="text-xs" />
-                <span>Update</span>
+                Update
             </button>
-
             {lastUpdateTime && (
-                <div className={`text-xs ml-auto ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                <span className={`text-xs ml-2 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
                     Last Update: {lastUpdateTime.toLocaleTimeString()}
-                </div>
+                </span>
             )}
         </div>
     );
@@ -230,10 +222,13 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
 
     return (
         <motion.div
-            initial={{ opacity: 0, y: -20 }}
+            initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            className={`rounded-lg shadow-md p-6 mb-6 space-y-4 ${isDark ? 'bg-gray-600' : 'bg-white'}`}
+            className={`flex flex-wrap items-center gap-3 px-4 py-2.5 rounded-xl border mb-5 ${
+                isDark ? 'bg-[#0e1e2c] border-slate-700/40' : 'bg-white border-slate-200'
+            }`}
         >
+            {/* Update controls */}
             <UpdateControl
                 updateInterval={updateInterval}
                 setUpdateInterval={setUpdateInterval}
@@ -242,93 +237,47 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
                 lastUpdateTime={lastUpdateTime}
             />
 
-            <div className="flex flex-wrap items-center gap-4">
-                <div className="flex-1 min-w-64">
-                    <div className="relative">
-                        <FontAwesomeIcon
-                            icon={faSearch}
-                            className={`absolute left-2.5 top-1/2 transform -translate-y-1/2 text-sm ${isDark ? 'text-gray-400' : 'text-gray-400'}`}
-                        />
-                        <input
-                            type="text"
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            placeholder="Search IP Address..."
-                            className={`w-full pl-8 pr-3 py-1 text-sm border rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 ${
-                                isDark ? 'bg-gray-700 border-gray-500 text-gray-300 placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400'
-                            }`}
-                        />
-                    </div>
-                </div>
+            <div className={`w-px h-4 ${isDark ? 'bg-slate-700' : 'bg-slate-200'}`} />
 
-                <div className="flex items-center space-x-2">
-                    <span className={`text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>IP Version:</span>
-                    <div className="flex space-x-1">
-                        <ToggleButton
-                            isActive={!isIPv6}
-                            onClick={() => setIsIPv6(false)}
-                        >
-                            IPv4
-                        </ToggleButton>
-                        <ToggleButton
-                            isActive={isIPv6}
-                            onClick={() => setIsIPv6(true)}
-                        >
-                            IPv6
-                        </ToggleButton>
-                    </div>
-                </div>
+            {/* Search */}
+            <div className="relative flex-1 min-w-40">
+                <FontAwesomeIcon icon={faSearch} className={`absolute left-2.5 top-1/2 -translate-y-1/2 text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`} />
+                <input
+                    type="text"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    placeholder="Search IP Address…"
+                    className={`w-full pl-7 pr-3 py-1 text-xs border rounded-lg focus:outline-none focus:border-[#4ab5cc] ${
+                        isDark ? 'bg-[#131929] border-slate-600 text-slate-300 placeholder-slate-500' : 'bg-white border-slate-300 text-slate-700 placeholder-slate-400'
+                    }`}
+                />
+            </div>
 
-                <div className="flex items-center space-x-2">
-                    <span className={`text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>Direction:</span>
-                    <div className="flex space-x-1">
-                        <ToggleButton
-                            isActive={direction === "ingress"}
-                            onClick={() => setDirection("ingress")}
-                        >
-                            Ingress
-                        </ToggleButton>
-                        <ToggleButton
-                            isActive={direction === "egress"}
-                            onClick={() => setDirection("egress")}
-                        >
-                            Egress
-                        </ToggleButton>
-                    </div>
-                </div>
+            <div className={`w-px h-4 ${isDark ? 'bg-slate-700' : 'bg-slate-200'}`} />
 
-                <div className="flex items-center space-x-2">
-                    <span className={`text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>Traffic Type:</span>
-                    <div className="flex space-x-1">
-                        <ToggleButton
-                            isActive={trafficType === "source"}
-                            onClick={() => setTrafficType("source")}
-                        >
-                            Source
-                        </ToggleButton>
-                        <ToggleButton
-                            isActive={trafficType === "destination"}
-                            onClick={() => setTrafficType("destination")}
-                        >
-                            Destination
-                        </ToggleButton>
-                    </div>
-                </div>
+            <div className="flex items-center gap-1.5">
+                <span className={`text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>IP:</span>
+                <ToggleButton isActive={!isIPv6} onClick={() => setIsIPv6(false)}>IPv4</ToggleButton>
+                <ToggleButton isActive={isIPv6} onClick={() => setIsIPv6(true)}>IPv6</ToggleButton>
+            </div>
 
-                <div className="flex items-center space-x-2">
-                    <span className={`text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>Time:</span>
-                    <div className="flex space-x-1">
-                        {TIME_RANGES.map((range) => (
-                            <ToggleButton
-                                key={range}
-                                isActive={timeRange === range}
-                                onClick={() => setTimeRange(range)}
-                            >
-                                {range}
-                            </ToggleButton>
-                        ))}
-                    </div>
-                </div>
+            <div className="flex items-center gap-1.5">
+                <span className={`text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Dir:</span>
+                <ToggleButton isActive={direction === 'ingress'} onClick={() => setDirection('ingress')}>Ingress</ToggleButton>
+                <ToggleButton isActive={direction === 'egress'} onClick={() => setDirection('egress')}>Egress</ToggleButton>
+            </div>
+
+            <div className="flex items-center gap-1.5">
+                <span className={`text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Traffic:</span>
+                <ToggleButton isActive={trafficType === 'source'} onClick={() => setTrafficType('source')}>Source</ToggleButton>
+                <ToggleButton isActive={trafficType === 'destination'} onClick={() => setTrafficType('destination')}>Destination</ToggleButton>
+            </div>
+
+            <div className="flex items-center gap-1.5">
+                <span className={`text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Time:</span>
+                {TIME_RANGES.map((range) => (
+                    <ToggleButton key={range} isActive={timeRange === range} onClick={() => setTimeRange(range)}>{range}</ToggleButton>
+                ))}
             </div>
         </motion.div>
     );
@@ -372,11 +321,11 @@ const DataTable: React.FC<DataTableProps> = ({ data, sortConfig, handleSort, boo
         <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className={`rounded-lg shadow-md overflow-hidden ${isDark ? 'bg-gray-600' : 'bg-white'}`}
+            className={`rounded-xl border overflow-hidden ${isDark ? 'bg-[#0e1e2c] border-slate-700/40' : 'bg-white border-slate-200'}`}
         >
-            <div className="max-h-[600px] overflow-y-auto">
-                <table className={`min-w-full divide-y ${isDark ? 'divide-gray-700' : 'divide-gray-200'}`}>
-                    <thead className={`sticky top-0 z-10 ${isDark ? 'bg-gray-700' : 'bg-gray-50'}`}>
+            <div className="overflow-y-auto" style={{ maxHeight: 'calc(100vh - 390px)', minHeight: '200px' }}>
+                <table className={`min-w-full divide-y ${isDark ? 'divide-slate-700/50' : 'divide-slate-200'}`}>
+                    <thead className={`sticky top-0 z-10 ${isDark ? 'bg-[#131929]' : 'bg-slate-50'}`}>
                     <tr>
                         {columns.map((column) => (
                             <TableHeader
@@ -388,28 +337,28 @@ const DataTable: React.FC<DataTableProps> = ({ data, sortConfig, handleSort, boo
                         ))}
                     </tr>
                     </thead>
-                    <tbody className={`divide-y ${isDark ? 'bg-gray-600 divide-gray-700' : 'bg-white divide-gray-200'}`}>
+                    <tbody className={`divide-y ${isDark ? 'bg-[#0e1e2c] divide-slate-700/40' : 'bg-white divide-slate-200'}`}>
                     {data.map((row, index) => (
                         <motion.tr
                             key={`${row.ip}-${index}`}
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             transition={{ delay: Math.min(index * 0.01, 0.5) }}
-                            className={`transition-colors ${isDark ? 'hover:bg-gray-700' : 'hover:bg-gray-50'}`}
+                            className={`transition-colors ${isDark ? 'hover:bg-slate-700/30' : 'hover:bg-slate-50'}`}
                         >
-                            <td className={`px-4 py-3 whitespace-nowrap text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-900'}`}>
+                            <td className={`px-4 py-1.5 whitespace-nowrap text-sm font-medium ${isDark ? 'text-slate-300' : 'text-slate-800'}`}>
                                 {row.ip}
                             </td>
-                            <td className="px-4 py-3 text-sm">
+                            <td className="px-4 py-1.5 text-sm">
                                 {formatGeoLocation(row.geo)}
                             </td>
-                            <td className={`px-4 py-3 whitespace-nowrap text-sm ${isDark ? 'text-gray-300' : 'text-gray-900'}`}>
+                            <td className={`px-4 py-1.5 whitespace-nowrap text-sm ${isDark ? 'text-slate-300' : 'text-slate-800'}`}>
                                 {formatBytes(row.bytes)}
                             </td>
-                            <td className={`px-4 py-3 whitespace-nowrap text-sm ${isDark ? 'text-gray-300' : 'text-gray-900'}`}>
+                            <td className={`px-4 py-1.5 whitespace-nowrap text-sm ${isDark ? 'text-slate-300' : 'text-slate-800'}`}>
                                 {row.packets.toLocaleString()}
                             </td>
-                            <td className={`px-4 py-3 whitespace-nowrap text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                            <td className={`px-4 py-1.5 whitespace-nowrap text-sm ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                                 {formatTimestamp(row.last_seen, bootTime)}
                             </td>
                         </motion.tr>
@@ -419,7 +368,7 @@ const DataTable: React.FC<DataTableProps> = ({ data, sortConfig, handleSort, boo
             </div>
 
             {data.length > 0 && (
-                <div className={`px-4 py-2 border-t ${isDark ? 'bg-gray-700 border-gray-600' : 'bg-gray-50 border-gray-200'}`}>
+                <div className={`px-4 py-2 border-t ${isDark ? 'bg-[#131929] border-slate-700/50' : 'bg-slate-50 border-slate-200'}`}>
                     <div className={`flex justify-between items-center text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
                         <span>Showing {data.length} records</span>
                     </div>
@@ -437,7 +386,7 @@ const NoDataState: React.FC<NoDataStateProps> = ({ isSearchFiltered }) => {
         <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className={`rounded-lg shadow-md p-12 text-center ${isDark ? 'bg-gray-600' : 'bg-white'}`}
+            className={`rounded-xl border p-12 text-center ${isDark ? 'bg-[#0e1e2c] border-slate-700/40' : 'bg-white border-slate-200'}`}
         >
             <FontAwesomeIcon icon={faInfoCircle} className={`text-6xl mb-4 ${isDark ? 'text-gray-500' : 'text-gray-300'}`} />
             {isSearchFiltered ? (
@@ -479,7 +428,7 @@ const StatsOverview: React.FC<StatsOverviewProps> = ({ data, isIPv6, direction, 
             title: 'Total Traffic',
             value: formatBytes(totalBytes),
             icon: faNetworkWired,
-            color: 'bg-blue-500'
+            color: 'bg-[#4ab5cc]'
         },
         {
             title: 'Total Packets',
@@ -491,7 +440,7 @@ const StatsOverview: React.FC<StatsOverviewProps> = ({ data, isIPv6, direction, 
             title: 'Unique IPs',
             value: uniqueIPs.toLocaleString(),
             icon: faGlobe,
-            color: 'bg-purple-500'
+            color: 'bg-slate-500'
         }
     ];
 
@@ -507,7 +456,7 @@ const StatsOverview: React.FC<StatsOverviewProps> = ({ data, isIPv6, direction, 
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.1 }}
-                    className={`rounded-lg shadow-md p-6 ${isDark ? 'bg-gray-600' : 'bg-white'}`}
+                    className={`rounded-xl border p-4 ${isDark ? 'bg-[#0e1e2c] border-slate-700/40' : 'bg-white border-slate-200'}`}
                 >
                     <div className="flex items-center justify-between">
                         <div>
@@ -811,7 +760,7 @@ const Statistics: React.FC = () => {
                             <p className={`mb-4 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>{error}</p>
                             <button
                                 onClick={() => window.location.reload()}
-                                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                                className="px-4 py-2 bg-[#4ab5cc] text-white rounded-lg hover:bg-[#4ab5cc] transition-colors"
                             >
                                 Reload
                             </button>
@@ -830,23 +779,6 @@ const Statistics: React.FC = () => {
             </Head>
 
             <Layout>
-                <motion.div
-                    initial={{ opacity: 0, y: -20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="mb-8"
-                >
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <h1 className={`text-3xl font-bold mb-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                                Network Traffic Statistics
-                            </h1>
-                            <p className={isDark ? 'text-gray-400' : 'text-gray-600'}>
-                                Analyze and monitor network traffic data, view detailed connection statistics
-                            </p>
-                        </div>
-                    </div>
-                </motion.div>
-
                 <ControlPanel
                     isIPv6={isIPv6}
                     setIsIPv6={setIsIPv6}
@@ -874,7 +806,7 @@ const Statistics: React.FC = () => {
                     />
                 )}
 
-                <div className="mb-8">
+                <div>
                     {sortedData === null ? (
                         <NoDataState isSearchFiltered={false} />
                     ) : sortedData.length === 0 ? (

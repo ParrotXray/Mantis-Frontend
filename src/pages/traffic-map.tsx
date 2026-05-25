@@ -72,7 +72,7 @@ const ToggleButton: React.FC<{
         className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
             isActive
                 ? 'bg-blue-600 text-white'
-                : `${isDark ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-700'} hover:bg-gray-200`
+                : `${isDark ? 'bg-[#131929] text-slate-300' : 'bg-slate-100 text-slate-700'} hover:bg-gray-200`
         }`}
         onClick={onClick}
     >
@@ -114,114 +114,69 @@ const ControlPanel: React.FC<{
 
     return (
         <motion.div
-            initial={{ opacity: 0, y: -20 }}
+            initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            className={`rounded-lg shadow-md p-4 mb-6 ${isDark ? 'bg-gray-600' : 'bg-white'}`}
+            className={`flex flex-wrap items-center gap-3 px-4 py-2.5 rounded-xl border mb-5 ${
+                isDark ? 'bg-[#0e1e2c] border-slate-700/40' : 'bg-white border-slate-200'
+            }`}
         >
-            <div className="flex flex-wrap items-center gap-4">
-                <div className="flex items-center space-x-2">
-                    <span className={`text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>IP Version:</span>
-                    <div className="flex space-x-1">
-                        <ToggleButton
-                            isActive={!isIPv6}
-                            onClick={() => setIsIPv6(false)}
-                            isDark={isDark}
-                        >
-                            IPv4
-                        </ToggleButton>
-                        <ToggleButton
-                            isActive={isIPv6}
-                            onClick={() => setIsIPv6(true)}
-                            isDark={isDark}
-                        >
-                            IPv6
-                        </ToggleButton>
-                    </div>
-                </div>
+            <div className="flex items-center gap-1.5">
+                <span className={`text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>IP:</span>
+                <ToggleButton isActive={!isIPv6} onClick={() => setIsIPv6(false)} isDark={isDark}>IPv4</ToggleButton>
+                <ToggleButton isActive={isIPv6} onClick={() => setIsIPv6(true)} isDark={isDark}>IPv6</ToggleButton>
+            </div>
 
-                <div className="flex items-center space-x-2">
-                    <span className={`text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>Direction:</span>
-                    <div className="flex space-x-1">
-                        <ToggleButton
-                            isActive={direction === 'ingress'}
-                            onClick={() => setDirection('ingress')}
-                            isDark={isDark}
-                        >
-                            Ingress
-                        </ToggleButton>
-                        <ToggleButton
-                            isActive={direction === 'egress'}
-                            onClick={() => setDirection('egress')}
-                            isDark={isDark}
-                        >
-                            Egress
-                        </ToggleButton>
-                    </div>
-                </div>
+            <div className={`w-px h-4 ${isDark ? 'bg-slate-700' : 'bg-slate-200'}`} />
 
-                <div className="flex items-center space-x-2">
-                    <span className={`text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>Traffic Type:</span>
-                    <div className="flex space-x-1">
-                        <ToggleButton
-                            isActive={trafficType === 'source'}
-                            onClick={() => setTrafficType('source')}
-                            isDark={isDark}
-                        >
-                            Source
-                        </ToggleButton>
-                        <ToggleButton
-                            isActive={trafficType === 'destination'}
-                            onClick={() => setTrafficType('destination')}
-                            isDark={isDark}
-                        >
-                            Destination
-                        </ToggleButton>
-                    </div>
-                </div>
+            <div className="flex items-center gap-1.5">
+                <span className={`text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Direction:</span>
+                <ToggleButton isActive={direction === 'ingress'} onClick={() => setDirection('ingress')} isDark={isDark}>Ingress</ToggleButton>
+                <ToggleButton isActive={direction === 'egress'} onClick={() => setDirection('egress')} isDark={isDark}>Egress</ToggleButton>
+            </div>
 
-                <div className="flex items-center space-x-2">
-                    <span className={`text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>Time:</span>
-                    <div className="flex space-x-1">
-                        {TIME_RANGES.map((range) => (
-                            <ToggleButton
-                                key={range}
-                                isActive={timeRange === range}
-                                onClick={() => setTimeRange(range)}
-                                isDark={isDark}
-                            >
-                                {range}
-                            </ToggleButton>
-                        ))}
-                    </div>
-                </div>
+            <div className={`w-px h-4 ${isDark ? 'bg-slate-700' : 'bg-slate-200'}`} />
 
-                <div className="flex items-center space-x-2 ml-auto">
-                    <button
-                        onClick={() => setIsPaused(!isPaused)}
-                        className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
-                            isPaused
-                                ? 'bg-green-100 text-green-700 hover:bg-green-200'
-                                : 'bg-orange-100 text-orange-700 hover:bg-orange-200'
-                        }`}
-                    >
-                        <FontAwesomeIcon icon={isPaused ? faPlay : faPause} className="mr-1" />
-                        {isPaused ? 'Resume' : 'Pause'}
-                    </button>
+            <div className="flex items-center gap-1.5">
+                <span className={`text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Traffic:</span>
+                <ToggleButton isActive={trafficType === 'source'} onClick={() => setTrafficType('source')} isDark={isDark}>Source</ToggleButton>
+                <ToggleButton isActive={trafficType === 'destination'} onClick={() => setTrafficType('destination')} isDark={isDark}>Destination</ToggleButton>
+            </div>
 
-                    <button
-                        onClick={onRefresh}
-                        className="px-3 py-1 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 transition-colors"
-                    >
-                        <FontAwesomeIcon icon={faRefresh} className="mr-1" />
-                        Refresh
-                    </button>
+            <div className={`w-px h-4 ${isDark ? 'bg-slate-700' : 'bg-slate-200'}`} />
 
-                    {lastUpdateTime && (
-                        <div className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                            Last Update: {lastUpdateTime.toLocaleTimeString()}
-                        </div>
-                    )}
-                </div>
+            <div className="flex items-center gap-1.5">
+                <span className={`text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Time:</span>
+                {TIME_RANGES.map((range) => (
+                    <ToggleButton key={range} isActive={timeRange === range} onClick={() => setTimeRange(range)} isDark={isDark}>
+                        {range}
+                    </ToggleButton>
+                ))}
+            </div>
+
+            <div className="flex items-center gap-2 ml-auto">
+                <button
+                    onClick={() => setIsPaused(!isPaused)}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-colors ${
+                        isPaused
+                            ? 'bg-green-500/10 text-green-500 hover:bg-green-500/20'
+                            : 'bg-amber-500/10 text-amber-500 hover:bg-amber-500/20'
+                    }`}
+                >
+                    <FontAwesomeIcon icon={isPaused ? faPlay : faPause} className="mr-1" />
+                    {isPaused ? 'Resume' : 'Pause'}
+                </button>
+                <button
+                    onClick={onRefresh}
+                    className="px-2.5 py-1 bg-[#4ab5cc]/10 text-[#4ab5cc] hover:bg-[#4ab5cc]/20 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5"
+                >
+                    <FontAwesomeIcon icon={faRefresh} className="text-xs" />
+                    Refresh
+                </button>
+                {lastUpdateTime && (
+                    <span className={`text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+                        Last Update: {lastUpdateTime.toLocaleTimeString()}
+                    </span>
+                )}
             </div>
         </motion.div>
     );
@@ -445,19 +400,19 @@ const StatsCard: React.FC<{
         <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className={`rounded-lg shadow-md p-6 ${isDark ? 'bg-gray-600' : 'bg-white'}`}
+            className={`rounded-xl border p-4 ${isDark ? 'bg-[#0e1e2c] border-slate-700/40' : 'bg-white border-slate-200'}`}
         >
             <div className="flex items-center justify-between">
                 <div>
-                    <p className={`text-sm font-medium mb-1 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                    <p className={`text-xs font-medium mb-1 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                         {title}
                     </p>
-                    <p className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                    <p className={`text-2xl font-bold tabular-nums ${isDark ? 'text-white' : 'text-slate-900'}`}>
                         {value}
                     </p>
                 </div>
-                <div className={`${color} p-3 rounded-lg`}>
-                    <FontAwesomeIcon icon={icon} className="text-white text-xl" />
+                <div className={`${color} w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0`}>
+                    <FontAwesomeIcon icon={icon} className="text-white" />
                 </div>
             </div>
         </motion.div>
@@ -709,20 +664,6 @@ const TrafficMap: React.FC = () => {
             </Head>
 
             <Layout>
-                <motion.div
-                    initial={{ opacity: 0, y: -20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="mb-8"
-                >
-                    <h1 className={`text-3xl font-bold mb-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                        <FontAwesomeIcon icon={faMapMarkedAlt} className="mr-3 text-blue-600" />
-                        Network Traffic Map
-                    </h1>
-                    <p className={isDark ? 'text-gray-400' : 'text-gray-600'}>
-                        Visualize network traffic geographic distribution in real-time
-                    </p>
-                </motion.div>
-
                 <ControlPanel
                     isIPv6={isIPv6}
                     setIsIPv6={setIsIPv6}
@@ -738,37 +679,17 @@ const TrafficMap: React.FC = () => {
                     lastUpdateTime={lastUpdateTime}
                 />
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-                    <StatsCard
-                        title="Total Traffic"
-                        value={stats.totalBytes}
-                        icon={faNetworkWired}
-                        color="bg-blue-500"
-                    />
-                    <StatsCard
-                        title="Total Packets"
-                        value={stats.totalPackets}
-                        icon={faLayerGroup}
-                        color="bg-green-500"
-                    />
-                    <StatsCard
-                        title="Unique IPs"
-                        value={stats.uniqueIPs}
-                        icon={faGlobe}
-                        color="bg-purple-500"
-                    />
-                    <StatsCard
-                        title="Regions"
-                        value={stats.uniqueRegions}
-                        icon={faMapMarkedAlt}
-                        color="bg-orange-500"
-                    />
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-5">
+                    <StatsCard title="Total Traffic" value={stats.totalBytes} icon={faNetworkWired} color="bg-[#4ab5cc]" />
+                    <StatsCard title="Total Packets" value={stats.totalPackets} icon={faLayerGroup} color="bg-green-500" />
+                    <StatsCard title="Unique IPs" value={stats.uniqueIPs} icon={faGlobe} color="bg-indigo-500" />
+                    <StatsCard title="Regions" value={stats.uniqueRegions} icon={faMapMarkedAlt} color="bg-orange-500" />
                 </div>
 
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className={`rounded-lg shadow-md overflow-hidden ${isDark ? 'bg-gray-600' : 'bg-white'}`}
+                    className={`rounded-xl border overflow-hidden ${isDark ? 'bg-[#0e1e2c] border-slate-700/40' : 'bg-white border-slate-200'}`}
                 >
                     <MapComponent points={mapPoints} isDark={isDark} />
                 </motion.div>

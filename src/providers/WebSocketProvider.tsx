@@ -6,6 +6,7 @@ import { share } from 'rxjs/operators'
 
 interface WebSocketContextType {
     bootTime: number | null;
+    wsConnectedCount: number;
     getDetectionAlertStream: () => any;
     getIPv4FlowStream: (direction: string, flow_direction: string, timeType: string) => any;
     getIPv6FlowStream: (direction: string, flow_direction: string, timeType: string) => any;
@@ -16,6 +17,7 @@ interface WebSocketContextType {
 
 export const WebsocketContext = createContext<WebSocketContextType>({
     bootTime: null,
+    wsConnectedCount: 0,
     getDetectionAlertStream: () => null,
     getIPv4FlowStream: () => null,
     getIPv6FlowStream: () => null,
@@ -27,6 +29,8 @@ export const WebsocketContext = createContext<WebSocketContextType>({
 export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const wsRefs = useRef<{ [key: string]: WebSocket }>({})
     const [bootTime, setBootTime] = useState<number | null>(null)
+    const [wsConnectedCount, setWsConnectedCount] = useState(0)
+    const connectedCountRef = useRef(0)
     const retryDelays = useRef<{ [key: string]: number }>({})
     const dataSubjects = useRef<{ [key: string]: BehaviorSubject<any> }>({})
     const latestDataCache = useRef<{ [key: string]: any }>({})
@@ -79,6 +83,8 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         ws.onclose = () => {
             console.warn(`WebSocket for ${url} closed. Retrying...`)
             delete wsRefs.current[url]
+            connectedCountRef.current = Math.max(0, connectedCountRef.current - 1)
+            setWsConnectedCount(connectedCountRef.current)
             let delay = retryDelays.current[url] || 1000
             retryDelays.current[url] = Math.min(delay * 2, 30000)
             setTimeout(() => setupWebSocket(url, retryCount + 1), delay)
@@ -87,6 +93,8 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         ws.onopen = () => {
             console.log(`WebSocket connected: ${url}`)
             retryDelays.current[url] = 1000
+            connectedCountRef.current++
+            setWsConnectedCount(connectedCountRef.current)
         }
 
         wsRefs.current[url] = ws
@@ -176,6 +184,7 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     return (
         <WebsocketContext.Provider value={{
             bootTime,
+            wsConnectedCount,
             getDetectionAlertStream,
             getIPv4FlowStream,
             getIPv6FlowStream,

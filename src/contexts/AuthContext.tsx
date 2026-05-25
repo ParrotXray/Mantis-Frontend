@@ -1,9 +1,7 @@
 import React, { createContext, useState, useCallback, useEffect, useContext } from 'react'
 import { useRouter } from 'next/router'
 import { setAuthToken } from '../utils/authStore'
-import { urls } from '../config'
-
-const TOKEN_KEY = 'mantis_auth_token'
+import { urls, TokenKey } from '../config'
 
 export interface UserInfo {
   id: string
@@ -46,7 +44,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true)
 
   const clearAuth = useCallback(() => {
-    localStorage.removeItem(TOKEN_KEY)
+    localStorage.removeItem(TokenKey)
     setAuthToken(null)
     setToken(null)
     setUser(null)
@@ -71,7 +69,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, [])
 
   const issueToken = useCallback(async (rawToken: string) => {
-    localStorage.setItem(TOKEN_KEY, rawToken)
+    localStorage.setItem(TokenKey, rawToken)
     const valid = await applyToken(rawToken)
     if (!valid) throw new Error('Token validation failed')
   }, [applyToken])
@@ -92,7 +90,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         // If status endpoint fails, assume initialized
       }
 
-      const stored = localStorage.getItem(TOKEN_KEY)
+      const stored = localStorage.getItem(TokenKey)
       if (stored) {
         const valid = await applyToken(stored)
         if (!valid) clearAuth()

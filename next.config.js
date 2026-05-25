@@ -4,7 +4,7 @@ const nextConfig = {
     trailingSlash: false,
     output: 'export',
     images: {
-        remotePatterns: [
+remotePatterns: [
             // {
             //     protocol: 'https',
             //     hostname: 'cdn.discordapp.com',

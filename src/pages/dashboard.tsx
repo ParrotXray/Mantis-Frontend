@@ -114,42 +114,37 @@ const UpdateControl: React.FC<UpdateControlProps> = ({
     const isDark = actualTheme === 'dark'
 
     return (
-        <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-2">
-                <FontAwesomeIcon icon={faClock} className={isDark ? 'text-gray-400' : 'text-gray-500'} />
-                <label className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Update interval:</label>
-                <select
-                    value={updateInterval}
-                    onChange={(e) => setUpdateInterval(Number(e.target.value))}
-                    className="text-sm border border-gray-300 rounded px-2 py-1 bg-white focus:outline-none focus:border-blue-500"
-                >
-                    {UPDATE_INTERVALS.map(interval => (
-                        <option key={interval.value} value={interval.value}>
-                            {interval.label}
-                        </option>
-                    ))}
-                </select>
-            </div>
-
+        <div className="flex items-center gap-2">
+            <FontAwesomeIcon icon={faClock} className="text-[#4ab5cc] text-xs" />
+            <select
+                value={updateInterval}
+                onChange={(e) => setUpdateInterval(Number(e.target.value))}
+                className={`text-xs border rounded-lg px-2 py-1 focus:outline-none focus:border-[#4ab5cc] ${
+                    isDark ? 'bg-[#131929] border-slate-600 text-slate-300' : 'bg-white border-slate-300 text-slate-700'
+                }`}
+            >
+                {UPDATE_INTERVALS.map(interval => (
+                    <option key={interval.value} value={interval.value}>
+                        {interval.label}
+                    </option>
+                ))}
+            </select>
             <button
                 onClick={() => setIsPaused(!isPaused)}
-                className={`px-3 py-1 rounded-md text-sm font-medium transition-colors flex items-center space-x-1 ${
+                className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 ${
                     isPaused
-                        ? "bg-green-100 text-green-700 hover:bg-green-200"
-                        : "bg-orange-100 text-orange-700 hover:bg-orange-200"
+                        ? 'bg-green-500/10 text-green-500 hover:bg-green-500/20'
+                        : 'bg-amber-500/10 text-amber-500 hover:bg-amber-500/20'
                 }`}
             >
                 <FontAwesomeIcon icon={isPaused ? faPlay : faPause} className="text-xs" />
-                <span>{isPaused ? "resume" : "pause"}</span>
+                {isPaused ? 'Resume' : 'Pause'}
             </button>
-
-            <div className="flex items-center space-x-4">
-                {lastUpdateTime && (
-                    <div className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                        Last update: {lastUpdateTime.toLocaleTimeString()}
-                    </div>
-                )}
-            </div>
+            {lastUpdateTime && (
+                <span className={`text-xs ml-2 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+                    Last update: {lastUpdateTime.toLocaleTimeString()}
+                </span>
+            )}
         </div>
     );
 };
@@ -856,15 +851,15 @@ const Dashboard: React.FC = () => {
             title: 'IPv4 Ingress Traffic',
             value: formatBytes(trafficData.ipv4.ingressSource),
             icon: faGlobe,
-            iconColor: 'text-blue-600',
+            iconColor: 'text-[#4ab5cc]',
             bgColor: 'bg-blue-50'
         },
         {
             title: 'IPv4 Egress Traffic',
             value: formatBytes(trafficData.ipv4.egressSource),
             icon: faNetworkWired,
-            iconColor: 'text-red-600',
-            bgColor: 'bg-red-50'
+            iconColor: 'text-amber-500',
+            bgColor: 'bg-amber-50'
         },
         {
             title: 'IPv6 Ingress Traffic',
@@ -911,7 +906,7 @@ const Dashboard: React.FC = () => {
                             <p className="text-gray-600 mb-4">Unable to establish WebSocket connection. Please check your network status.</p>
                             <button
                                 onClick={() => window.location.reload()}
-                                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                                className="px-4 py-2 bg-[#4ab5cc] text-white rounded-lg hover:bg-[#4ab5cc] transition-colors"
                             >
                                 Reload
                             </button>
@@ -930,84 +925,82 @@ const Dashboard: React.FC = () => {
             </Head>
 
             <Layout>
+                {/* Compact controls bar */}
                 <motion.div
-                    initial={{ opacity: 0, y: -20 }}
+                    initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="mb-8"
+                    className={`flex flex-wrap items-center gap-3 mb-5 px-4 py-2.5 rounded-xl border ${
+                        isDark ? 'bg-[#0e1e2c] border-slate-700/40' : 'bg-white border-slate-200'
+                    }`}
                 >
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <h1 className={`text-3xl font-bold mb-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                                Network Traffic Monitoring
-                            </h1>
-                            <p className={isDark ? 'text-gray-400' : 'text-gray-600'}>
-                                Real-time monitoring of IPv4 and IPv6 network traffic status
-                            </p>
-                        </div>
-
-                        <div className="flex items-center space-x-6">
-                            <div className="flex items-center space-x-2">
-                                <FontAwesomeIcon icon={faClock} className={isDark ? 'text-gray-400' : 'text-gray-500'} />
-                                <label className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Time Range:</label>
-                                <select
-                                    value={apiTimeRange}
-                                    onChange={(e) => setApiTimeRange(e.target.value)}
-                                    className="text-sm border border-gray-300 rounded px-3 py-1 bg-white focus:outline-none focus:border-blue-500"
-                                >
-                                    <option value="1min">1 Minute</option>
-                                    <option value="10min">10 Minutes</option>
-                                    <option value="1hour">1 Hour</option>
-                                </select>
-                            </div>
-
-                            <UpdateControl
-                                updateInterval={updateInterval}
-                                setUpdateInterval={setUpdateInterval}
-                                isPaused={isPaused}
-                                setIsPaused={setIsPaused}
-                                lastUpdateTime={lastUpdateTime}
-                                connectionStatus={connectionStatus}
-                            />
-                        </div>
+                    <div className="flex items-center gap-2">
+                        <FontAwesomeIcon icon={faClock} className="text-[#4ab5cc] text-xs" />
+                        <span className={`text-xs font-medium ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Time Range</span>
+                        <select
+                            value={apiTimeRange}
+                            onChange={(e) => setApiTimeRange(e.target.value)}
+                            className={`text-xs border rounded-lg px-2 py-1 focus:outline-none focus:border-[#4ab5cc] ${
+                                isDark ? 'bg-[#131929] border-slate-600 text-slate-300' : 'bg-white border-slate-300 text-slate-700'
+                            }`}
+                        >
+                            <option value="1min">1 Minute</option>
+                            <option value="10min">10 Minutes</option>
+                            <option value="1hour">1 Hour</option>
+                        </select>
                     </div>
+
+                    <div className={`w-px h-4 ${isDark ? 'bg-slate-700' : 'bg-slate-200'}`} />
+
+                    <UpdateControl
+                        updateInterval={updateInterval}
+                        setUpdateInterval={setUpdateInterval}
+                        isPaused={isPaused}
+                        setIsPaused={setIsPaused}
+                        lastUpdateTime={lastUpdateTime}
+                        connectionStatus={connectionStatus}
+                    />
                 </motion.div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                {/* Stats cards */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-5">
                     {statsCards.map((card, index) => (
                         <motion.div
                             key={card.title}
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: index * 0.1 }}
-                            className={`${isDark ? 'bg-gray-600' : 'bg-white'} rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow duration-300`}
+                            transition={{ delay: index * 0.08 }}
+                            className={`rounded-xl border p-4 ${isDark ? 'bg-[#0e1e2c] border-slate-700/40' : 'bg-white border-slate-200'}`}
                         >
                             <div className="flex items-center justify-between">
                                 <div>
-                                    <p className={`text-sm font-medium mb-1 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                                    <p className={`text-xs font-medium mb-1 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                                         {card.title}
                                     </p>
-                                    <p className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                                    <p className={`text-2xl font-bold tabular-nums ${isDark ? 'text-white' : 'text-slate-900'}`}>
                                         {card.value}
                                     </p>
                                 </div>
-                                <div className={`${card.bgColor} p-3 rounded-lg`}>
-                                    <FontAwesomeIcon icon={card.icon} className={`${card.iconColor} text-xl`} />
+                                <div className={`${card.bgColor} w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0`}>
+                                    <FontAwesomeIcon icon={card.icon} className={`${card.iconColor}`} />
                                 </div>
                             </div>
                         </motion.div>
                     ))}
                 </div>
 
-                <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+                {/* Trend charts */}
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-5 mb-5">
                     <motion.div
                         initial={{ opacity: 0, x: -20 }}
                         animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.5 }}
-                        className={`${isDark ? 'bg-gray-600' : 'bg-white'} rounded-lg shadow-md p-6`}
+                        transition={{ delay: 0.3 }}
+                        className={`rounded-xl border p-5 ${isDark ? 'bg-[#0e1e2c] border-slate-700/40' : 'bg-white border-slate-200'}`}
                     >
-                        <div className="flex items-center mb-4">
-                            <FontAwesomeIcon icon={faChartLine} className="text-blue-600 mr-2" />
-                            <h2 className={`text-xl font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>IPv4 Network Usage Trends</h2>
+                        <div className="flex items-center gap-2 mb-4">
+                            <div className="w-7 h-7 rounded-lg bg-[#4ab5cc]/15 flex items-center justify-center">
+                                <FontAwesomeIcon icon={faChartLine} className="text-[#4ab5cc] text-xs" />
+                            </div>
+                            <h2 className={`text-sm font-semibold ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>IPv4 Traffic Trends</h2>
                         </div>
                         <EChartsComponent data={trendDataIPv4} type="ipv4" isPaused={isPaused} />
                     </motion.div>
@@ -1015,27 +1008,32 @@ const Dashboard: React.FC = () => {
                     <motion.div
                         initial={{ opacity: 0, x: 20 }}
                         animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.6 }}
-                        className={`${isDark ? 'bg-gray-600' : 'bg-white'} rounded-lg shadow-md p-6`}
+                        transition={{ delay: 0.4 }}
+                        className={`rounded-xl border p-5 ${isDark ? 'bg-[#0e1e2c] border-slate-700/40' : 'bg-white border-slate-200'}`}
                     >
-                        <div className="flex items-center mb-4">
-                            <FontAwesomeIcon icon={faChartLine} className="text-green-600 mr-2" />
-                            <h2 className={`text-xl font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>IPv6 Network Usage Trends</h2>
+                        <div className="flex items-center gap-2 mb-4">
+                            <div className="w-7 h-7 rounded-lg bg-green-500/15 flex items-center justify-center">
+                                <FontAwesomeIcon icon={faChartLine} className="text-green-500 text-xs" />
+                            </div>
+                            <h2 className={`text-sm font-semibold ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>IPv6 Traffic Trends</h2>
                         </div>
                         <EChartsComponent data={trendDataIPv6} type="ipv6" isPaused={isPaused} />
                     </motion.div>
                 </div>
 
-                <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 mt-8">
+                {/* Distribution charts */}
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.7 }}
-                        className={`${isDark ? 'bg-gray-600' : 'bg-white'} rounded-lg shadow-md p-6`}
+                        transition={{ delay: 0.5 }}
+                        className={`rounded-xl border p-5 ${isDark ? 'bg-[#0e1e2c] border-slate-700/40' : 'bg-white border-slate-200'}`}
                     >
-                        <div className="flex items-center mb-4">
-                            <FontAwesomeIcon icon={faShieldAlt} className="text-red-500 mr-2" />
-                            <h2 className={`text-xl font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>Attack Type Distribution</h2>
+                        <div className="flex items-center gap-2 mb-4">
+                            <div className="w-7 h-7 rounded-lg bg-amber-500/15 flex items-center justify-center">
+                                <FontAwesomeIcon icon={faShieldAlt} className="text-amber-500 text-xs" />
+                            </div>
+                            <h2 className={`text-sm font-semibold ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>Attack Type Distribution</h2>
                         </div>
                         <DonutChart data={attackTypeCounts} totalLabel="Total" />
                     </motion.div>
@@ -1043,12 +1041,14 @@ const Dashboard: React.FC = () => {
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.8 }}
-                        className={`${isDark ? 'bg-gray-600' : 'bg-white'} rounded-lg shadow-md p-6`}
+                        transition={{ delay: 0.6 }}
+                        className={`rounded-xl border p-5 ${isDark ? 'bg-[#0e1e2c] border-slate-700/40' : 'bg-white border-slate-200'}`}
                     >
-                        <div className="flex items-center mb-4">
-                            <FontAwesomeIcon icon={faNetworkWired} className="text-blue-500 mr-2" />
-                            <h2 className={`text-xl font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>Attack Protocol Distribution</h2>
+                        <div className="flex items-center gap-2 mb-4">
+                            <div className="w-7 h-7 rounded-lg bg-blue-500/15 flex items-center justify-center">
+                                <FontAwesomeIcon icon={faNetworkWired} className="text-blue-500 text-xs" />
+                            </div>
+                            <h2 className={`text-sm font-semibold ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>Protocol Distribution</h2>
                         </div>
                         <DonutChart data={protocolCounts} colors={PROTOCOL_COLORS} totalLabel="Total" />
                     </motion.div>
