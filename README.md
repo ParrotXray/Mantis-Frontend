@@ -1,6 +1,6 @@
 # Mantis Frontend
 
-Next.js web UI for the [Mantis](../README.md) network intrusion detection system.
+Next.js web UI for the [Mantis](https://github.com/ParrotXray/Mantis) network intrusion detection system.
 Displays live eBPF traffic statistics, ML anomaly alerts, access control lists, and system logs via WebSocket streams from the Mantis backend.
 
 ## Requirements
