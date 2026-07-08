@@ -1,0 +1,712 @@
+import React, { useState, useEffect, useContext, useCallback, useMemo } from 'react'
+import Head from 'next/head'
+import { motion, AnimatePresence } from 'framer-motion'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import {
+    faPlus,
+    faTrash,
+    faSearch,
+    faFilter,
+    faCheck,
+    faShieldAlt,
+    faNetworkWired,
+    faGlobe,
+    faInfoCircle,
+    faTimes,
+    faExclamationTriangle,
+    faRefresh,
+    faArrowDown,
+    faArrowUp,
+} from '@fortawesome/free-solid-svg-icons'
+import { AccessControlContext } from '../providers/AccessControlProvider'
+import { useTheme } from '../providers/ThemeProvider'
+import { putData, deleteData } from '../utils/connectionUtils'
+import { urls, NicType, FlowType, ListType } from '../config'
+import Layout from '../components/Layout'
+import {
+    AccessControlItem,
+    NotificationProps,
+    ModalProps,
+    ToggleButtonProps,
+    StatsCardProps
+} from '../types/AccessControlTypes'
+
+const Notification: React.FC<NotificationProps> = ({ message, type, onClose }) => {
+    useEffect(() => {
+        const timer = setTimeout(() => { onClose() }, 4000)
+        return () => clearTimeout(timer)
+    }, [onClose])
+
+    const typeStyles = {
+        success: 'bg-green-100 border-green-400 text-green-700',
+        error: 'bg-red-100 border-red-400 text-red-700',
+        warning: 'bg-yellow-100 border-yellow-400 text-yellow-700',
+        info: 'bg-blue-100 border-blue-400 text-blue-700'
+    }
+
+    return (
+        <motion.div
+            initial={{ opacity: 0, y: -50, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -50, scale: 0.95 }}
+            className={`fixed top-4 right-4 z-50 px-4 py-3 border rounded-lg shadow-lg max-w-md ${typeStyles[type]}`}
+        >
+            <div className="flex items-center justify-between">
+                <span className="text-sm font-medium">{message}</span>
+                <button onClick={onClose} className="ml-3 text-xl font-bold hover:opacity-70 transition-opacity">×</button>
+            </div>
+        </motion.div>
+    )
+}
+
+const Modal: React.FC<ModalProps> = ({ title, children, onClose, onSubmit, submitLabel = 'Submit', submitDisabled = false }) => {
+    const { actualTheme } = useTheme()
+    const isDark = actualTheme === 'dark'
+
+    return (
+        <AnimatePresence>
+            <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm bg-black/30 p-4"
+                onClick={onClose}
+            >
+                <motion.div
+                    initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                    className={`rounded-lg shadow-xl max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto ${isDark ? 'bg-[#1a2236]' : 'bg-white'}`}
+                    onClick={(e) => e.stopPropagation()}
+                >
+                    <div className={`px-6 py-4 border-b ${isDark ? 'border-gray-700' : 'border-gray-200'}`}>
+                        <div className="flex items-center justify-between">
+                            <h2 className={`text-xl font-semibold ${isDark ? 'text-gray-300' : 'text-gray-900'}`}>{title}</h2>
+                            <button onClick={onClose} className={`transition-colors ${isDark ? 'text-gray-400 hover:text-gray-200' : 'text-gray-400 hover:text-gray-600'}`}>
+                                <FontAwesomeIcon icon={faTimes} />
+                            </button>
+                        </div>
+                    </div>
+                    <div className="px-6 py-4">{children}</div>
+                    <div className={`px-6 py-4 border-t flex justify-end space-x-3 ${isDark ? 'border-gray-700' : 'border-gray-200'}`}>
+                        <button
+                            onClick={onClose}
+                            className={`px-4 py-2 rounded-lg transition-colors ${isDark ? 'text-gray-300 bg-gray-700 hover:bg-[#1a2236]' : 'text-gray-700 bg-gray-100 hover:bg-gray-200'}`}
+                        >
+                            Cancel
+                        </button>
+                        {onSubmit && (
+                            <button
+                                onClick={onSubmit}
+                                disabled={submitDisabled}
+                                className={`px-4 py-2 rounded-lg transition-colors ${
+                                    submitDisabled ? 'bg-slate-600 text-slate-400 cursor-not-allowed' : 'bg-[#4ab5cc] text-white hover:bg-[#4ab5cc]'
+                                }`}
+                            >
+                                {submitLabel}
+                            </button>
+                        )}
+                    </div>
+                </motion.div>
+            </motion.div>
+        </AnimatePresence>
+    )
+}
+
+const ToggleButton: React.FC<ToggleButtonProps> = ({ isActive, onClick, children, className = "" }) => {
+    const { actualTheme } = useTheme()
+    const isDark = actualTheme === 'dark'
+
+    return (
+        <button
+            className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${className} ${
+                isActive
+                    ? "bg-[#4ab5cc] text-white"
+                    : `${isDark ? 'bg-[#131929] text-slate-300 hover:bg-slate-700/40' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`
+            }`}
+            onClick={onClick}
+        >
+            {children}
+        </button>
+    )
+}
+
+const StatsCard: React.FC<StatsCardProps> = ({ title, value, icon, color }) => {
+    const { actualTheme } = useTheme()
+    const isDark = actualTheme === 'dark'
+
+    return (
+        <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className={`rounded-xl border p-4 ${isDark ? 'bg-[#0e1e2c] border-slate-700/40' : 'bg-white border-slate-200'}`}
+        >
+            <div className="flex items-center justify-between">
+                <div>
+                    <p className={`text-xs font-medium mb-1 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{title}</p>
+                    <p className={`text-2xl font-bold tabular-nums ${isDark ? 'text-white' : 'text-slate-900'}`}>{value.toLocaleString()}</p>
+                </div>
+                <div className={`${color} w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0`}>
+                    <FontAwesomeIcon icon={icon} className="text-white" />
+                </div>
+            </div>
+        </motion.div>
+    )
+}
+
+const NIC_LABELS: Record<NicType, string> = {
+    ingress: 'Ingress',
+    egress: 'Egress',
+}
+
+const FLOW_LABELS: Record<FlowType, string> = {
+    source: 'Source',
+    destination: 'Destination',
+}
+
+const AccessControl: React.FC = () => {
+    const {
+        currentData,
+        filteredData,
+        isLoading,
+        setFilteredData,
+        switchTo,
+        refreshData,
+        getCacheStatus
+    } = useContext(AccessControlContext)
+
+    const { actualTheme } = useTheme()
+    const isDark = actualTheme === 'dark'
+
+    const [nic, setNic] = useState<NicType>('ingress')
+    const [flow, setFlow] = useState<FlowType>('source')
+    const [isIPv6, setIsIPv6] = useState(false)
+    const [listType, setListType] = useState<ListType>('black_list')
+    const [searchTerm, setSearchTerm] = useState('')
+    const [isModalOpen, setIsModalOpen] = useState(false)
+    const [newIp, setNewIp] = useState('')
+    const [newPort, setNewPort] = useState('')
+    const [blockAllPorts, setBlockAllPorts] = useState(false)
+    const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false)
+    const [itemToDelete, setItemToDelete] = useState<{ ip: string; port: string | number } | null>(null)
+    const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' | 'warning' | 'info' } | null>(null)
+    const [isSubmitting, setIsSubmitting] = useState(false)
+
+    const showNotification = useCallback((message: string, type: 'success' | 'error' | 'warning' | 'info' = 'success') => {
+        setNotification({ message, type })
+    }, [])
+
+    const closeNotification = useCallback(() => setNotification(null), [])
+
+    useEffect(() => {
+        switchTo(isIPv6, listType, nic, flow)
+    }, [])
+
+    useEffect(() => {
+        if (!searchTerm.trim()) {
+            setFilteredData(currentData)
+            return
+        }
+        const lower = searchTerm.toLowerCase()
+        setFilteredData(currentData.filter(({ ip }) => ip.toLowerCase().includes(lower)))
+    }, [searchTerm, currentData, setFilteredData])
+
+    const handleNicChange = useCallback((newNic: NicType) => {
+        if (newNic !== nic) {
+            setNic(newNic)
+            switchTo(isIPv6, listType, newNic, flow)
+        }
+    }, [nic, isIPv6, listType, flow, switchTo])
+
+    const handleFlowChange = useCallback((newFlow: FlowType) => {
+        if (newFlow !== flow) {
+            setFlow(newFlow)
+            switchTo(isIPv6, listType, nic, newFlow)
+        }
+    }, [flow, isIPv6, listType, nic, switchTo])
+
+    const handleIPVersionChange = useCallback((newIsIPv6: boolean) => {
+        if (newIsIPv6 !== isIPv6) {
+            setIsIPv6(newIsIPv6)
+            switchTo(newIsIPv6, listType, nic, flow)
+        }
+    }, [isIPv6, listType, nic, flow, switchTo])
+
+    const handleListTypeChange = useCallback((newListType: ListType) => {
+        if (newListType !== listType) {
+            setListType(newListType)
+            switchTo(isIPv6, newListType, nic, flow)
+        }
+    }, [isIPv6, listType, nic, flow, switchTo])
+
+    const handleRefresh = useCallback(async () => {
+        try {
+            await refreshData(isIPv6, listType, nic, flow)
+            showNotification('Data updated', 'success')
+        } catch {
+            showNotification('Update failed', 'error')
+        }
+    }, [isIPv6, listType, nic, flow, refreshData, showNotification])
+
+    const handleAddItemClick = useCallback(() => {
+        setIsModalOpen(true)
+        setNewIp('')
+        setNewPort('')
+        setBlockAllPorts(false)
+    }, [])
+
+    const handleModalClose = useCallback(() => {
+        setIsModalOpen(false)
+        setNewIp('')
+        setNewPort('')
+        setBlockAllPorts(false)
+    }, [])
+
+    const flatData = useMemo(() =>
+        filteredData.flatMap(({ ip, ports }) =>
+            ports.map((port) => ({ ip, port }))
+        ),
+        [filteredData]
+    )
+
+    const stats = useMemo(() => {
+        const uniqueIPs = new Set(filteredData.map(item => item.ip)).size
+        const totalEntries = flatData.length
+        const allPortsEntries = flatData.filter(item => item.port === "0" || item.port === 0).length
+        return {
+            uniqueIPs,
+            totalEntries,
+            allPortsEntries,
+            specificPortEntries: totalEntries - allPortsEntries
+        }
+    }, [filteredData, flatData])
+
+    const validateIP = useCallback((ip: string, isIPv6: boolean): boolean => {
+        if (isIPv6) {
+            const ipv6Regex = /^([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$|^::1$|^::$/
+            return ipv6Regex.test(ip) || ip.includes('::')
+        }
+        const ipv4Regex = /^(\d{1,3}\.){3}\d{1,3}$/
+        if (!ipv4Regex.test(ip)) return false
+        return ip.split('.').every(part => {
+            const num = parseInt(part, 10)
+            return num >= 0 && num <= 255
+        })
+    }, [])
+
+    const validatePort = useCallback((port: string): boolean => {
+        if (!port.trim()) return false
+        const portNum = parseInt(port, 10)
+        return !isNaN(portNum) && portNum >= 1 && portNum <= 65535
+    }, [])
+
+    const handleAddItemSubmit = useCallback(async () => {
+        if (!newIp.trim()) {
+            showNotification('Please enter a valid IP address', 'error')
+            return
+        }
+        if (!validateIP(newIp.trim(), isIPv6)) {
+            showNotification(`Please enter a valid ${isIPv6 ? 'IPv6' : 'IPv4'} address`, 'error')
+            return
+        }
+        if (!blockAllPorts && !validatePort(newPort)) {
+            showNotification('Please enter a valid port number (1-65535)', 'error')
+            return
+        }
+
+        const portToSend = blockAllPorts ? "0" : newPort
+        const ipVersion = isIPv6 ? 'ipv6' as const : 'ipv4' as const
+        const url = urls.access_control(nic, ipVersion, flow, listType)
+
+        setIsSubmitting(true)
+        try {
+            await new Promise<void>((resolve, reject) => {
+                putData(
+                    url,
+                    `${newIp.trim()}:${portToSend}`,
+                    () => {
+                        showNotification(`Successfully added: ${newIp.trim()}:${blockAllPorts ? '*' : portToSend}`, 'success')
+                        setIsModalOpen(false)
+                        setNewIp('')
+                        setNewPort('')
+                        setBlockAllPorts(false)
+                        refreshData(isIPv6, listType, nic, flow)
+                        resolve()
+                    },
+                    (error) => {
+                        showNotification(`Failed to add: ${error.message}`, 'error')
+                        reject(error)
+                    }
+                )
+            })
+        } catch (error) {
+            console.error('Add item error:', error)
+        } finally {
+            setIsSubmitting(false)
+        }
+    }, [newIp, newPort, blockAllPorts, isIPv6, listType, nic, flow, refreshData, showNotification, validateIP, validatePort])
+
+    const handleDeleteClick = useCallback((ip: string, port: string | number) => {
+        setItemToDelete({ ip, port })
+        setIsConfirmModalOpen(true)
+    }, [])
+
+    const handleDeleteCancel = useCallback(() => {
+        setIsConfirmModalOpen(false)
+        setItemToDelete(null)
+    }, [])
+
+    const handleDeleteConfirm = useCallback(async () => {
+        if (!itemToDelete) return
+
+        const { ip, port } = itemToDelete
+        const formattedIp = isIPv6 ? `[${ip}]` : ip
+        const ipVersion = isIPv6 ? 'ipv6' as const : 'ipv4' as const
+        const url = urls.access_control(nic, ipVersion, flow, listType)
+
+        setIsSubmitting(true)
+        try {
+            await new Promise<void>((resolve, reject) => {
+                deleteData(
+                    url,
+                    `${formattedIp}:${port}`,
+                    () => {
+                        showNotification(`Successfully deleted: ${formattedIp}:${port === "0" || port === 0 ? "*" : port}`, 'success')
+                        refreshData(isIPv6, listType, nic, flow)
+                        setIsConfirmModalOpen(false)
+                        setItemToDelete(null)
+                        resolve()
+                    },
+                    (error) => {
+                        showNotification(`Failed to delete: ${error.message}`, 'error')
+                        setIsConfirmModalOpen(false)
+                        setItemToDelete(null)
+                        reject(error)
+                    }
+                )
+            })
+        } catch (error) {
+            console.error('Delete item error:', error)
+        } finally {
+            setIsSubmitting(false)
+        }
+    }, [itemToDelete, isIPv6, listType, nic, flow, refreshData, showNotification])
+
+    const tableTitle = `${NIC_LABELS[nic]} / ${FLOW_LABELS[flow]} / ${isIPv6 ? 'IPv6' : 'IPv4'} ${listType === 'black_list' ? 'Blacklist' : 'Whitelist'}`
+
+    return (
+        <>
+            <Head>
+                <title>Access Control - Mantis</title>
+                <meta name="description" content="Mantis Access Control Management - IP Whitelist and Blacklist" />
+            </Head>
+
+            <Layout>
+                <AnimatePresence>
+                    {notification && (
+                        <Notification message={notification.message} type={notification.type} onClose={closeNotification} />
+                    )}
+                </AnimatePresence>
+
+                {/* Stats strip */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-5">
+                    <StatsCard title="Unique IPs" value={stats.uniqueIPs} icon={faGlobe} color="bg-[#4ab5cc]" />
+                    <StatsCard title="Total Rules" value={stats.totalEntries} icon={faNetworkWired} color="bg-green-500" />
+                    <StatsCard title="All Ports Rules" value={stats.allPortsEntries} icon={faFilter} color="bg-slate-500" />
+                    <StatsCard title="Specific Port Rules" value={stats.specificPortEntries} icon={faCheck} color="bg-orange-500" />
+                </div>
+
+                {/* Compact controls bar */}
+                <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className={`flex flex-wrap items-center gap-3 px-4 py-2.5 rounded-xl border mb-5 ${
+                        isDark ? 'bg-[#0e1e2c] border-slate-700/40' : 'bg-white border-slate-200'
+                    }`}
+                >
+                    {/* Search */}
+                    <div className="relative flex-1 min-w-40">
+                        <FontAwesomeIcon icon={faSearch} className={`absolute left-2.5 top-1/2 -translate-y-1/2 text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`} />
+                        <input
+                            type="text"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            placeholder="Search IP…"
+                            className={`w-full pl-7 pr-3 py-1 text-xs border rounded-lg focus:outline-none focus:border-[#4ab5cc] ${
+                                isDark ? 'bg-[#131929] border-slate-600 text-slate-300 placeholder-slate-500' : 'bg-white border-slate-300 text-slate-700 placeholder-slate-400'
+                            }`}
+                        />
+                    </div>
+
+                    <div className={`w-px h-4 ${isDark ? 'bg-slate-700' : 'bg-slate-200'}`} />
+
+                    <div className="flex items-center gap-1.5">
+                        <span className={`text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>NIC:</span>
+                        <ToggleButton isActive={nic === 'ingress'} onClick={() => handleNicChange('ingress')}>
+                            <FontAwesomeIcon icon={faArrowDown} className="mr-1 text-xs" />Ingress
+                        </ToggleButton>
+                        <ToggleButton isActive={nic === 'egress'} onClick={() => handleNicChange('egress')}>
+                            <FontAwesomeIcon icon={faArrowUp} className="mr-1 text-xs" />Egress
+                        </ToggleButton>
+                    </div>
+
+                    <div className="flex items-center gap-1.5">
+                        <span className={`text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Flow:</span>
+                        <ToggleButton isActive={flow === 'source'} onClick={() => handleFlowChange('source')}>Source</ToggleButton>
+                        <ToggleButton isActive={flow === 'destination'} onClick={() => handleFlowChange('destination')}>Destination</ToggleButton>
+                    </div>
+
+                    <div className="flex items-center gap-1.5">
+                        <span className={`text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>IP:</span>
+                        <ToggleButton isActive={!isIPv6} onClick={() => handleIPVersionChange(false)}>IPv4</ToggleButton>
+                        <ToggleButton isActive={isIPv6} onClick={() => handleIPVersionChange(true)}>IPv6</ToggleButton>
+                    </div>
+
+                    <div className="flex items-center gap-1.5">
+                        <span className={`text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>List:</span>
+                        <ToggleButton isActive={listType === 'black_list'} onClick={() => handleListTypeChange('black_list')}>
+                            <FontAwesomeIcon icon={faFilter} className="mr-1 text-xs" />Blacklist
+                        </ToggleButton>
+                        <ToggleButton isActive={listType === 'white_list'} onClick={() => handleListTypeChange('white_list')}>
+                            <FontAwesomeIcon icon={faCheck} className="mr-1 text-xs" />Whitelist
+                        </ToggleButton>
+                    </div>
+
+                    <div className="flex items-center gap-2 ml-auto">
+                        <button
+                            className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 ${
+                                isDark ? 'bg-slate-700/50 text-slate-300 hover:bg-slate-700' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                            }`}
+                            onClick={handleRefresh}
+                        >
+                            <FontAwesomeIcon icon={faRefresh} className="text-xs" />
+                            Refresh
+                        </button>
+                        <button
+                            className="px-3 py-1 bg-[#4ab5cc] text-white rounded-lg text-xs font-medium hover:bg-[#3da5bc] transition-colors flex items-center gap-1.5"
+                            onClick={handleAddItemClick}
+                        >
+                            <FontAwesomeIcon icon={faPlus} className="text-xs" />
+                            Add Rule
+                        </button>
+                    </div>
+                </motion.div>
+
+                {/* Rules table */}
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className={`rounded-xl border overflow-hidden ${isDark ? 'bg-[#0e1e2c] border-slate-700/40' : 'bg-white border-slate-200'}`}
+                >
+                    <div className={`px-5 py-3 border-b flex items-center justify-between ${isDark ? 'border-slate-700/40' : 'border-slate-200'}`}>
+                        <div className="flex items-center gap-2">
+                            <div className="w-6 h-6 rounded-md bg-[#4ab5cc]/15 flex items-center justify-center">
+                                <FontAwesomeIcon icon={faShieldAlt} className="text-[#4ab5cc] text-xs" />
+                            </div>
+                            <span className={`text-sm font-semibold flex items-center gap-2 ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
+                                {tableTitle}
+                                {isLoading && <div className="animate-spin rounded-full h-3.5 w-3.5 border-b-2 border-[#4ab5cc]" />}
+                            </span>
+                        </div>
+                        <span className={`text-xs px-2 py-0.5 rounded-full ${isDark ? 'bg-slate-700/50 text-slate-400' : 'bg-slate-100 text-slate-500'}`}>
+                            {flatData.length} rules
+                        </span>
+                    </div>
+
+                    {flatData.length === 0 ? (
+                        <div className="p-12 text-center">
+                            <FontAwesomeIcon icon={faInfoCircle} className={`text-6xl mb-4 ${isDark ? 'text-gray-500' : 'text-gray-300'}`} />
+                            <h3 className={`text-xl font-semibold mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                                {searchTerm ? 'No matching results found' : 'No data yet'}
+                            </h3>
+                            <p className={`mb-4 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                                {searchTerm ? 'Please try adjusting your search criteria' : 'Click the button above to add the first rule'}
+                            </p>
+                            {!searchTerm && (
+                                <button
+                                    className="px-4 py-2 bg-[#4ab5cc] text-white rounded-lg hover:bg-[#4ab5cc] transition-colors"
+                                    onClick={handleAddItemClick}
+                                >
+                                    <FontAwesomeIcon icon={faPlus} className="mr-2" />
+                                    Add Rule
+                                </button>
+                            )}
+                        </div>
+                    ) : (
+                        <div className="overflow-x-auto">
+                            <table className={`min-w-full divide-y ${isDark ? 'divide-gray-700' : 'divide-gray-200'}`}>
+                                <thead className={isDark ? 'bg-[#131929]' : 'bg-slate-50'}>
+                                    <tr>
+                                        <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                                            IP Address
+                                        </th>
+                                        <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                                            Port
+                                        </th>
+                                        <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                                            Action
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody className={`divide-y ${isDark ? 'bg-[#1a2236] divide-gray-700' : 'bg-white divide-gray-200'}`}>
+                                    {flatData.map(({ ip, port }, index) => (
+                                        <tr
+                                            key={`${ip}-${port}-${index}`}
+                                            className={`transition-colors ${isDark ? 'hover:bg-slate-700/30' : 'hover:bg-slate-50'}`}
+                                        >
+                                            <td className={`px-6 py-4 whitespace-nowrap text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-900'}`}>
+                                                {ip}
+                                            </td>
+                                            <td className={`px-6 py-4 whitespace-nowrap text-sm ${isDark ? 'text-gray-300' : 'text-gray-900'}`}>
+                                                <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
+                                                    port === "0" || port === 0
+                                                        ? 'bg-red-100 text-red-800'
+                                                        : (isDark ? 'bg-blue-900/50 text-blue-300' : 'bg-blue-100 text-blue-800')
+                                                }`}>
+                                                    {port === "0" || port === 0 ? "All ports (*)" : port}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                                <button
+                                                    className="px-3 py-1 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 transition-colors flex items-center space-x-1"
+                                                    onClick={() => handleDeleteClick(ip, port)}
+                                                >
+                                                    <FontAwesomeIcon icon={faTrash} />
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+                </motion.div>
+
+                {isModalOpen && (
+                    <Modal
+                        title={`Add ${NIC_LABELS[nic]} / ${FLOW_LABELS[flow]} / ${isIPv6 ? 'IPv6' : 'IPv4'} ${listType === 'black_list' ? 'Blacklist' : 'Whitelist'} Rule`}
+                        onClose={handleModalClose}
+                        onSubmit={handleAddItemSubmit}
+                        submitLabel="Add"
+                        submitDisabled={isSubmitting}
+                    >
+                        <div className="space-y-4">
+                            <div>
+                                <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>IP Address</label>
+                                <input
+                                    type="text"
+                                    value={newIp}
+                                    onChange={(e) => setNewIp(e.target.value)}
+                                    placeholder={isIPv6 ? "2001:db8::" : "192.168.1.1"}
+                                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:border-[#4ab5cc] focus:ring-1 focus:ring-[#4ab5cc] ${
+                                        isDark ? 'bg-[#131929] border-slate-600 text-slate-300 placeholder-slate-500' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400'
+                                    }`}
+                                />
+                            </div>
+
+                            <div className="flex items-center space-x-2">
+                                <input
+                                    id="block-all-ports"
+                                    type="checkbox"
+                                    checked={blockAllPorts}
+                                    onChange={(e) => {
+                                        setBlockAllPorts(e.target.checked)
+                                        if (e.target.checked) setNewPort('')
+                                    }}
+                                    className="h-4 w-4 text-[#4ab5cc] focus:ring-[#4ab5cc] border-gray-300 rounded"
+                                />
+                                <label htmlFor="block-all-ports" className={`text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                                    Block All Ports
+                                </label>
+                            </div>
+
+                            <div>
+                                <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Port</label>
+                                <input
+                                    type="text"
+                                    value={blockAllPorts ? "" : newPort}
+                                    onChange={(e) => setNewPort(e.target.value)}
+                                    placeholder="80"
+                                    disabled={blockAllPorts}
+                                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:border-[#4ab5cc] focus:ring-1 focus:ring-[#4ab5cc] ${
+                                        blockAllPorts
+                                            ? (isDark ? 'bg-[#1a2236] text-gray-500 border-gray-600' : 'bg-gray-100 text-gray-500 border-gray-300')
+                                            : (isDark ? 'bg-gray-700 border-gray-600 text-gray-300' : 'bg-white border-gray-300 text-gray-900')
+                                    }`}
+                                />
+                            </div>
+
+                            <div className={`border rounded-lg p-3 ${isDark ? 'bg-blue-900/30 border-blue-800' : 'bg-blue-50 border-blue-200'}`}>
+                                <div className="flex items-start">
+                                    <FontAwesomeIcon icon={faInfoCircle} className={`mt-0.5 mr-2 ${isDark ? 'text-blue-400' : 'text-blue-400'}`} />
+                                    <div className={`text-sm ${isDark ? 'text-blue-300' : 'text-blue-700'}`}>
+                                        <p className="font-medium mb-1">
+                                            {NIC_LABELS[nic]} {FLOW_LABELS[flow]} → {listType === 'black_list' ? 'Blacklist' : 'Whitelist'}
+                                        </p>
+                                        <p>
+                                            {listType === 'black_list'
+                                                ? 'IP addresses in the Blacklist will be denied access'
+                                                : 'Only IP addresses in the Whitelist can access'
+                                            }
+                                            {blockAllPorts && ', all ports will be affected'}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </Modal>
+                )}
+
+                {isConfirmModalOpen && (
+                    <Modal
+                        title="Confirm Deletion"
+                        onClose={handleDeleteCancel}
+                        onSubmit={handleDeleteConfirm}
+                        submitLabel="Delete"
+                        submitDisabled={isSubmitting}
+                    >
+                        <div className="space-y-4">
+                            <div className="flex items-center text-yellow-600 mb-4">
+                                <FontAwesomeIcon icon={faExclamationTriangle} className="mr-2" />
+                                <span className="font-medium">Warning</span>
+                            </div>
+                            <p className={isDark ? 'text-gray-300' : 'text-gray-700'}>Are you sure you want to delete this rule?</p>
+                            {itemToDelete && (
+                                <div className={`border rounded-lg p-4 ${isDark ? 'bg-[#131929] border-slate-700/50' : 'bg-slate-50 border-slate-200'}`}>
+                                    <div className="space-y-2">
+                                        <div className="flex justify-between">
+                                            <span className={`font-medium ${isDark ? 'text-gray-400' : 'text-gray-700'}`}>IP Address:</span>
+                                            <span className={isDark ? 'text-gray-300' : 'text-gray-900'}>{itemToDelete.ip}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className={`font-medium ${isDark ? 'text-gray-400' : 'text-gray-700'}`}>Port:</span>
+                                            <span className={isDark ? 'text-gray-300' : 'text-gray-900'}>
+                                                {itemToDelete.port === "0" || itemToDelete.port === 0 ? "All Ports (*)" : itemToDelete.port}
+                                            </span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className={`font-medium ${isDark ? 'text-gray-400' : 'text-gray-700'}`}>Target:</span>
+                                            <span className={isDark ? 'text-gray-300' : 'text-gray-900'}>
+                                                {NIC_LABELS[nic]} / {FLOW_LABELS[flow]} / {listType === 'black_list' ? 'Blacklist' : 'Whitelist'}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                            <div className={`border rounded-lg p-3 ${isDark ? 'bg-red-900/30 border-red-800' : 'bg-red-50 border-red-200'}`}>
+                                <div className="flex items-start">
+                                    <FontAwesomeIcon icon={faExclamationTriangle} className={`mt-0.5 mr-2 ${isDark ? 'text-red-400' : 'text-red-400'}`} />
+                                    <p className={`text-sm ${isDark ? 'text-red-300' : 'text-red-700'}`}>
+                                        This action cannot be undone. Once deleted, this rule will take effect immediately.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </Modal>
+                )}
+            </Layout>
+        </>
+    )
+}
+
+export default AccessControl
