@@ -52,12 +52,6 @@ const NAV_GROUPS = [
             { href: '/logs',           icon: faScroll,    label: 'Logs' },
         ],
     },
-    {
-        label: 'TRAINING',
-        items: [
-            { href: '/training', icon: faServer, label: 'Training' },
-        ],
-    },
 ]
 
 const PAGE_META: Record<string, { title: string; icon: any }> = {

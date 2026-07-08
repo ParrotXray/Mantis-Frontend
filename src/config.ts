@@ -30,31 +30,8 @@ export const urls = {
         listType: ListType
     ) => `${httpProtocol}://${host}/ebpf/access_control/${nic}/${ipVersion}/${flow}/${listType}`,
 
-    training: {
-        // Node registry lives on the main Mantis backend (SQLCipher app.db).
-        nodes: `${httpProtocol}://${host}/training/nodes`,
-        node: (id: string) => `${httpProtocol}://${host}/training/nodes/${id}`,
-    },
+
 } as const;
-
-// Trainer nodes are arbitrary user-registered host:port addresses, not the
-// main Mantis backend, so these are built directly from the node's own
-// host/port rather than the fixed `host` above. There is no auth between
-// the frontend and a trainer node, so callers must NOT attach getAuthHeaders()
-// (that token is for the main backend only) when hitting these URLs.
-export const trainerNodeUrls = (nodeHost: string, nodePort: number) => {
-    const base = `${httpProtocol}://${nodeHost}:${nodePort}`;
-    return {
-        health: `${base}/health`,
-        datasets: `${base}/datasets`,
-        train: (datasetId: string) => `${base}/datasets/${datasetId}/train`,
-        jobs: `${base}/jobs`,
-        job: (jobId: string) => `${base}/jobs/${jobId}`,
-    } as const;
-};
-
-export const trainerNodeWsUrl = (nodeHost: string, nodePort: number, jobId: string) =>
-    `${websocketProtocol}://${nodeHost}:${nodePort}/jobs/${jobId}/ws`;
 
 export const websocketUrl = {
     ipv4FlowStats: (direction: string, flow_direction: string, timeType: string) =>
