@@ -17,10 +17,11 @@ import {
     faRefresh,
     faArrowDown,
     faArrowUp,
+    faPen,
 } from '@fortawesome/free-solid-svg-icons'
 import { AccessControlContext } from '../providers/AccessControlProvider'
 import { useTheme } from '../providers/ThemeProvider'
-import { putData, deleteData } from '../utils/connectionUtils'
+import { fetchData, putData, deleteData } from '../utils/connectionUtils'
 import { urls, NicType, FlowType, ListType } from '../config'
 import Layout from '../components/Layout'
 import {
@@ -164,6 +165,13 @@ const FLOW_LABELS: Record<FlowType, string> = {
     destination: 'Destination',
 }
 
+// The mirrored bucket for a given (nic, flow) -- e.g. Egress/Destination's
+// mirror is Ingress/Source. Together they cover both legs of one
+// conversation (an outbound request and its inbound response), matching
+// the backend's `both_directions` flag.
+const mirrorNic = (n: NicType): NicType => (n === 'ingress' ? 'egress' : 'ingress')
+const mirrorFlow = (f: FlowType): FlowType => (f === 'source' ? 'destination' : 'source')
+
 const AccessControl: React.FC = () => {
     const {
         currentData,
@@ -187,10 +195,17 @@ const AccessControl: React.FC = () => {
     const [newIp, setNewIp] = useState('')
     const [newPort, setNewPort] = useState('')
     const [blockAllPorts, setBlockAllPorts] = useState(false)
+    const [applyBothDirections, setApplyBothDirections] = useState(false)
     const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false)
     const [itemToDelete, setItemToDelete] = useState<{ ip: string; port: string | number } | null>(null)
+    const [removeBothDirections, setRemoveBothDirections] = useState(false)
     const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' | 'warning' | 'info' } | null>(null)
     const [isSubmitting, setIsSubmitting] = useState(false)
+    const [newNote, setNewNote] = useState('')
+    const [notes, setNotes] = useState<Record<string, string>>({})
+    const [isNoteModalOpen, setIsNoteModalOpen] = useState(false)
+    const [noteEditIp, setNoteEditIp] = useState<string | null>(null)
+    const [noteEditValue, setNoteEditValue] = useState('')
 
     const showNotification = useCallback((message: string, type: 'success' | 'error' | 'warning' | 'info' = 'success') => {
         setNotification({ message, type })
@@ -198,8 +213,31 @@ const AccessControl: React.FC = () => {
 
     const closeNotification = useCallback(() => setNotification(null), [])
 
+    // Notes are informational-only remarks per IP (e.g. "Cloudflare edge for
+    // status.example.com") and live in their own backend store, separate
+    // from the rule list itself -- fetched alongside it, merged by IP for
+    // display. If the backend has no DB configured (auth disabled), the
+    // note endpoints error out; treat that the same as "no notes yet"
+    // rather than surfacing it as a failure.
+    const fetchNotes = useCallback((isIPv6: boolean, listType: ListType, nic: NicType, flow: FlowType) => {
+        const ipVersion = isIPv6 ? 'ipv6' as const : 'ipv4' as const
+        const url = urls.access_control_note(nic, ipVersion, flow, listType)
+        fetchData(
+            url,
+            (response) => {
+                try {
+                    setNotes(JSON.parse(response))
+                } catch {
+                    setNotes({})
+                }
+            },
+            () => setNotes({})
+        )
+    }, [])
+
     useEffect(() => {
         switchTo(isIPv6, listType, nic, flow)
+        fetchNotes(isIPv6, listType, nic, flow)
     }, [])
 
     useEffect(() => {
@@ -215,44 +253,51 @@ const AccessControl: React.FC = () => {
         if (newNic !== nic) {
             setNic(newNic)
             switchTo(isIPv6, listType, newNic, flow)
+            fetchNotes(isIPv6, listType, newNic, flow)
         }
-    }, [nic, isIPv6, listType, flow, switchTo])
+    }, [nic, isIPv6, listType, flow, switchTo, fetchNotes])
 
     const handleFlowChange = useCallback((newFlow: FlowType) => {
         if (newFlow !== flow) {
             setFlow(newFlow)
             switchTo(isIPv6, listType, nic, newFlow)
+            fetchNotes(isIPv6, listType, nic, newFlow)
         }
-    }, [flow, isIPv6, listType, nic, switchTo])
+    }, [flow, isIPv6, listType, nic, switchTo, fetchNotes])
 
     const handleIPVersionChange = useCallback((newIsIPv6: boolean) => {
         if (newIsIPv6 !== isIPv6) {
             setIsIPv6(newIsIPv6)
             switchTo(newIsIPv6, listType, nic, flow)
+            fetchNotes(newIsIPv6, listType, nic, flow)
         }
-    }, [isIPv6, listType, nic, flow, switchTo])
+    }, [isIPv6, listType, nic, flow, switchTo, fetchNotes])
 
     const handleListTypeChange = useCallback((newListType: ListType) => {
         if (newListType !== listType) {
             setListType(newListType)
             switchTo(isIPv6, newListType, nic, flow)
+            fetchNotes(isIPv6, newListType, nic, flow)
         }
-    }, [isIPv6, listType, nic, flow, switchTo])
+    }, [isIPv6, listType, nic, flow, switchTo, fetchNotes])
 
     const handleRefresh = useCallback(async () => {
         try {
             await refreshData(isIPv6, listType, nic, flow)
+            fetchNotes(isIPv6, listType, nic, flow)
             showNotification('Data updated', 'success')
         } catch {
             showNotification('Update failed', 'error')
         }
-    }, [isIPv6, listType, nic, flow, refreshData, showNotification])
+    }, [isIPv6, listType, nic, flow, refreshData, fetchNotes, showNotification])
 
     const handleAddItemClick = useCallback(() => {
         setIsModalOpen(true)
         setNewIp('')
         setNewPort('')
         setBlockAllPorts(false)
+        setApplyBothDirections(false)
+        setNewNote('')
     }, [])
 
     const handleModalClose = useCallback(() => {
@@ -260,12 +305,14 @@ const AccessControl: React.FC = () => {
         setNewIp('')
         setNewPort('')
         setBlockAllPorts(false)
+        setApplyBothDirections(false)
+        setNewNote('')
     }, [])
 
     const flatData = useMemo(() =>
-        filteredData.flatMap(({ ip, ports }) =>
-            ports.map((port) => ({ ip, port }))
-        ),
+            filteredData.flatMap(({ ip, ports }) =>
+                ports.map((port) => ({ ip, port }))
+            ),
         [filteredData]
     )
 
@@ -300,6 +347,54 @@ const AccessControl: React.FC = () => {
         return !isNaN(portNum) && portNum >= 1 && portNum <= 65535
     }, [])
 
+    // Shared by the Add Rule modal (optional note alongside a new rule) and
+    // the standalone note-edit modal (updating/clearing a note on an
+    // existing entry). An empty trimmed value clears the note (DELETE)
+    // rather than persisting an empty string.
+    const saveNote = useCallback((ip: string, note: string) => {
+        const ipVersion = isIPv6 ? 'ipv6' as const : 'ipv4' as const
+        const url = urls.access_control_note(nic, ipVersion, flow, listType)
+        const trimmed = note.trim()
+        if (trimmed) {
+            putData(
+                url,
+                { ip, note: trimmed },
+                () => setNotes(prev => ({ ...prev, [ip]: trimmed })),
+                (error) => showNotification(`Failed to save note: ${error.message}`, 'error')
+            )
+        } else {
+            deleteData(
+                url,
+                { ip },
+                () => setNotes(prev => {
+                    const next = { ...prev }
+                    delete next[ip]
+                    return next
+                }),
+                (error) => showNotification(`Failed to clear note: ${error.message}`, 'error')
+            )
+        }
+    }, [isIPv6, nic, flow, listType, showNotification])
+
+    const handleNoteEditClick = useCallback((ip: string) => {
+        setNoteEditIp(ip)
+        setNoteEditValue(notes[ip] || '')
+        setIsNoteModalOpen(true)
+    }, [notes])
+
+    const handleNoteEditClose = useCallback(() => {
+        setIsNoteModalOpen(false)
+        setNoteEditIp(null)
+        setNoteEditValue('')
+    }, [])
+
+    const handleNoteEditSubmit = useCallback(() => {
+        if (noteEditIp) {
+            saveNote(noteEditIp, noteEditValue)
+        }
+        handleNoteEditClose()
+    }, [noteEditIp, noteEditValue, saveNote, handleNoteEditClose])
+
     const handleAddItemSubmit = useCallback(async () => {
         if (!newIp.trim()) {
             showNotification('Please enter a valid IP address', 'error')
@@ -316,7 +411,7 @@ const AccessControl: React.FC = () => {
 
         const portToSend = blockAllPorts ? "0" : newPort
         const ipVersion = isIPv6 ? 'ipv6' as const : 'ipv4' as const
-        const url = urls.access_control(nic, ipVersion, flow, listType)
+        const url = urls.access_control(nic, ipVersion, flow, listType, applyBothDirections)
 
         setIsSubmitting(true)
         try {
@@ -325,11 +420,19 @@ const AccessControl: React.FC = () => {
                     url,
                     `${newIp.trim()}:${portToSend}`,
                     () => {
-                        showNotification(`Successfully added: ${newIp.trim()}:${blockAllPorts ? '*' : portToSend}`, 'success')
+                        const addedWhere = applyBothDirections
+                            ? `${NIC_LABELS[nic]}/${FLOW_LABELS[flow]} + ${NIC_LABELS[mirrorNic(nic)]}/${FLOW_LABELS[mirrorFlow(flow)]}`
+                            : `${NIC_LABELS[nic]}/${FLOW_LABELS[flow]}`
+                        showNotification(`Successfully added ${newIp.trim()}:${blockAllPorts ? '*' : portToSend} to ${addedWhere}`, 'success')
+                        if (newNote.trim()) {
+                            saveNote(newIp.trim(), newNote)
+                        }
                         setIsModalOpen(false)
                         setNewIp('')
                         setNewPort('')
                         setBlockAllPorts(false)
+                        setApplyBothDirections(false)
+                        setNewNote('')
                         refreshData(isIPv6, listType, nic, flow)
                         resolve()
                     },
@@ -344,16 +447,18 @@ const AccessControl: React.FC = () => {
         } finally {
             setIsSubmitting(false)
         }
-    }, [newIp, newPort, blockAllPorts, isIPv6, listType, nic, flow, refreshData, showNotification, validateIP, validatePort])
+    }, [newIp, newPort, blockAllPorts, applyBothDirections, newNote, saveNote, isIPv6, listType, nic, flow, refreshData, showNotification, validateIP, validatePort])
 
     const handleDeleteClick = useCallback((ip: string, port: string | number) => {
         setItemToDelete({ ip, port })
+        setRemoveBothDirections(false)
         setIsConfirmModalOpen(true)
     }, [])
 
     const handleDeleteCancel = useCallback(() => {
         setIsConfirmModalOpen(false)
         setItemToDelete(null)
+        setRemoveBothDirections(false)
     }, [])
 
     const handleDeleteConfirm = useCallback(async () => {
@@ -362,7 +467,7 @@ const AccessControl: React.FC = () => {
         const { ip, port } = itemToDelete
         const formattedIp = isIPv6 ? `[${ip}]` : ip
         const ipVersion = isIPv6 ? 'ipv6' as const : 'ipv4' as const
-        const url = urls.access_control(nic, ipVersion, flow, listType)
+        const url = urls.access_control(nic, ipVersion, flow, listType, removeBothDirections)
 
         setIsSubmitting(true)
         try {
@@ -371,16 +476,21 @@ const AccessControl: React.FC = () => {
                     url,
                     `${formattedIp}:${port}`,
                     () => {
-                        showNotification(`Successfully deleted: ${formattedIp}:${port === "0" || port === 0 ? "*" : port}`, 'success')
+                        const removedWhere = removeBothDirections
+                            ? `${NIC_LABELS[nic]}/${FLOW_LABELS[flow]} + ${NIC_LABELS[mirrorNic(nic)]}/${FLOW_LABELS[mirrorFlow(flow)]}`
+                            : `${NIC_LABELS[nic]}/${FLOW_LABELS[flow]}`
+                        showNotification(`Successfully deleted ${formattedIp}:${port === "0" || port === 0 ? "*" : port} from ${removedWhere}`, 'success')
                         refreshData(isIPv6, listType, nic, flow)
                         setIsConfirmModalOpen(false)
                         setItemToDelete(null)
+                        setRemoveBothDirections(false)
                         resolve()
                     },
                     (error) => {
                         showNotification(`Failed to delete: ${error.message}`, 'error')
                         setIsConfirmModalOpen(false)
                         setItemToDelete(null)
+                        setRemoveBothDirections(false)
                         reject(error)
                     }
                 )
@@ -390,7 +500,7 @@ const AccessControl: React.FC = () => {
         } finally {
             setIsSubmitting(false)
         }
-    }, [itemToDelete, isIPv6, listType, nic, flow, refreshData, showNotification])
+    }, [itemToDelete, isIPv6, listType, nic, flow, removeBothDirections, refreshData, showNotification])
 
     const tableTitle = `${NIC_LABELS[nic]} / ${FLOW_LABELS[flow]} / ${isIPv6 ? 'IPv6' : 'IPv4'} ${listType === 'black_list' ? 'Blacklist' : 'Whitelist'}`
 
@@ -536,28 +646,31 @@ const AccessControl: React.FC = () => {
                         <div className="overflow-x-auto">
                             <table className={`min-w-full divide-y ${isDark ? 'divide-gray-700' : 'divide-gray-200'}`}>
                                 <thead className={isDark ? 'bg-[#131929]' : 'bg-slate-50'}>
-                                    <tr>
-                                        <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                                            IP Address
-                                        </th>
-                                        <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                                            Port
-                                        </th>
-                                        <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                                            Action
-                                        </th>
-                                    </tr>
+                                <tr>
+                                    <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                                        IP Address
+                                    </th>
+                                    <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                                        Port
+                                    </th>
+                                    <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                                        Note
+                                    </th>
+                                    <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                                        Action
+                                    </th>
+                                </tr>
                                 </thead>
                                 <tbody className={`divide-y ${isDark ? 'bg-[#1a2236] divide-gray-700' : 'bg-white divide-gray-200'}`}>
-                                    {flatData.map(({ ip, port }, index) => (
-                                        <tr
-                                            key={`${ip}-${port}-${index}`}
-                                            className={`transition-colors ${isDark ? 'hover:bg-slate-700/30' : 'hover:bg-slate-50'}`}
-                                        >
-                                            <td className={`px-6 py-4 whitespace-nowrap text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-900'}`}>
-                                                {ip}
-                                            </td>
-                                            <td className={`px-6 py-4 whitespace-nowrap text-sm ${isDark ? 'text-gray-300' : 'text-gray-900'}`}>
+                                {flatData.map(({ ip, port }, index) => (
+                                    <tr
+                                        key={`${ip}-${port}-${index}`}
+                                        className={`transition-colors ${isDark ? 'hover:bg-slate-700/30' : 'hover:bg-slate-50'}`}
+                                    >
+                                        <td className={`px-6 py-4 whitespace-nowrap text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-900'}`}>
+                                            {ip}
+                                        </td>
+                                        <td className={`px-6 py-4 whitespace-nowrap text-sm ${isDark ? 'text-gray-300' : 'text-gray-900'}`}>
                                                 <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
                                                     port === "0" || port === 0
                                                         ? 'bg-red-100 text-red-800'
@@ -565,17 +678,29 @@ const AccessControl: React.FC = () => {
                                                 }`}>
                                                     {port === "0" || port === 0 ? "All ports (*)" : port}
                                                 </span>
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                        </td>
+                                        <td className={`px-6 py-4 text-sm max-w-xs truncate ${notes[ip] ? (isDark ? 'text-gray-300' : 'text-gray-700') : (isDark ? 'text-gray-600' : 'text-gray-400')}`}>
+                                            {notes[ip] || '—'}
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                            <div className="flex items-center gap-1.5">
+                                                <button
+                                                    className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors flex items-center space-x-1 ${isDark ? 'bg-slate-700/50 text-slate-300 hover:bg-slate-700' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+                                                    onClick={() => handleNoteEditClick(ip)}
+                                                    title="Edit note"
+                                                >
+                                                    <FontAwesomeIcon icon={faPen} />
+                                                </button>
                                                 <button
                                                     className="px-3 py-1 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 transition-colors flex items-center space-x-1"
                                                     onClick={() => handleDeleteClick(ip, port)}
                                                 >
                                                     <FontAwesomeIcon icon={faTrash} />
                                                 </button>
-                                            </td>
-                                        </tr>
-                                    ))}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
                                 </tbody>
                             </table>
                         </div>
@@ -636,12 +761,39 @@ const AccessControl: React.FC = () => {
                                 />
                             </div>
 
+                            <div className="flex items-center space-x-2">
+                                <input
+                                    id="apply-both-directions"
+                                    type="checkbox"
+                                    checked={applyBothDirections}
+                                    onChange={(e) => setApplyBothDirections(e.target.checked)}
+                                    className="h-4 w-4 text-[#4ab5cc] focus:ring-[#4ab5cc] border-gray-300 rounded"
+                                />
+                                <label htmlFor="apply-both-directions" className={`text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                                    Apply to both directions
+                                </label>
+                            </div>
+
+                            <div>
+                                <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Note (optional)</label>
+                                <input
+                                    type="text"
+                                    value={newNote}
+                                    onChange={(e) => setNewNote(e.target.value)}
+                                    placeholder="e.g. Cloudflare edge for status.example.com"
+                                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:border-[#4ab5cc] focus:ring-1 focus:ring-[#4ab5cc] ${
+                                        isDark ? 'bg-[#131929] border-slate-600 text-slate-300 placeholder-slate-500' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400'
+                                    }`}
+                                />
+                            </div>
+
                             <div className={`border rounded-lg p-3 ${isDark ? 'bg-blue-900/30 border-blue-800' : 'bg-blue-50 border-blue-200'}`}>
                                 <div className="flex items-start">
                                     <FontAwesomeIcon icon={faInfoCircle} className={`mt-0.5 mr-2 ${isDark ? 'text-blue-400' : 'text-blue-400'}`} />
                                     <div className={`text-sm ${isDark ? 'text-blue-300' : 'text-blue-700'}`}>
                                         <p className="font-medium mb-1">
                                             {NIC_LABELS[nic]} {FLOW_LABELS[flow]} → {listType === 'black_list' ? 'Blacklist' : 'Whitelist'}
+                                            {applyBothDirections && ` + ${NIC_LABELS[mirrorNic(nic)]} ${FLOW_LABELS[mirrorFlow(flow)]}`}
                                         </p>
                                         <p>
                                             {listType === 'black_list'
@@ -650,6 +802,12 @@ const AccessControl: React.FC = () => {
                                             }
                                             {blockAllPorts && ', all ports will be affected'}
                                         </p>
+                                        {applyBothDirections && (
+                                            <p className="mt-1">
+                                                Also adds the mirrored rule ({NIC_LABELS[mirrorNic(nic)]}/{FLOW_LABELS[mirrorFlow(flow)]}), covering
+                                                both legs of a conversation with this IP (e.g. an outbound request and its inbound response) in one step.
+                                            </p>
+                                        )}
                                     </div>
                                 </div>
                             </div>
@@ -688,11 +846,24 @@ const AccessControl: React.FC = () => {
                                             <span className={`font-medium ${isDark ? 'text-gray-400' : 'text-gray-700'}`}>Target:</span>
                                             <span className={isDark ? 'text-gray-300' : 'text-gray-900'}>
                                                 {NIC_LABELS[nic]} / {FLOW_LABELS[flow]} / {listType === 'black_list' ? 'Blacklist' : 'Whitelist'}
+                                                {removeBothDirections && ` + ${NIC_LABELS[mirrorNic(nic)]} / ${FLOW_LABELS[mirrorFlow(flow)]}`}
                                             </span>
                                         </div>
                                     </div>
                                 </div>
                             )}
+                            <div className="flex items-center space-x-2">
+                                <input
+                                    id="remove-both-directions"
+                                    type="checkbox"
+                                    checked={removeBothDirections}
+                                    onChange={(e) => setRemoveBothDirections(e.target.checked)}
+                                    className="h-4 w-4 text-[#4ab5cc] focus:ring-[#4ab5cc] border-gray-300 rounded"
+                                />
+                                <label htmlFor="remove-both-directions" className={`text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                                    Also remove from {NIC_LABELS[mirrorNic(nic)]}/{FLOW_LABELS[mirrorFlow(flow)]}
+                                </label>
+                            </div>
                             <div className={`border rounded-lg p-3 ${isDark ? 'bg-red-900/30 border-red-800' : 'bg-red-50 border-red-200'}`}>
                                 <div className="flex items-start">
                                     <FontAwesomeIcon icon={faExclamationTriangle} className={`mt-0.5 mr-2 ${isDark ? 'text-red-400' : 'text-red-400'}`} />
@@ -700,6 +871,32 @@ const AccessControl: React.FC = () => {
                                         This action cannot be undone. Once deleted, this rule will take effect immediately.
                                     </p>
                                 </div>
+                            </div>
+                        </div>
+                    </Modal>
+                )}
+
+                {isNoteModalOpen && (
+                    <Modal
+                        title={`Note for ${noteEditIp}`}
+                        onClose={handleNoteEditClose}
+                        onSubmit={handleNoteEditSubmit}
+                        submitLabel="Save"
+                    >
+                        <div className="space-y-4">
+                            <div>
+                                <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Note</label>
+                                <input
+                                    type="text"
+                                    value={noteEditValue}
+                                    onChange={(e) => setNoteEditValue(e.target.value)}
+                                    placeholder="e.g. Cloudflare edge for status.example.com"
+                                    autoFocus
+                                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:border-[#4ab5cc] focus:ring-1 focus:ring-[#4ab5cc] ${
+                                        isDark ? 'bg-[#131929] border-slate-600 text-slate-300 placeholder-slate-500' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400'
+                                    }`}
+                                />
+                                <p className={`mt-2 text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Leave empty and save to clear the note.</p>
                             </div>
                         </div>
                     </Modal>

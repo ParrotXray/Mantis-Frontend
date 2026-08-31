@@ -27,9 +27,16 @@ export const urls = {
         nic: NicType,
         ipVersion: IpVersion,
         flow: FlowType,
-        listType: ListType
-    ) => `${httpProtocol}://${host}/ebpf/access_control/${nic}/${ipVersion}/${flow}/${listType}`,
+        listType: ListType,
+        bothDirections: boolean = false
+    ) => `${httpProtocol}://${host}/ebpf/access_control/${nic}/${ipVersion}/${flow}/${listType}${bothDirections ? '?both_directions=true' : ''}`,
 
+    access_control_note: (
+        nic: NicType,
+        ipVersion: IpVersion,
+        flow: FlowType,
+        listType: ListType
+    ) => `${httpProtocol}://${host}/ebpf/access_control/${nic}/${ipVersion}/${flow}/${listType}/note`,
 
 } as const;
 

@@ -186,37 +186,47 @@ const AlertDetails: React.FC<AlertDetailsProps> = ({ log, onClose, showNotificat
     const isIPv6Source = log.src_ip.includes(':') && !log.src_ip.includes('.')
     const isIPv6Dest   = log.dst_ip.includes(':') && !log.dst_ip.includes('.')
 
+    // "Apply to both directions" also writes the mirrored (nic.flip(),
+    // flow.flip()) bucket -- e.g. Ingress/Source + Egress/Destination --
+    // covering both legs of a conversation with this IP in one click,
+    // matching the backend's ?both_directions=true and the same toggle on
+    // the Access Control page.
+    const [applyBothDirections, setApplyBothDirections] = useState(false)
+    const mirrorNote = applyBothDirections ? ' + Egress' : ''
+
     const handleBlockIP = useCallback((ip: string, port: number, isSource: boolean, blockAllPorts = false) => {
         const isIPv6 = isSource ? isIPv6Source : isIPv6Dest
         const formattedIp = isIPv6 ? `[${ip}]` : ip
         const ipVersion = isIPv6 ? 'ipv6' as const : 'ipv4' as const
-        const url = urls.access_control('ingress', ipVersion, 'source', 'black_list')
+        const flow = isSource ? 'source' as const : 'destination' as const
+        const url = urls.access_control('ingress', ipVersion, flow, 'black_list', applyBothDirections)
         const portToSend = blockAllPorts ? '0' : String(port)
         const displayPort = blockAllPorts ? '*' : String(port)
 
         putData(
             url,
             `${formattedIp}:${portToSend}`,
-            () => showNotification(`Successfully added to blacklist: ${ip}:${displayPort}`, 'success'),
+            () => showNotification(`Successfully added to blacklist (Ingress/${isSource ? 'Source' : 'Destination'}${mirrorNote}): ${ip}:${displayPort}`, 'success'),
             (error) => showNotification(`Failed to add to blacklist: ${error.message}`, 'error'),
         )
-    }, [isIPv6Source, isIPv6Dest, showNotification])
+    }, [isIPv6Source, isIPv6Dest, applyBothDirections, mirrorNote, showNotification])
 
     const handleAllowIP = useCallback((ip: string, port: number, isSource: boolean, allowAllPorts = false) => {
         const isIPv6 = isSource ? isIPv6Source : isIPv6Dest
         const formattedIp = isIPv6 ? `[${ip}]` : ip
         const ipVersion = isIPv6 ? 'ipv6' as const : 'ipv4' as const
-        const url = urls.access_control('ingress', ipVersion, 'source', 'white_list')
+        const flow = isSource ? 'source' as const : 'destination' as const
+        const url = urls.access_control('ingress', ipVersion, flow, 'white_list', applyBothDirections)
         const portToSend = allowAllPorts ? '0' : String(port)
         const displayPort = allowAllPorts ? '*' : String(port)
 
         putData(
             url,
             `${formattedIp}:${portToSend}`,
-            () => showNotification(`Successfully added to whitelist: ${ip}:${displayPort}`, 'success'),
+            () => showNotification(`Successfully added to whitelist (Ingress/${isSource ? 'Source' : 'Destination'}${mirrorNote}): ${ip}:${displayPort}`, 'success'),
             (error) => showNotification(`Failed to add to whitelist: ${error.message}`, 'error'),
         )
-    }, [isIPv6Source, isIPv6Dest, showNotification])
+    }, [isIPv6Source, isIPv6Dest, applyBothDirections, mirrorNote, showNotification])
 
     return (
         <AnimatePresence>
@@ -350,7 +360,18 @@ const AlertDetails: React.FC<AlertDetailsProps> = ({ log, onClose, showNotificat
 
                     {/* IP Management */}
                     <div>
-                        <span className={`text-xs font-semibold uppercase tracking-wider ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>IP Management</span>
+                        <div className="flex items-center justify-between">
+                            <span className={`text-xs font-semibold uppercase tracking-wider ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>IP Management</span>
+                            <label className={`flex items-center gap-1.5 text-xs font-medium cursor-pointer ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
+                                <input
+                                    type="checkbox"
+                                    checked={applyBothDirections}
+                                    onChange={(e) => setApplyBothDirections(e.target.checked)}
+                                    className="h-3.5 w-3.5 text-[#4ab5cc] focus:ring-[#4ab5cc] border-gray-300 rounded"
+                                />
+                                Apply to both directions
+                            </label>
+                        </div>
                         <div className="mt-2 space-y-2">
                             {[
                                 { label: 'Source IP',      ip: log.src_ip, port: log.src_port, isSource: true  },
@@ -698,11 +719,11 @@ const Detection: React.FC = () => {
                         <span className={`text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Severity:</span>
                         <FilterButton isActive={severityFilter === 'all'} onClick={() => { setSeverityFilter('all'); setSelectedLogIndex(null) }}>All</FilterButton>
                         <FilterButton isActive={severityFilter === 'critical'} onClick={() => { setSeverityFilter('critical'); setSelectedLogIndex(null) }}
-                            activeClassName="bg-red-600 text-white shadow-sm" activeHoverClassName="hover:bg-red-700">
+                                      activeClassName="bg-red-600 text-white shadow-sm" activeHoverClassName="hover:bg-red-700">
                             Critical
                         </FilterButton>
                         <FilterButton isActive={severityFilter === 'high'} onClick={() => { setSeverityFilter('high'); setSelectedLogIndex(null) }}
-                            activeClassName="bg-orange-600 text-white shadow-sm" activeHoverClassName="hover:bg-orange-700">
+                                      activeClassName="bg-orange-600 text-white shadow-sm" activeHoverClassName="hover:bg-orange-700">
                             High
                         </FilterButton>
                     </div>
@@ -714,11 +735,11 @@ const Detection: React.FC = () => {
                         <span className={`text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Source:</span>
                         <FilterButton isActive={sourceFilter === 'all'} onClick={() => { setSourceFilter('all'); setSelectedLogIndex(null) }}>All</FilterButton>
                         <FilterButton isActive={sourceFilter === 'ml'} onClick={() => { setSourceFilter('ml'); setSelectedLogIndex(null) }}
-                            activeClassName="bg-[#4ab5cc] text-white shadow-sm" activeHoverClassName="hover:bg-[#3da5bc]">ML</FilterButton>
+                                      activeClassName="bg-[#4ab5cc] text-white shadow-sm" activeHoverClassName="hover:bg-[#3da5bc]">ML</FilterButton>
                         <FilterButton isActive={sourceFilter === 'rule'} onClick={() => { setSourceFilter('rule'); setSelectedLogIndex(null) }}
-                            activeClassName="bg-sky-600 text-white shadow-sm" activeHoverClassName="hover:bg-sky-700">Rule</FilterButton>
+                                      activeClassName="bg-sky-600 text-white shadow-sm" activeHoverClassName="hover:bg-sky-700">Rule</FilterButton>
                         <FilterButton isActive={sourceFilter === 'fusion'} onClick={() => { setSourceFilter('fusion'); setSelectedLogIndex(null) }}
-                            activeClassName="bg-teal-600 text-white shadow-sm" activeHoverClassName="hover:bg-teal-700">Fusion</FilterButton>
+                                      activeClassName="bg-teal-600 text-white shadow-sm" activeHoverClassName="hover:bg-teal-700">Fusion</FilterButton>
                     </div>
 
                     {lastUpdateTime && (
@@ -737,7 +758,7 @@ const Detection: React.FC = () => {
                         className={selectedLogIndex !== null && filteredLogs[selectedLogIndex] ? 'lg:col-span-7' : 'lg:col-span-12'}
                     >
                         <div className={`rounded-xl border overflow-hidden flex flex-col ${isDark ? 'bg-[#0e1e2c] border-slate-700/40' : 'bg-white border-slate-200'}`}
-                            style={{ maxHeight: 'calc(100vh - 280px)', minHeight: '400px' }}>
+                             style={{ maxHeight: 'calc(100vh - 280px)', minHeight: '400px' }}>
                             <div className={`px-5 py-3 border-b flex items-center justify-between flex-shrink-0 ${isDark ? 'border-slate-700/40' : 'border-slate-200'}`}>
                                 <div className="flex items-center gap-2">
                                     <div className="w-6 h-6 rounded-md bg-[#4ab5cc]/15 flex items-center justify-center">
