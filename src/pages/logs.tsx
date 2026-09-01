@@ -14,6 +14,7 @@ import {
 import { useTheme } from '../providers/ThemeProvider'
 import { websocketUrl } from '../config'
 import Layout from '../components/Layout'
+import { NextPageWithLayout } from '../types/NextPageWithLayout'
 
 interface LogRecord {
     timestamp: string
@@ -35,7 +36,7 @@ const DEFAULT_STYLE = LEVEL_STYLES.DEBUG
 
 const MAX_LOGS = 1000
 
-const LogsPage: React.FC = () => {
+const LogsPage: NextPageWithLayout = () => {
     const { actualTheme } = useTheme()
     const isDark = actualTheme === 'dark'
 
@@ -131,8 +132,7 @@ const LogsPage: React.FC = () => {
             <Head>
                 <title>Logs - Mantis</title>
             </Head>
-            <Layout>
-                {/* Compact controls + filter bar */}
+            {/* Compact controls + filter bar */}
                 <motion.div
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -273,9 +273,10 @@ const LogsPage: React.FC = () => {
                         </button>
                     </motion.div>
                 )}
-            </Layout>
         </>
     )
 }
+
+LogsPage.getLayout = (page: React.ReactElement) => <Layout>{page}</Layout>
 
 export default LogsPage

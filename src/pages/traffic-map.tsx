@@ -19,6 +19,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import Layout from '../components/Layout';
 import LoadingSpinner from '../components/LoadingSpinner';
+import { NextPageWithLayout } from '../types/NextPageWithLayout';
 import { useTheme } from '../providers/ThemeProvider';
 import { WebsocketContext } from '../providers/WebSocketProvider';
 import { combineLatest, of } from 'rxjs';
@@ -419,7 +420,7 @@ const StatsCard: React.FC<{
     );
 };
 
-const TrafficMap: React.FC = () => {
+const TrafficMap: NextPageWithLayout = () => {
     const { actualTheme } = useTheme();
     const { getIPv4FlowStream, getIPv6FlowStream, bootTime } = useContext(WebsocketContext);
     const isDark = actualTheme === 'dark';
@@ -646,11 +647,9 @@ const TrafficMap: React.FC = () => {
                 <Head>
                     <title>Traffic Map - Mantis</title>
                 </Head>
-                <Layout>
-                    <div className="flex items-center justify-center w-full h-full min-h-[calc(100vh-4rem)]">
-                        <LoadingSpinner />
-                    </div>
-                </Layout>
+                <div className="flex items-center justify-center w-full h-full min-h-[calc(100vh-4rem)]">
+                    <LoadingSpinner />
+                </div>
             </>
         );
     }
@@ -663,8 +662,7 @@ const TrafficMap: React.FC = () => {
                 <link href='https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css' rel='stylesheet' />
             </Head>
 
-            <Layout>
-                <ControlPanel
+            <ControlPanel
                     isIPv6={isIPv6}
                     setIsIPv6={setIsIPv6}
                     direction={direction}
@@ -693,9 +691,10 @@ const TrafficMap: React.FC = () => {
                 >
                     <MapComponent points={mapPoints} isDark={isDark} />
                 </motion.div>
-            </Layout>
         </>
     );
 };
+
+TrafficMap.getLayout = (page: React.ReactElement) => <Layout>{page}</Layout>;
 
 export default TrafficMap;

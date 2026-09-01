@@ -17,6 +17,7 @@ import {
 import { WebsocketContext } from '../providers/WebSocketProvider'
 import Layout from '../components/Layout'
 import LoadingSpinner from '../components/LoadingSpinner'
+import { NextPageWithLayout } from '../types/NextPageWithLayout'
 import { combineLatest } from 'rxjs'
 import { map, catchError } from 'rxjs/operators'
 import { of } from 'rxjs'
@@ -542,7 +543,7 @@ const DonutChart: React.FC<{
     )
 }
 
-const Dashboard: React.FC = () => {
+const Dashboard: NextPageWithLayout = () => {
     const { actualTheme } = useTheme()
     const { getIPv4FlowStream, getIPv6FlowStream, getDetectionAlertStream } = useContext(WebsocketContext)
     const [isLoading, setIsLoading] = useState(true)
@@ -881,13 +882,11 @@ const Dashboard: React.FC = () => {
         return (
             <>
                 <Head><title>Dashboard - Mantis</title></Head>
-                <Layout>
-                    <div className="flex items-center justify-center w-full h-full min-h-[calc(100vh-4rem)]">
-                        <div className="flex flex-col items-center space-y-4">
-                            <LoadingSpinner />
-                        </div>
+                <div className="flex items-center justify-center w-full h-full min-h-[calc(100vh-4rem)]">
+                    <div className="flex flex-col items-center space-y-4">
+                        <LoadingSpinner />
                     </div>
-                </Layout>
+                </div>
             </>
         )
     }
@@ -896,23 +895,21 @@ const Dashboard: React.FC = () => {
         return (
             <>
                 <Head><title>Dashboard - Mantis</title></Head>
-                <Layout>
-                    <div className="flex items-center justify-center min-h-[60vh]">
-                        <div className="text-center">
-                            <div className="text-red-500 text-6xl mb-4">
-                                <FontAwesomeIcon icon={faServer} />
-                            </div>
-                            <h2 className="text-2xl font-bold text-gray-800 mb-2">Connection Error</h2>
-                            <p className="text-gray-600 mb-4">Unable to establish WebSocket connection. Please check your network status.</p>
-                            <button
-                                onClick={() => window.location.reload()}
-                                className="px-4 py-2 bg-[#4ab5cc] text-white rounded-lg hover:bg-[#4ab5cc] transition-colors"
-                            >
-                                Reload
-                            </button>
+                <div className="flex items-center justify-center min-h-[60vh]">
+                    <div className="text-center">
+                        <div className="text-red-500 text-6xl mb-4">
+                            <FontAwesomeIcon icon={faServer} />
                         </div>
+                        <h2 className="text-2xl font-bold text-gray-800 mb-2">Connection Error</h2>
+                        <p className="text-gray-600 mb-4">Unable to establish WebSocket connection. Please check your network status.</p>
+                        <button
+                            onClick={() => window.location.reload()}
+                            className="px-4 py-2 bg-[#4ab5cc] text-white rounded-lg hover:bg-[#4ab5cc] transition-colors"
+                        >
+                            Reload
+                        </button>
                     </div>
-                </Layout>
+                </div>
             </>
         )
     }
@@ -924,8 +921,7 @@ const Dashboard: React.FC = () => {
                 <meta name="description" content="Mantis Network Traffic Monitoring Dashboard" />
             </Head>
 
-            <Layout>
-                {/* Compact controls bar */}
+            {/* Compact controls bar */}
                 <motion.div
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -1053,9 +1049,10 @@ const Dashboard: React.FC = () => {
                         <DonutChart data={protocolCounts} colors={PROTOCOL_COLORS} totalLabel="Total" />
                     </motion.div>
                 </div>
-            </Layout>
         </>
     )
 }
+
+Dashboard.getLayout = (page: React.ReactElement) => <Layout>{page}</Layout>
 
 export default Dashboard

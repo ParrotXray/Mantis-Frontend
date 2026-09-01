@@ -22,6 +22,7 @@ import { WebsocketContext } from "../providers/WebSocketProvider";
 import { useTheme } from '../providers/ThemeProvider';
 import Layout from '../components/Layout';
 import LoadingSpinner from '../components/LoadingSpinner';
+import { NextPageWithLayout } from '../types/NextPageWithLayout';
 import { combineLatest, of } from 'rxjs';
 import { map, catchError, throttleTime, distinctUntilChanged } from 'rxjs/operators';
 import {
@@ -480,7 +481,7 @@ const StatsOverview: React.FC<StatsOverviewProps> = ({ data, isIPv6, direction, 
     );
 };
 
-const Statistics: React.FC = () => {
+const Statistics: NextPageWithLayout = () => {
     const { bootTime, getIPv4FlowStream, getIPv6FlowStream } = useContext(WebsocketContext);
     const { actualTheme } = useTheme();
     const isDark = actualTheme === 'dark';
@@ -735,13 +736,11 @@ const Statistics: React.FC = () => {
                 <Head>
                     <title>Statistics - Mantis</title>
                 </Head>
-                <Layout>
-                    <div className="flex items-center justify-center w-full h-full min-h-[calc(100vh-4rem)]">
-                        <div className="flex flex-col items-center space-y-4">
-                            <LoadingSpinner />
-                        </div>
+                <div className="flex items-center justify-center w-full h-full min-h-[calc(100vh-4rem)]">
+                    <div className="flex flex-col items-center space-y-4">
+                        <LoadingSpinner />
                     </div>
-                </Layout>
+                </div>
             </>
         );
     }
@@ -752,21 +751,19 @@ const Statistics: React.FC = () => {
                 <Head>
                     <title>Statistics - Mantis</title>
                 </Head>
-                <Layout>
-                    <div className="flex items-center justify-center min-h-[60vh]">
-                        <div className="text-center">
-                            <div className="text-red-500 text-6xl mb-4">⚠️</div>
-                            <h2 className={`text-2xl font-bold mb-2 ${isDark ? 'text-gray-300' : 'text-gray-800'}`}>Loading Error</h2>
-                            <p className={`mb-4 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>{error}</p>
-                            <button
-                                onClick={() => window.location.reload()}
-                                className="px-4 py-2 bg-[#4ab5cc] text-white rounded-lg hover:bg-[#4ab5cc] transition-colors"
-                            >
-                                Reload
-                            </button>
-                        </div>
+                <div className="flex items-center justify-center min-h-[60vh]">
+                    <div className="text-center">
+                        <div className="text-red-500 text-6xl mb-4">⚠️</div>
+                        <h2 className={`text-2xl font-bold mb-2 ${isDark ? 'text-gray-300' : 'text-gray-800'}`}>Loading Error</h2>
+                        <p className={`mb-4 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>{error}</p>
+                        <button
+                            onClick={() => window.location.reload()}
+                            className="px-4 py-2 bg-[#4ab5cc] text-white rounded-lg hover:bg-[#4ab5cc] transition-colors"
+                        >
+                            Reload
+                        </button>
                     </div>
-                </Layout>
+                </div>
             </>
         );
     }
@@ -778,8 +775,7 @@ const Statistics: React.FC = () => {
                 <meta name="description" content="Mantis Network Traffic Statistics" />
             </Head>
 
-            <Layout>
-                <ControlPanel
+            <ControlPanel
                     isIPv6={isIPv6}
                     setIsIPv6={setIsIPv6}
                     direction={direction}
@@ -821,9 +817,10 @@ const Statistics: React.FC = () => {
                         />
                     )}
                 </div>
-            </Layout>
         </>
     );
 };
+
+Statistics.getLayout = (page: React.ReactElement) => <Layout>{page}</Layout>;
 
 export default Statistics;

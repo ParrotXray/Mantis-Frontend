@@ -23,6 +23,7 @@ import { putData } from '../utils/connectionUtils'
 import { urls } from '../config'
 import Layout from '../components/Layout'
 import LoadingSpinner from '../components/LoadingSpinner'
+import { NextPageWithLayout } from '../types/NextPageWithLayout'
 
 type AlertSource = 'ml' | 'rule' | 'fusion'
 type AlertSeverity = 'high' | 'critical'
@@ -518,7 +519,7 @@ const FilterButton: React.FC<FilterButtonProps> = ({
     )
 }
 
-const Detection: React.FC = () => {
+const Detection: NextPageWithLayout = () => {
     const { getDetectionAlertStream } = useContext(WebsocketContext)
     const { actualTheme } = useTheme()
     const isDark = actualTheme === 'dark'
@@ -626,11 +627,9 @@ const Detection: React.FC = () => {
         return (
             <>
                 <Head><title>Detection - Mantis</title></Head>
-                <Layout>
-                    <div className="flex items-center justify-center w-full h-full min-h-[calc(100vh-4rem)]">
-                        <LoadingSpinner />
-                    </div>
-                </Layout>
+                <div className="flex items-center justify-center w-full h-full min-h-[calc(100vh-4rem)]">
+                    <LoadingSpinner />
+                </div>
             </>
         )
     }
@@ -642,8 +641,7 @@ const Detection: React.FC = () => {
                 <meta name="description" content="Mantis Unified Threat Detection" />
             </Head>
 
-            <Layout>
-                <AnimatePresence>
+            <AnimatePresence>
                     {notification && (
                         <Notification message={notification.message} type={notification.type} onClose={closeNotification} />
                     )}
@@ -812,9 +810,10 @@ const Detection: React.FC = () => {
                         </motion.div>
                     )}
                 </div>
-            </Layout>
         </>
     )
 }
+
+Detection.getLayout = (page: React.ReactElement) => <Layout>{page}</Layout>
 
 export default Detection

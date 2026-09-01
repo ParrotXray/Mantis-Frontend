@@ -1,6 +1,6 @@
 import Head from 'next/head'
 import {motion, AnimatePresence} from 'framer-motion'
-import {useEffect, useState, useContext, useMemo, useCallback} from 'react'
+import React, {useEffect, useState, useContext, useMemo, useCallback} from 'react'
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome'
 import {
     faShieldAlt,
@@ -38,6 +38,7 @@ import {
     faInfoCircle,
 } from '@fortawesome/free-solid-svg-icons'
 import Layout from '../components/Layout'
+import { NextPageWithLayout } from '../types/NextPageWithLayout'
 import {WebsocketContext} from '../providers/WebSocketProvider'
 import {useTheme} from '../providers/ThemeProvider'
 import LoadingSpinner from '../components/LoadingSpinner'
@@ -716,7 +717,7 @@ const NetworkStats: React.FC<NetworkStatsProps> = ({networkStats}) => {
     )
 }
 
-export default function Home() {
+const Home: NextPageWithLayout = function Home() {
     const {actualTheme} = useTheme()
     const {bootTime, getSystemHealthStream} = useContext(WebsocketContext)
     const [currentTime, setCurrentTime] = useState(new Date())
@@ -968,13 +969,11 @@ export default function Home() {
                 <Head>
                     <title>Dashboard - Mantis</title>
                 </Head>
-                <Layout>
-                    <div className="flex items-center justify-center w-full h-full min-h-[calc(100vh-4rem)]">
-                        <div className="flex flex-col items-center space-y-4">
-                            <LoadingSpinner/>
-                        </div>
+                <div className="flex items-center justify-center w-full h-full min-h-[calc(100vh-4rem)]">
+                    <div className="flex flex-col items-center space-y-4">
+                        <LoadingSpinner/>
                     </div>
-                </Layout>
+                </div>
             </>
         )
     }
@@ -988,8 +987,7 @@ export default function Home() {
                 <link rel="icon" href="/favicon.ico"/>
             </Head>
 
-            <Layout>
-                <SystemDetailModal
+            <SystemDetailModal
                     isOpen={modalState.isOpen}
                     onClose={closeModal}
                     systemHealth={systemHealth}
@@ -1121,7 +1119,10 @@ export default function Home() {
                         </motion.div>
                     </div>
                 )}
-            </Layout>
         </>
     )
 }
+
+Home.getLayout = (page: React.ReactElement) => <Layout>{page}</Layout>
+
+export default Home

@@ -24,6 +24,7 @@ import { useTheme } from '../providers/ThemeProvider'
 import { fetchData, putData, deleteData } from '../utils/connectionUtils'
 import { urls, NicType, FlowType, ListType } from '../config'
 import Layout from '../components/Layout'
+import { NextPageWithLayout } from '../types/NextPageWithLayout'
 import {
     AccessControlItem,
     NotificationProps,
@@ -172,7 +173,7 @@ const FLOW_LABELS: Record<FlowType, string> = {
 const mirrorNic = (n: NicType): NicType => (n === 'ingress' ? 'egress' : 'ingress')
 const mirrorFlow = (f: FlowType): FlowType => (f === 'source' ? 'destination' : 'source')
 
-const AccessControl: React.FC = () => {
+const AccessControl: NextPageWithLayout = () => {
     const {
         currentData,
         filteredData,
@@ -511,10 +512,9 @@ const AccessControl: React.FC = () => {
                 <meta name="description" content="Mantis Access Control Management - IP Whitelist and Blacklist" />
             </Head>
 
-            <Layout>
-                <AnimatePresence>
-                    {notification && (
-                        <Notification message={notification.message} type={notification.type} onClose={closeNotification} />
+            <AnimatePresence>
+                {notification && (
+                    <Notification message={notification.message} type={notification.type} onClose={closeNotification} />
                     )}
                 </AnimatePresence>
 
@@ -901,9 +901,10 @@ const AccessControl: React.FC = () => {
                         </div>
                     </Modal>
                 )}
-            </Layout>
         </>
     )
 }
+
+AccessControl.getLayout = (page: React.ReactElement) => <Layout>{page}</Layout>
 
 export default AccessControl

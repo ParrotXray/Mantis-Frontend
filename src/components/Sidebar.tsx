@@ -20,11 +20,15 @@ import {
     faScroll,
     faClock,
     faServer,
+    faSliders,
+    faPowerOff,
+    faSpinner,
 } from '@fortawesome/free-solid-svg-icons'
 import { useTheme } from '../providers/ThemeProvider'
 import { useAuth } from '../contexts/AuthContext'
 import { useContext } from 'react'
 import { WebsocketContext } from '../providers/WebSocketProvider'
+import { useRestart } from '../providers/RestartProvider'
 
 type ThemeValue = 'light' | 'dark' | 'system'
 
@@ -49,6 +53,12 @@ const NAV_GROUPS = [
         items: [
             { href: '/access-control', icon: faShieldAlt, label: 'Access Control' },
             { href: '/detection',      icon: faRobot,     label: 'Detection' },
+        ],
+    },
+    {
+        label: 'SYSTEM',
+        items: [
+            { href: '/settings', icon: faSliders, label: 'Settings' },
             { href: '/logs',           icon: faScroll,    label: 'Logs' },
         ],
     },
@@ -63,6 +73,7 @@ const PAGE_META: Record<string, { title: string; icon: any }> = {
     '/detection':      { title: 'Threat Detection',   icon: faRobot },
     '/logs':           { title: 'System Logs',        icon: faScroll },
     '/training':       { title: 'Training Nodes',     icon: faServer },
+    '/settings':       { title: 'Settings',           icon: faSliders },
 }
 
 // Logo palette
@@ -94,6 +105,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ children }) => {
     const { actualTheme, theme, setTheme } = useTheme()
     const { user, logout } = useAuth()
     const { wsConnectedCount } = useContext(WebsocketContext)
+    const { status: restartStatus, triggerRestart } = useRestart()
     const [isCollapsed, setIsCollapsed] = useState(false)
     const [showThemePicker, setShowThemePicker] = useState(false)
     const [isMobile, setIsMobile] = useState(false)
@@ -446,6 +458,20 @@ export const Sidebar: React.FC<SidebarProps> = ({ children }) => {
                         <span className={`hidden sm:block text-xs ${isDark ? 'text-slate-600' : 'text-slate-400'}`}>
                             {now.toLocaleDateString('en-GB', { year: 'numeric', month: 'short', day: 'numeric' })}
                         </span>
+
+                        <div className={`w-px h-3 ${isDark ? 'bg-slate-700' : 'bg-slate-300'}`} />
+
+                        <button
+                            onClick={triggerRestart}
+                            disabled={restartStatus === 'waiting'}
+                            title={restartStatus === 'error' ? 'Restart failed - click to retry' : 'Restart Mantis'}
+                            className="w-7 h-7 flex items-center justify-center rounded-md transition-colors"
+                            style={{ color: restartStatus === 'error' ? '#f87171' : 'rgba(74,181,204,0.6)' }}
+                            onMouseEnter={e => { if (restartStatus !== 'waiting') e.currentTarget.style.color = ACCENT }}
+                            onMouseLeave={e => { if (restartStatus !== 'error') e.currentTarget.style.color = 'rgba(74,181,204,0.6)' }}
+                        >
+                            <FontAwesomeIcon icon={restartStatus === 'waiting' ? faSpinner : faPowerOff} spin={restartStatus === 'waiting'} className="text-xs" />
+                        </button>
                     </div>
                 </header>
 

@@ -38,6 +38,10 @@ export const urls = {
         listType: ListType
     ) => `${httpProtocol}://${host}/ebpf/access_control/${nic}/${ipVersion}/${flow}/${listType}/note`,
 
+    config: `${httpProtocol}://${host}/config`,
+    systemRestart: `${httpProtocol}://${host}/system/restart`,
+    healthStatus: `${httpProtocol}://${host}/health/status`,
+
 } as const;
 
 export const websocketUrl = {
