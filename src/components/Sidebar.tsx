@@ -53,13 +53,13 @@ const NAV_GROUPS = [
         items: [
             { href: '/access-control', icon: faShieldAlt, label: 'Access Control' },
             { href: '/detection',      icon: faRobot,     label: 'Detection' },
+            { href: '/logs',           icon: faScroll,    label: 'Logs' },
         ],
     },
     {
         label: 'SYSTEM',
         items: [
             { href: '/settings', icon: faSliders, label: 'Settings' },
-            { href: '/logs',           icon: faScroll,    label: 'Logs' },
         ],
     },
 ]
