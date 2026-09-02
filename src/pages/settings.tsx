@@ -542,7 +542,7 @@ const SettingsPage: NextPageWithLayout = () => {
                         description="The alert limit N, applied per tier independently (by_flow, by_both, by_src, by_dst)"
                         onChange={(v) => { setMl({ ...ml, aggregator_alert_limit: v }); markDirty('ml') }} />
                     <ToggleField label="Traffic logging mode" value={ml.traffic_logging_mode} isDark={isDark}
-                        description="true = disable ML inference, log packets to CSV instead"
+                        description="true = disable ML inference, log packets to CSV instead (download the bundle from the Resources page)"
                         onChange={(v) => { setMl({ ...ml, traffic_logging_mode: v }); markDirty('ml') }} />
                     <ToggleField label="Adaptive threshold" value={ml.adaptive_threshold_enabled} isDark={isDark}
                         description="Periodically nudges the live threshold between ae_thresholds candidates based on recent alert volume"

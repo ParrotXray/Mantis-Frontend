@@ -20,7 +20,7 @@ import {
 import { WebsocketContext } from '../providers/WebSocketProvider'
 import { useTheme } from '../providers/ThemeProvider'
 import { putData } from '../utils/connectionUtils'
-import { urls } from '../config'
+import { urls, NicType } from '../config'
 import Layout from '../components/Layout'
 import LoadingSpinner from '../components/LoadingSpinner'
 import { NextPageWithLayout } from '../types/NextPageWithLayout'
@@ -44,6 +44,10 @@ interface UnifiedAlert {
     ae_score: number
     rule_sid: number | null
     rule_msg: string | null
+    // Which NIC actually captured this traffic -- null for pure Suricata rule
+    // matches, which have no direction info anywhere in the pipeline (see
+    // backend UnifiedAlert.direction).
+    direction: NicType | null
 }
 
 interface PriorityInfo {
@@ -127,6 +131,7 @@ const parseAlertData = (rawData: any): UnifiedAlert | null => {
         const source: AlertSource = data.source === 'ml' || data.source === 'rule' || data.source === 'fusion'
             ? data.source : 'ml'
         const severity: AlertSeverity = data.severity === 'critical' ? 'critical' : 'high'
+        const direction: NicType | null = data.direction === 'ingress' || data.direction === 'egress' ? data.direction : null
 
         return {
             timestamp:   data.timestamp   ?? 0,
@@ -144,6 +149,7 @@ const parseAlertData = (rawData: any): UnifiedAlert | null => {
             ae_score:    data.ae_score    ?? 0,
             rule_sid:    data.rule_sid    ?? null,
             rule_msg:    data.rule_msg    ?? null,
+            direction,
         }
     } catch {
         return null
@@ -187,47 +193,58 @@ const AlertDetails: React.FC<AlertDetailsProps> = ({ log, onClose, showNotificat
     const isIPv6Source = log.src_ip.includes(':') && !log.src_ip.includes('.')
     const isIPv6Dest   = log.dst_ip.includes(':') && !log.dst_ip.includes('.')
 
+    // The alert's own capture direction, when known (ML/fusion/TCP-anomaly
+    // alerts carry it; pure Suricata rule matches don't -- see backend
+    // UnifiedAlert.direction). Blocking/allowing an IP has to target the NIC
+    // that actually saw this traffic, not a fixed guess, or the rule ends up
+    // on a list the real packets never pass through. Default to ingress only
+    // when direction is genuinely unknown.
+    const nic: NicType = log.direction === 'egress' ? 'egress' : 'ingress'
+    const mirrorNic: NicType = nic === 'ingress' ? 'egress' : 'ingress'
+    const nicLabel = nic === 'ingress' ? 'Ingress' : 'Egress'
+    const mirrorNicLabel = mirrorNic === 'ingress' ? 'Ingress' : 'Egress'
+
     // "Apply to both directions" also writes the mirrored (nic.flip(),
     // flow.flip()) bucket -- e.g. Ingress/Source + Egress/Destination --
     // covering both legs of a conversation with this IP in one click,
     // matching the backend's ?both_directions=true and the same toggle on
     // the Access Control page.
     const [applyBothDirections, setApplyBothDirections] = useState(false)
-    const mirrorNote = applyBothDirections ? ' + Egress' : ''
+    const mirrorNote = applyBothDirections ? ` + ${mirrorNicLabel}` : ''
 
     const handleBlockIP = useCallback((ip: string, port: number, isSource: boolean, blockAllPorts = false) => {
         const isIPv6 = isSource ? isIPv6Source : isIPv6Dest
         const formattedIp = isIPv6 ? `[${ip}]` : ip
         const ipVersion = isIPv6 ? 'ipv6' as const : 'ipv4' as const
         const flow = isSource ? 'source' as const : 'destination' as const
-        const url = urls.access_control('ingress', ipVersion, flow, 'black_list', applyBothDirections)
+        const url = urls.access_control(nic, ipVersion, flow, 'black_list', applyBothDirections)
         const portToSend = blockAllPorts ? '0' : String(port)
         const displayPort = blockAllPorts ? '*' : String(port)
 
         putData(
             url,
             `${formattedIp}:${portToSend}`,
-            () => showNotification(`Successfully added to blacklist (Ingress/${isSource ? 'Source' : 'Destination'}${mirrorNote}): ${ip}:${displayPort}`, 'success'),
+            () => showNotification(`Successfully added to blacklist (${nicLabel}/${isSource ? 'Source' : 'Destination'}${mirrorNote}): ${ip}:${displayPort}`, 'success'),
             (error) => showNotification(`Failed to add to blacklist: ${error.message}`, 'error'),
         )
-    }, [isIPv6Source, isIPv6Dest, applyBothDirections, mirrorNote, showNotification])
+    }, [isIPv6Source, isIPv6Dest, nic, nicLabel, applyBothDirections, mirrorNote, showNotification])
 
     const handleAllowIP = useCallback((ip: string, port: number, isSource: boolean, allowAllPorts = false) => {
         const isIPv6 = isSource ? isIPv6Source : isIPv6Dest
         const formattedIp = isIPv6 ? `[${ip}]` : ip
         const ipVersion = isIPv6 ? 'ipv6' as const : 'ipv4' as const
         const flow = isSource ? 'source' as const : 'destination' as const
-        const url = urls.access_control('ingress', ipVersion, flow, 'white_list', applyBothDirections)
+        const url = urls.access_control(nic, ipVersion, flow, 'white_list', applyBothDirections)
         const portToSend = allowAllPorts ? '0' : String(port)
         const displayPort = allowAllPorts ? '*' : String(port)
 
         putData(
             url,
             `${formattedIp}:${portToSend}`,
-            () => showNotification(`Successfully added to whitelist (Ingress/${isSource ? 'Source' : 'Destination'}${mirrorNote}): ${ip}:${displayPort}`, 'success'),
+            () => showNotification(`Successfully added to whitelist (${nicLabel}/${isSource ? 'Source' : 'Destination'}${mirrorNote}): ${ip}:${displayPort}`, 'success'),
             (error) => showNotification(`Failed to add to whitelist: ${error.message}`, 'error'),
         )
-    }, [isIPv6Source, isIPv6Dest, applyBothDirections, mirrorNote, showNotification])
+    }, [isIPv6Source, isIPv6Dest, nic, nicLabel, applyBothDirections, mirrorNote, showNotification])
 
     return (
         <AnimatePresence>
@@ -262,6 +279,7 @@ const AlertDetails: React.FC<AlertDetailsProps> = ({ log, onClose, showNotificat
                             { label: 'Timestamp', value: formatTimestamp(log.timestamp) },
                             { label: 'Attack Type', value: log.attack_type ?? '—' },
                             { label: 'Protocol', value: getProtocolName(log.protocol) },
+                            { label: 'Direction', value: log.direction ? (log.direction === 'ingress' ? 'Ingress' : 'Egress') : 'Unknown' },
                         ].map(({ label, value }) => (
                             <div key={label} className="flex justify-between items-center">
                                 <span className={`text-xs font-medium ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>{label}</span>
@@ -756,7 +774,7 @@ const Detection: NextPageWithLayout = () => {
                         className={selectedLogIndex !== null && filteredLogs[selectedLogIndex] ? 'lg:col-span-7' : 'lg:col-span-12'}
                     >
                         <div className={`rounded-xl border overflow-hidden flex flex-col ${isDark ? 'bg-[#0e1e2c] border-slate-700/40' : 'bg-white border-slate-200'}`}
-                             style={{ maxHeight: 'calc(100vh - 280px)', minHeight: '400px' }}>
+                             style={{ height: 'calc(100vh - 280px)', minHeight: '400px' }}>
                             <div className={`px-5 py-3 border-b flex items-center justify-between flex-shrink-0 ${isDark ? 'border-slate-700/40' : 'border-slate-200'}`}>
                                 <div className="flex items-center gap-2">
                                     <div className="w-6 h-6 rounded-md bg-[#4ab5cc]/15 flex items-center justify-center">
@@ -771,7 +789,7 @@ const Detection: NextPageWithLayout = () => {
 
                             <div className="flex-1 overflow-y-auto">
                                 {filteredLogs.length === 0 ? (
-                                    <div className="py-16 text-center">
+                                    <div className="h-full flex flex-col items-center justify-center text-center">
                                         <FontAwesomeIcon icon={faShieldAlt} className={`text-4xl mb-3 ${isDark ? 'text-slate-600' : 'text-slate-300'}`} />
                                         <p className={`text-sm font-medium mb-1 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
                                             {logs.length === 0 ? 'No Alerts Detected' : 'No Matching Alerts'}

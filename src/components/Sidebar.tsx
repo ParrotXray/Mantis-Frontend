@@ -22,6 +22,7 @@ import {
     faSliders,
     faPowerOff,
     faSpinner,
+    faDatabase,
 } from '@fortawesome/free-solid-svg-icons'
 import { useTheme } from '../providers/ThemeProvider'
 import { useAuth } from '../contexts/AuthContext'
@@ -56,8 +57,9 @@ const NAV_GROUPS = [
     {
         label: 'SYSTEM',
         items: [
-            { href: '/logs',     icon: faScroll,  label: 'Logs' },
-            { href: '/settings', icon: faSliders, label: 'Settings' },
+            { href: '/logs',      icon: faScroll,   label: 'Logs' },
+            { href: '/resources', icon: faDatabase, label: 'Resources' },
+            { href: '/settings',  icon: faSliders,  label: 'Settings' },
         ],
     },
 ]
@@ -70,6 +72,7 @@ const PAGE_META: Record<string, { title: string; icon: any }> = {
     '/access-control': { title: 'Access Control',     icon: faShieldAlt },
     '/detection':      { title: 'Threat Detection',   icon: faRobot },
     '/logs':           { title: 'System Logs',        icon: faScroll },
+    '/resources':      { title: 'Resources',          icon: faDatabase },
     '/settings':       { title: 'Settings',           icon: faSliders },
 }
 

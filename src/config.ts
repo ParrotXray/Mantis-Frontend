@@ -38,6 +38,12 @@ export const urls = {
         listType: ListType
     ) => `${httpProtocol}://${host}/ebpf/access_control/${nic}/${ipVersion}/${flow}/${listType}/note`,
 
+    access_control_export: `${httpProtocol}://${host}/ebpf/access_control/export`,
+    access_control_import: `${httpProtocol}://${host}/ebpf/access_control/import`,
+
+    csvRecordsDownload: `${httpProtocol}://${host}/records/download`,
+    threatReportExport: `${httpProtocol}://${host}/detection/export`,
+
     config: `${httpProtocol}://${host}/config`,
     systemRestart: `${httpProtocol}://${host}/system/restart`,
     healthStatus: `${httpProtocol}://${host}/health/status`,

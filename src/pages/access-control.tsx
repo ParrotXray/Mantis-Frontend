@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext, useCallback, useMemo } from 'react'
+import React, { useState, useEffect, useContext, useCallback, useMemo, useRef } from 'react'
 import Head from 'next/head'
 import { motion, AnimatePresence } from 'framer-motion'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
@@ -18,10 +18,17 @@ import {
     faArrowDown,
     faArrowUp,
     faPen,
+    faFileExport,
+    faFileImport,
+    faSpinner,
+    faSort,
+    faSortUp,
+    faSortDown,
 } from '@fortawesome/free-solid-svg-icons'
 import { AccessControlContext } from '../providers/AccessControlProvider'
 import { useTheme } from '../providers/ThemeProvider'
-import { fetchData, putData, deleteData } from '../utils/connectionUtils'
+import { fetchData, fetchBlob, postCsvFile, putData, deleteData } from '../utils/connectionUtils'
+import { downloadBlob } from '../utils/download'
 import { urls, NicType, FlowType, ListType } from '../config'
 import Layout from '../components/Layout'
 import { NextPageWithLayout } from '../types/NextPageWithLayout'
@@ -132,6 +139,42 @@ const ToggleButton: React.FC<ToggleButtonProps> = ({ isActive, onClick, children
     )
 }
 
+// Mirrors the sortable <th> used on the Statistics page (src/pages/statistics.tsx)
+// so both tables share the same look: uppercase label + sort icon, highlighted
+// when it's the active sort column.
+type SortDirection = 'asc' | 'desc'
+type SortKey = 'ip' | 'port' | 'note'
+
+const SortableHeader: React.FC<{
+    label: string
+    sortKey: SortKey
+    sortConfig: { key: SortKey | null; direction: SortDirection }
+    onSort: (key: SortKey) => void
+}> = ({ label, sortKey, sortConfig, onSort }) => {
+    const { actualTheme } = useTheme()
+    const isDark = actualTheme === 'dark'
+    const isActive = sortConfig.key === sortKey
+
+    return (
+        <th
+            onClick={() => onSort(sortKey)}
+            className={`px-4 py-3 text-left text-xs font-medium uppercase tracking-wider cursor-pointer transition-colors ${
+                isActive
+                    ? (isDark ? 'bg-blue-900/30 text-blue-300' : 'bg-blue-50 text-gray-500')
+                    : (isDark ? 'text-gray-400 hover:bg-gray-700' : 'text-gray-500 hover:bg-gray-100')
+            }`}
+        >
+            <div className="flex items-center space-x-1">
+                <span>{label}</span>
+                <FontAwesomeIcon
+                    icon={isActive ? (sortConfig.direction === 'asc' ? faSortUp : faSortDown) : faSort}
+                    className="text-xs"
+                />
+            </div>
+        </th>
+    )
+}
+
 const StatsCard: React.FC<StatsCardProps> = ({ title, value, icon, color }) => {
     const { actualTheme } = useTheme()
     const isDark = actualTheme === 'dark'
@@ -205,6 +248,8 @@ const AccessControl: NextPageWithLayout = () => {
     const [isNoteModalOpen, setIsNoteModalOpen] = useState(false)
     const [noteEditIp, setNoteEditIp] = useState<string | null>(null)
     const [noteEditValue, setNoteEditValue] = useState('')
+    const [isImporting, setIsImporting] = useState(false)
+    const importFileInputRef = useRef<HTMLInputElement>(null)
 
     const showNotification = useCallback((message: string, type: 'success' | 'error' | 'warning' | 'info' = 'success') => {
         setNotification({ message, type })
@@ -290,6 +335,46 @@ const AccessControl: NextPageWithLayout = () => {
         }
     }, [isIPv6, listType, nic, flow, refreshData, fetchNotes, showNotification])
 
+    // Export/import cover every (nic, flow, list_type, ip_version) combination
+    // at once -- not just the currently viewed list -- since that's the
+    // natural unit for a backup/restore of the whole rule set.
+    const handleExportClick = useCallback(() => {
+        fetchBlob(
+            urls.access_control_export,
+            (blob, filename) => {
+                downloadBlob(blob, filename || 'access_control_rules.csv')
+                showNotification('Exported access-control rules', 'success')
+            },
+            (error) => showNotification(`Export failed: ${error?.message}`, 'error')
+        )
+    }, [showNotification])
+
+    const handleImportClick = useCallback(() => {
+        importFileInputRef.current?.click()
+    }, [])
+
+    const handleImportFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0]
+        e.target.value = ''
+        if (!file) return
+
+        setIsImporting(true)
+        postCsvFile(
+            urls.access_control_import,
+            file,
+            (data) => {
+                setIsImporting(false)
+                const skippedNote = data?.skipped ? `, ${data.skipped} skipped` : ''
+                showNotification(`Imported ${data?.imported ?? 0} rule(s)${skippedNote}`, data?.skipped ? 'warning' : 'success')
+                refreshData(isIPv6, listType, nic, flow)
+            },
+            (error) => {
+                setIsImporting(false)
+                showNotification(`Import failed: ${error.message}`, 'error')
+            }
+        )
+    }, [isIPv6, listType, nic, flow, refreshData, showNotification])
+
     const handleAddItemClick = useCallback(() => {
         setIsModalOpen(true)
         setNewIp('')
@@ -314,6 +399,66 @@ const AccessControl: NextPageWithLayout = () => {
             ),
         [filteredData]
     )
+
+    const [sortConfig, setSortConfig] = useState<{ key: SortKey | null; direction: SortDirection }>({ key: null, direction: 'asc' })
+
+    const handleSort = useCallback((key: SortKey) => {
+        setSortConfig((prev) => ({
+            key,
+            direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc',
+        }))
+    }, [])
+
+    // Same numeric IPv4/IPv6 comparison as the Statistics page, so "IP Address"
+    // sorts by address value rather than lexicographically.
+    const getIPSortValue = useCallback((ip: string): number | bigint | string => {
+        if (isIPv6) {
+            const expandIPv6 = (addr: string) => {
+                const parts = addr.split('::')
+                const left = (parts[0] || '').split(':')
+                const right = (parts[1] || '').split(':')
+                const missingZeros = 8 - (left.length + right.length)
+                const zeros = Array(Math.max(missingZeros, 0)).fill('0')
+                return [...left, ...zeros, ...right].map((part) => part || '0')
+            }
+            try {
+                const hexString = expandIPv6(ip).reduce((acc, part) => acc + part.padStart(4, '0'), '')
+                return BigInt('0x' + hexString)
+            } catch {
+                return ip
+            }
+        }
+        try {
+            return ip.split('.').reduce((acc, octet) => acc * 256 + parseInt(octet, 10), 0)
+        } catch {
+            return ip
+        }
+    }, [isIPv6])
+
+    const sortedFlatData = useMemo(() => {
+        const withNotes = flatData.map((row) => ({ ...row, note: notes[row.ip] || '' }))
+        if (!sortConfig.key) return withNotes
+
+        const { key, direction } = sortConfig
+        const dir = direction === 'asc' ? 1 : -1
+
+        return withNotes.sort((a, b) => {
+            let valA: number | bigint | string = a[key]
+            let valB: number | bigint | string = b[key]
+
+            if (key === 'ip') {
+                valA = getIPSortValue(a.ip)
+                valB = getIPSortValue(b.ip)
+            } else if (key === 'port') {
+                valA = Number(a.port)
+                valB = Number(b.port)
+            }
+
+            if (valA < valB) return -dir
+            if (valA > valB) return dir
+            return 0
+        })
+    }, [flatData, sortConfig, notes, getIPSortValue])
 
     const stats = useMemo(() => {
         const uniqueIPs = new Set(filteredData.map(item => item.ip)).size
@@ -581,6 +726,34 @@ const AccessControl: NextPageWithLayout = () => {
                     </div>
 
                     <div className="flex items-center gap-2 ml-auto">
+                        <input
+                            ref={importFileInputRef}
+                            type="file"
+                            accept=".csv,text/csv"
+                            className="hidden"
+                            onChange={handleImportFileChange}
+                        />
+                        <button
+                            className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 ${
+                                isDark ? 'bg-slate-700/50 text-slate-300 hover:bg-slate-700' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                            }`}
+                            onClick={handleExportClick}
+                            title="Export all access-control rules as CSV"
+                        >
+                            <FontAwesomeIcon icon={faFileExport} className="text-xs" />
+                            Export
+                        </button>
+                        <button
+                            className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 ${
+                                isDark ? 'bg-slate-700/50 text-slate-300 hover:bg-slate-700' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                            } ${isImporting ? 'opacity-60 cursor-not-allowed' : ''}`}
+                            onClick={handleImportClick}
+                            disabled={isImporting}
+                            title="Import access-control rules from CSV"
+                        >
+                            <FontAwesomeIcon icon={isImporting ? faSpinner : faFileImport} spin={isImporting} className="text-xs" />
+                            Import
+                        </button>
                         <button
                             className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 ${
                                 isDark ? 'bg-slate-700/50 text-slate-300 hover:bg-slate-700' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
@@ -604,9 +777,10 @@ const AccessControl: NextPageWithLayout = () => {
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className={`rounded-xl border overflow-hidden ${isDark ? 'bg-[#0e1e2c] border-slate-700/40' : 'bg-white border-slate-200'}`}
+                    className={`rounded-xl border overflow-hidden flex flex-col ${isDark ? 'bg-[#0e1e2c] border-slate-700/40' : 'bg-white border-slate-200'}`}
+                    style={{ height: 'calc(100vh - 280px)', minHeight: '400px' }}
                 >
-                    <div className={`px-5 py-3 border-b flex items-center justify-between ${isDark ? 'border-slate-700/40' : 'border-slate-200'}`}>
+                    <div className={`px-5 py-3 border-b flex items-center justify-between flex-shrink-0 ${isDark ? 'border-slate-700/40' : 'border-slate-200'}`}>
                         <div className="flex items-center gap-2">
                             <div className="w-6 h-6 rounded-md bg-[#4ab5cc]/15 flex items-center justify-center">
                                 <FontAwesomeIcon icon={faShieldAlt} className="text-[#4ab5cc] text-xs" />
@@ -621,18 +795,19 @@ const AccessControl: NextPageWithLayout = () => {
                         </span>
                     </div>
 
+                    <div className="flex-1 overflow-y-auto">
                     {flatData.length === 0 ? (
-                        <div className="p-12 text-center">
-                            <FontAwesomeIcon icon={faInfoCircle} className={`text-6xl mb-4 ${isDark ? 'text-gray-500' : 'text-gray-300'}`} />
-                            <h3 className={`text-xl font-semibold mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                        <div className="h-full flex flex-col items-center justify-center text-center">
+                            <FontAwesomeIcon icon={faInfoCircle} className={`text-4xl mb-3 ${isDark ? 'text-slate-600' : 'text-slate-300'}`} />
+                            <p className={`text-sm font-medium mb-1 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
                                 {searchTerm ? 'No matching results found' : 'No data yet'}
-                            </h3>
-                            <p className={`mb-4 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                                {searchTerm ? 'Please try adjusting your search criteria' : 'Click the button above to add the first rule'}
+                            </p>
+                            <p className={`text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+                                {searchTerm ? 'Try adjusting your search criteria' : 'Click the button above to add the first rule'}
                             </p>
                             {!searchTerm && (
                                 <button
-                                    className="px-4 py-2 bg-[#4ab5cc] text-white rounded-lg hover:bg-[#4ab5cc] transition-colors"
+                                    className="mt-4 px-4 py-2 bg-[#4ab5cc] text-white rounded-lg hover:bg-[#4ab5cc] transition-colors"
                                     onClick={handleAddItemClick}
                                 >
                                     <FontAwesomeIcon icon={faPlus} className="mr-2" />
@@ -642,33 +817,30 @@ const AccessControl: NextPageWithLayout = () => {
                         </div>
                     ) : (
                         <div className="overflow-x-auto">
-                            <table className={`min-w-full divide-y ${isDark ? 'divide-gray-700' : 'divide-gray-200'}`}>
-                                <thead className={isDark ? 'bg-[#131929]' : 'bg-slate-50'}>
+                            <table className={`min-w-full divide-y ${isDark ? 'divide-slate-700/50' : 'divide-slate-200'}`}>
+                                <thead className={`sticky top-0 z-10 ${isDark ? 'bg-[#131929]' : 'bg-slate-50'}`}>
                                 <tr>
-                                    <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                                        IP Address
-                                    </th>
-                                    <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                                        Port
-                                    </th>
-                                    <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                                        Note
-                                    </th>
-                                    <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                                    <SortableHeader label="IP Address" sortKey="ip" sortConfig={sortConfig} onSort={handleSort} />
+                                    <SortableHeader label="Port" sortKey="port" sortConfig={sortConfig} onSort={handleSort} />
+                                    <SortableHeader label="Note" sortKey="note" sortConfig={sortConfig} onSort={handleSort} />
+                                    <th className={`px-4 py-3 text-left text-xs font-medium uppercase tracking-wider ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
                                         Action
                                     </th>
                                 </tr>
                                 </thead>
-                                <tbody className={`divide-y ${isDark ? 'bg-[#1a2236] divide-gray-700' : 'bg-white divide-gray-200'}`}>
-                                {flatData.map(({ ip, port }, index) => (
-                                    <tr
+                                <tbody className={`divide-y ${isDark ? 'bg-[#0e1e2c] divide-slate-700/40' : 'bg-white divide-slate-200'}`}>
+                                {sortedFlatData.map(({ ip, port, note }, index) => (
+                                    <motion.tr
                                         key={`${ip}-${port}-${index}`}
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                        transition={{ delay: Math.min(index * 0.01, 0.5) }}
                                         className={`transition-colors ${isDark ? 'hover:bg-slate-700/30' : 'hover:bg-slate-50'}`}
                                     >
-                                        <td className={`px-6 py-4 whitespace-nowrap text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-900'}`}>
+                                        <td className={`px-4 py-1.5 whitespace-nowrap text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-900'}`}>
                                             {ip}
                                         </td>
-                                        <td className={`px-6 py-4 whitespace-nowrap text-sm ${isDark ? 'text-gray-300' : 'text-gray-900'}`}>
+                                        <td className={`px-4 py-1.5 whitespace-nowrap text-sm ${isDark ? 'text-gray-300' : 'text-gray-900'}`}>
                                                 <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
                                                     port === "0" || port === 0
                                                         ? 'bg-red-100 text-red-800'
@@ -677,10 +849,10 @@ const AccessControl: NextPageWithLayout = () => {
                                                     {port === "0" || port === 0 ? "All ports (*)" : port}
                                                 </span>
                                         </td>
-                                        <td className={`px-6 py-4 text-sm max-w-xs truncate ${notes[ip] ? (isDark ? 'text-gray-300' : 'text-gray-700') : (isDark ? 'text-gray-600' : 'text-gray-400')}`}>
-                                            {notes[ip] || '—'}
+                                        <td className={`px-4 py-1.5 text-sm max-w-xs truncate ${note ? (isDark ? 'text-gray-300' : 'text-gray-700') : (isDark ? 'text-gray-600' : 'text-gray-400')}`}>
+                                            {note || '—'}
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                        <td className="px-4 py-1.5 whitespace-nowrap text-sm font-medium">
                                             <div className="flex items-center gap-1.5">
                                                 <button
                                                     className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors flex items-center space-x-1 ${isDark ? 'bg-slate-700/50 text-slate-300 hover:bg-slate-700' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
@@ -697,10 +869,19 @@ const AccessControl: NextPageWithLayout = () => {
                                                 </button>
                                             </div>
                                         </td>
-                                    </tr>
+                                    </motion.tr>
                                 ))}
                                 </tbody>
                             </table>
+                        </div>
+                    )}
+                    </div>
+
+                    {flatData.length > 0 && (
+                        <div className={`px-4 py-2 border-t flex-shrink-0 ${isDark ? 'bg-[#131929] border-slate-700/50' : 'bg-slate-50 border-slate-200'}`}>
+                            <div className={`flex justify-between items-center text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                                <span>Showing {flatData.length} records</span>
+                            </div>
                         </div>
                     )}
                 </motion.div>

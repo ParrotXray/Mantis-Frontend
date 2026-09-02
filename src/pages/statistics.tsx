@@ -308,7 +308,7 @@ const DataTable: React.FC<DataTableProps> = ({ data, sortConfig, handleSort, boo
             animate={{ opacity: 1, y: 0 }}
             className={`rounded-xl border overflow-hidden ${isDark ? 'bg-[#0e1e2c] border-slate-700/40' : 'bg-white border-slate-200'}`}
         >
-            <div className="overflow-y-auto" style={{ maxHeight: 'calc(100vh - 390px)', minHeight: '200px' }}>
+            <div className="overflow-y-auto" style={{ height: 'calc(100vh - 390px)', minHeight: '200px' }}>
                 <table className={`min-w-full divide-y ${isDark ? 'divide-slate-700/50' : 'divide-slate-200'}`}>
                     <thead className={`sticky top-0 z-10 ${isDark ? 'bg-[#131929]' : 'bg-slate-50'}`}>
                     <tr>
@@ -371,18 +371,19 @@ const NoDataState: React.FC<NoDataStateProps> = ({ isSearchFiltered }) => {
         <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className={`rounded-xl border p-12 text-center ${isDark ? 'bg-[#0e1e2c] border-slate-700/40' : 'bg-white border-slate-200'}`}
+            className={`rounded-xl border flex flex-col items-center justify-center text-center ${isDark ? 'bg-[#0e1e2c] border-slate-700/40' : 'bg-white border-slate-200'}`}
+            style={{ height: 'calc(100vh - 390px)', minHeight: '200px' }}
         >
-            <FontAwesomeIcon icon={faInfoCircle} className={`text-6xl mb-4 ${isDark ? 'text-gray-500' : 'text-gray-300'}`} />
+            <FontAwesomeIcon icon={faInfoCircle} className={`text-4xl mb-3 ${isDark ? 'text-slate-600' : 'text-slate-300'}`} />
             {isSearchFiltered ? (
                 <>
-                    <h3 className={`text-xl font-semibold mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>No matching results found</h3>
-                    <p className={isDark ? 'text-gray-400' : 'text-gray-500'}>Please try adjusting your search criteria</p>
+                    <p className={`text-sm font-medium mb-1 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>No matching results found</p>
+                    <p className={`text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Please try adjusting your search criteria</p>
                 </>
             ) : (
                 <>
-                    <h3 className={`text-xl font-semibold mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>No data found</h3>
-                    <p className={isDark ? 'text-gray-400' : 'text-gray-500'}>Please try adjusting your filters or time range</p>
+                    <p className={`text-sm font-medium mb-1 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>No data found</p>
+                    <p className={`text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Please try adjusting your filters or time range</p>
                 </>
             )}
         </motion.div>

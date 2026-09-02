@@ -40,6 +40,51 @@ export const fetchData = async (
   }
 }
 
+export const fetchBlob = async (
+  url: string,
+  onSuccess: (blob: Blob, filename?: string) => void,
+  onError?: (error?: Error) => void
+): Promise<void> => {
+  try {
+    const response = await fetch(url, { headers: getAuthHeaders() })
+    if (!response.ok) throw new Error(`HTTP Error: ${response.status}`)
+    const blob = await response.blob()
+    const disposition = response.headers.get("Content-Disposition")
+    const filename = disposition ? /filename="?([^"]+)"?/.exec(disposition)?.[1] : undefined
+    onSuccess(blob, filename)
+  } catch (error) {
+    console.error(`Failed to fetch file from URL: ${url}`)
+    if (onError) onError(error as Error)
+  }
+}
+
+export const postCsvFile = async (
+  url: string,
+  file: File,
+  onSuccess?: (data?: any) => void,
+  onError?: (error: Error) => void
+): Promise<void> => {
+  try {
+    const text = await file.text()
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "text/csv",
+        ...getAuthHeaders(),
+      },
+      body: text,
+    })
+
+    if (!response.ok) throw new Error(`HTTP Error: ${response.status}`)
+
+    const data = await response.json()
+    if (onSuccess) onSuccess(data)
+  } catch (error) {
+    console.error(`Failed to upload CSV to URL: ${url}`, error)
+    if (onError) onError(error as Error)
+  }
+}
+
 export const postData = async (
   url: string,
   payload: any,
