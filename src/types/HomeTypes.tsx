@@ -72,12 +72,7 @@ export interface SystemDetailModalProps {
 export interface HealthCardProps {
   metric: HealthMetric
   index: number
-  systemHealth?: SystemHealthData | null
   onClick?: () => void
-}
-
-export interface LoadAverageProps {
-  loadAverage: SystemHealthData['load_average']
 }
 
 export interface NetworkStatsProps {

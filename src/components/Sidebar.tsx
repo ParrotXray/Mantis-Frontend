@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react'
+import React, { useState, useCallback, useEffect, useContext } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -19,14 +19,12 @@ import {
     faChevronUp,
     faScroll,
     faClock,
-    faServer,
     faSliders,
     faPowerOff,
     faSpinner,
 } from '@fortawesome/free-solid-svg-icons'
 import { useTheme } from '../providers/ThemeProvider'
 import { useAuth } from '../contexts/AuthContext'
-import { useContext } from 'react'
 import { WebsocketContext } from '../providers/WebSocketProvider'
 import { useRestart } from '../providers/RestartProvider'
 
@@ -53,12 +51,12 @@ const NAV_GROUPS = [
         items: [
             { href: '/access-control', icon: faShieldAlt, label: 'Access Control' },
             { href: '/detection',      icon: faRobot,     label: 'Detection' },
-            { href: '/logs',           icon: faScroll,    label: 'Logs' },
         ],
     },
     {
         label: 'SYSTEM',
         items: [
+            { href: '/logs',     icon: faScroll,  label: 'Logs' },
             { href: '/settings', icon: faSliders, label: 'Settings' },
         ],
     },
@@ -72,7 +70,6 @@ const PAGE_META: Record<string, { title: string; icon: any }> = {
     '/access-control': { title: 'Access Control',     icon: faShieldAlt },
     '/detection':      { title: 'Threat Detection',   icon: faRobot },
     '/logs':           { title: 'System Logs',        icon: faScroll },
-    '/training':       { title: 'Training Nodes',     icon: faServer },
     '/settings':       { title: 'Settings',           icon: faSliders },
 }
 

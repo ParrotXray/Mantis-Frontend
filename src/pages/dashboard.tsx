@@ -5,8 +5,6 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
     faNetworkWired,
     faGlobe,
-    faArrowUp,
-    faArrowDown,
     faServer,
     faChartLine,
     faPause,
@@ -109,7 +107,6 @@ const UpdateControl: React.FC<UpdateControlProps> = ({
                                                          isPaused,
                                                          setIsPaused,
                                                          lastUpdateTime,
-                                                         connectionStatus
                                                      }) => {
     const { actualTheme } = useTheme()
     const isDark = actualTheme === 'dark'
@@ -346,23 +343,11 @@ const EChartsComponent: React.FC<EChartsComponentProps> = ({ data, type, isPause
         }
     }, [data, type, isPaused, isDark])
 
-    const onChartReady = useCallback((chart: any) => {
-        console.log(`${type} chart ready`)
-    }, [type])
-
-    const onEvents = {
-        'click': (params: any) => {
-            console.log('Chart clicked:', params)
-        }
-    }
-
     return (
         <ReactEcharts
             ref={chartRef}
             option={getOption()}
             style={{ width: '100%', height: '320px' }}
-            onChartReady={onChartReady}
-            onEvents={onEvents}
             notMerge={false}
             lazyUpdate={true}
             theme="default"
@@ -548,7 +533,6 @@ const Dashboard: NextPageWithLayout = () => {
     const { getIPv4FlowStream, getIPv6FlowStream, getDetectionAlertStream } = useContext(WebsocketContext)
     const [isLoading, setIsLoading] = useState(true)
     const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'error'>('connecting')
-    const [networkData, setNetworkData] = useState<any>({})
 
     const [updateInterval, setUpdateInterval] = useState<number>(2000)
     const [isPaused, setIsPaused] = useState<boolean>(false)
@@ -701,7 +685,6 @@ const Dashboard: NextPageWithLayout = () => {
 
         setTrendDataIPv4({ ingressSource: [], egressSource: [] })
         setTrendDataIPv6({ ingressSource: [], egressSource: [] })
-        setNetworkData({})
         latestDataRef.current = {}
         setConnectionStatus('connecting')
 
@@ -771,17 +754,6 @@ const Dashboard: NextPageWithLayout = () => {
 
                 if (Object.keys(newData).length > 0) {
                     latestDataRef.current = { ...latestDataRef.current, ...newData }
-
-                    setNetworkData((prevData: any) => {
-                        const updatedData = { ...prevData }
-                        Object.entries(newData).forEach(([key, protocolData]: [string, any]) => {
-                            if (!updatedData[key]) updatedData[key] = {}
-                            Object.entries(protocolData || {}).forEach(([protocol, data]) => {
-                                updatedData[key][protocol] = data
-                            })
-                        })
-                        return updatedData
-                    })
 
                     const now = Date.now()
                     const currentUpdateInterval = updateIntervalRef.current
@@ -953,7 +925,6 @@ const Dashboard: NextPageWithLayout = () => {
                         isPaused={isPaused}
                         setIsPaused={setIsPaused}
                         lastUpdateTime={lastUpdateTime}
-                        connectionStatus={connectionStatus}
                     />
                 </motion.div>
 

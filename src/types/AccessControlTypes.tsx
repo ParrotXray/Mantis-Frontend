@@ -1,8 +1,3 @@
-export interface AccessControlItem {
-    ip: string
-    ports: (string | number)[]
-}
-
 export interface NotificationProps {
     message: string
     type: 'success' | 'error' | 'warning' | 'info'

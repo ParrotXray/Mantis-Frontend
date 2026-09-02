@@ -3,52 +3,35 @@ import {motion, AnimatePresence} from 'framer-motion'
 import React, {useEffect, useState, useContext, useMemo, useCallback} from 'react'
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome'
 import {
-    faShieldAlt,
-    faNetworkWired,
     faServer,
-    faChartLine,
     faExclamationTriangle,
-    faGlobe,
-    faEye,
-    faFireAlt,
-    faRobot,
-    faClock,
     faArrowUp,
     faArrowDown,
-    faBolt,
-    faUsers,
-    faDatabase,
-    faLock,
     faPlay,
     faMemory,
     faThermometerHalf,
     faWifi,
     faCheckCircle,
     faExclamationCircle,
-    faTimesCircle,
     faRefresh,
     faPause,
-    faDesktop,
     faWeight,
     faTachometerAlt,
     faTimes,
     faMicrochip,
     faHdd,
     faFire,
-    faInfoCircle,
 } from '@fortawesome/free-solid-svg-icons'
 import Layout from '../components/Layout'
 import { NextPageWithLayout } from '../types/NextPageWithLayout'
 import {WebsocketContext} from '../providers/WebSocketProvider'
 import {useTheme} from '../providers/ThemeProvider'
 import LoadingSpinner from '../components/LoadingSpinner'
-import Link from 'next/link'
 import {
     SystemHealthData,
     HealthMetric,
     SystemDetailModalProps,
     HealthCardProps,
-    LoadAverageProps,
     NetworkStatsProps
 } from '../types/HomeTypes'
 
@@ -455,7 +438,7 @@ const SystemDetailModal: React.FC<SystemDetailModalProps> = ({ isOpen, onClose, 
     )
 }
 
-const HealthCard: React.FC<HealthCardProps> = ({metric, index, systemHealth, onClick}) => {
+const HealthCard: React.FC<HealthCardProps> = ({metric, index, onClick}) => {
     const {actualTheme} = useTheme()
     const isDark = actualTheme === 'dark'
     const isClickable = ['CPU Usage', 'Memory Usage', 'System Temperature'].includes(metric.name)
@@ -527,120 +510,6 @@ const HealthCard: React.FC<HealthCardProps> = ({metric, index, systemHealth, onC
     )
 }
 
-const LoadAverageDetails: React.FC<LoadAverageProps> = ({loadAverage}) => {
-    if (!loadAverage) {
-        return (
-            <motion.div
-                initial={{opacity: 0, y: 20}}
-                animate={{opacity: 1, y: 0}}
-                transition={{delay: 0.8}}
-                className="bg-white rounded-xl border border-slate-200 p-6"
-            >
-                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                    <FontAwesomeIcon icon={faTachometerAlt} className="mr-2 text-yellow-600"/>
-                    System Load Average
-                </h3>
-                <div className="text-center text-gray-500 py-8">
-                    <FontAwesomeIcon icon={faExclamationCircle} className="text-4xl mb-2"/>
-                    <p>System load data is not available</p>
-                </div>
-            </motion.div>
-        )
-    }
-
-    const loadMetrics = [
-        {
-            label: '1 minute',
-            value: loadAverage.one_minute,
-            color: getStatusFromValue(loadAverage.one_minute, 'load')
-        },
-        {
-            label: '5 minutes',
-            value: loadAverage.five_minute,
-            color: getStatusFromValue(loadAverage.five_minute, 'load')
-        },
-        {
-            label: '15 minutes',
-            value: loadAverage.fifteen_minute,
-            color: getStatusFromValue(loadAverage.fifteen_minute, 'load')
-        }
-    ]
-
-    const getLoadDescription = (value: number): string => {
-        if (value < 0.5) return 'System Idle'
-        if (value < 1.0) return 'Load Normal'
-        if (value < 1.5) return 'Load High'
-        if (value < 2.0) return 'Load Very High'
-        return 'System Overloaded'
-    }
-
-    const getBarWidth = (value: number): number => {
-        // 以 3.0 為最大值來計算進度條寬度
-        return Math.min((value / 3.0) * 100, 100)
-    }
-
-    return (
-        <motion.div
-            initial={{opacity: 0, y: 20}}
-            animate={{opacity: 1, y: 0}}
-            transition={{delay: 0.8}}
-            className="bg-white rounded-xl border border-slate-200 p-6"
-        >
-            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                <FontAwesomeIcon icon={faTachometerAlt} className="mr-2 text-yellow-600"/>
-                System Load Average
-            </h3>
-
-            <div className="space-y-4">
-                {loadMetrics.map((metric, index) => {
-                    const statusColors = getStatusColor(metric.color)
-                    const barWidth = getBarWidth(metric.value)
-
-                    return (
-                        <motion.div
-                            key={metric.label}
-                            initial={{opacity: 0, x: -20}}
-                            animate={{opacity: 1, x: 0}}
-                            transition={{delay: 0.9 + index * 0.1}}
-                            className="space-y-2"
-                        >
-                            <div className="flex justify-between items-center">
-                                <span className="text-sm font-medium text-gray-700">{metric.label}</span>
-                                <div className="flex items-center space-x-2">
-                  <span className="text-lg font-bold text-gray-900">
-                    {metric.value.toFixed(2)}
-                  </span>
-                                    <span
-                                        className={`text-xs px-2 py-1 rounded-full ${statusColors.bgColor} ${statusColors.color}`}>
-                    {getLoadDescription(metric.value)}
-                  </span>
-                                </div>
-                            </div>
-
-                            <div className="w-full bg-gray-200 rounded-full h-3">
-                                <div
-                                    className={`h-3 rounded-full transition-all duration-500 ${
-                                        metric.color === 'good' ? 'bg-green-500' :
-                                            metric.color === 'warning' ? 'bg-yellow-500' : 'bg-red-500'
-                                    }`}
-                                    style={{width: `${barWidth}%`}}
-                                ></div>
-                            </div>
-
-                            <div className="flex justify-between text-xs text-gray-500">
-                                <span>0.0</span>
-                                <span>1.0</span>
-                                <span>2.0</span>
-                                <span>3.0+</span>
-                            </div>
-                        </motion.div>
-                    )
-                })}
-            </div>
-        </motion.div>
-    )
-}
-
 const NetworkStats: React.FC<NetworkStatsProps> = ({networkStats}) => {
     const {actualTheme} = useTheme();
     const isDark = actualTheme === 'dark';
@@ -666,7 +535,7 @@ const NetworkStats: React.FC<NetworkStatsProps> = ({networkStats}) => {
             </div>
 
             <div className="flex-1 flex flex-col gap-4">
-                {interfaces.map((iface, index) => {
+                {interfaces.map((iface) => {
                     const stats = networkStats[iface.key as keyof typeof networkStats]
                     const hasErrors = stats.errors_received > 0 || stats.errors_transmitted > 0
 
@@ -719,14 +588,12 @@ const NetworkStats: React.FC<NetworkStatsProps> = ({networkStats}) => {
 
 const Home: NextPageWithLayout = function Home() {
     const {actualTheme} = useTheme()
-    const {bootTime, getSystemHealthStream} = useContext(WebsocketContext)
-    const [currentTime, setCurrentTime] = useState(new Date())
+    const {getSystemHealthStream} = useContext(WebsocketContext)
     const [systemHealth, setSystemHealth] = useState<SystemHealthData | null>(null)
     const [isLoading, setIsLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
     const [isPaused, setIsPaused] = useState(false)
     const [lastUpdateTime, setLastUpdateTime] = useState<Date | null>(null)
-    const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'error'>('connecting')
 
     const isDark = actualTheme === 'dark'
 
@@ -737,14 +604,6 @@ const Home: NextPageWithLayout = function Home() {
         isOpen: false,
         type: null
     })
-
-    useEffect(() => {
-        const timer = setInterval(() => {
-            setCurrentTime(new Date())
-        }, 1000)
-
-        return () => clearInterval(timer)
-    }, [])
 
     const processSystemHealthData = useCallback((rawData: any) => {
         if (isPaused) return
@@ -834,12 +693,10 @@ const Home: NextPageWithLayout = function Home() {
         const subscription = getSystemHealthStream().subscribe({
             next: (data: any) => {
                 processSystemHealthData(data)
-                setConnectionStatus('connected')
                 setIsLoading(false)
             },
             error: (error: any) => {
                 console.error("System health WebSocket error:", error)
-                setConnectionStatus('error')
                 setError('WebSocket connection failed')
                 setIsLoading(false)
             }
@@ -856,18 +713,6 @@ const Home: NextPageWithLayout = function Home() {
             setLastUpdateTime(new Date())
         }
     }, [isPaused, systemHealth])
-
-    useEffect(() => {
-        if (!getSystemHealthStream) {
-            console.warn("WebSocket streams not available")
-            setConnectionStatus('error')
-            setIsLoading(false)
-            return
-        }
-
-        console.log("WebSocket service available")
-        setConnectionStatus('connecting')
-    }, [getSystemHealthStream])
 
     const healthMetrics = useMemo((): HealthMetric[] => {
         if (!systemHealth) return []
@@ -935,33 +780,6 @@ const Home: NextPageWithLayout = function Home() {
     const closeModal = useCallback(() => {
         setModalState({isOpen: false, type: null})
     }, [])
-
-    const quickNavigation = [
-        {
-            title: 'Network Traffic Monitoring',
-            description: 'View IPv4/IPv6 traffic statistics and trend analysis',
-            icon: faChartLine,
-            color: 'bg-[#4ab5cc]',
-            href: '/dashboard',
-            badge: 'Real-time'
-        },
-        {
-            title: 'Statistics Analysis',
-            description: 'In-depth analysis of network usage patterns and performance metrics',
-            icon: faDatabase,
-            color: 'bg-green-500',
-            href: '/statistics',
-            badge: 'Analysis'
-        },
-        {
-            title: 'Access Control',
-            description: 'Manage IP whitelists, blacklists, and firewall rules',
-            icon: faLock,
-            color: 'bg-red-500',
-            href: '/access-control',
-            badge: 'Security'
-        },
-    ]
 
     if (isLoading && !systemHealth) {
         return (
@@ -1060,7 +878,6 @@ const Home: NextPageWithLayout = function Home() {
                                 key={metric.name}
                                 metric={metric}
                                 index={index}
-                                systemHealth={systemHealth}
                                 onClick={() => handleCardClick(metric.name)}
                             />
                         ))}

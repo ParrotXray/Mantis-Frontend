@@ -25,7 +25,6 @@ export interface UpdateControlProps {
     isPaused: boolean;
     setIsPaused: (value: boolean) => void;
     lastUpdateTime: Date | null;
-    connectionStatus: string;
 }
 
 export interface EChartsComponentProps {

@@ -3,7 +3,7 @@ import Head from 'next/head'
 import { useRouter } from 'next/router'
 import { motion } from 'framer-motion'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faUser, faLock, faEye, faEyeSlash, faShieldAlt } from '@fortawesome/free-solid-svg-icons'
+import { faUser, faLock, faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons'
 import { useAuth } from '../contexts/AuthContext'
 import { useTheme } from '../providers/ThemeProvider'
 

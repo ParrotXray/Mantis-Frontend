@@ -7,12 +7,10 @@ import {
     faNetworkWired,
     faGlobe,
     faSearch,
-    faFilter,
     faSortUp,
     faSortDown,
     faSort,
     faRefresh,
-    faDownload,
     faInfoCircle,
     faPause,
     faPlay,
@@ -24,7 +22,7 @@ import Layout from '../components/Layout';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { NextPageWithLayout } from '../types/NextPageWithLayout';
 import { combineLatest, of } from 'rxjs';
-import { map, catchError, throttleTime, distinctUntilChanged } from 'rxjs/operators';
+import { map, catchError } from 'rxjs/operators';
 import {
     ToggleButtonProps,
     TableHeaderProps,
@@ -35,8 +33,6 @@ import {
     StatsOverviewProps
 } from '../types/StatisticsTypes';
 
-const TRAFFIC_TYPES = ["source", "destination"];
-const DIRECTIONS = ["ingress", "egress"];
 const TIME_RANGES = ["1min", "10min", "1hour"];
 
 const UPDATE_INTERVALS = [
@@ -52,18 +48,6 @@ const formatTimestamp = (timestamp: number | string, bootTime: number | null): s
     const date = new Date((bootTime + Number(timestamp)) / 1e6);
     date.setHours(date.getHours() + 8); // GMT+8
     return date.toISOString().replace("T", " ").split(".")[0];
-};
-
-const parseFlowData = (rawData: any): any => {
-    try {
-        if (typeof rawData === 'object' && rawData !== null) {
-            return rawData;
-        }
-        return JSON.parse(rawData);
-    } catch (error) {
-        console.error("Error parsing flow data:", error);
-        return {};
-    }
 };
 
 const formatBytes = (bytes: number): string => {
@@ -284,7 +268,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
     );
 };
 
-const DataTable: React.FC<DataTableProps> = ({ data, sortConfig, handleSort, bootTime, isUpdating }) => {
+const DataTable: React.FC<DataTableProps> = ({ data, sortConfig, handleSort, bootTime }) => {
     const { actualTheme } = useTheme();
     const isDark = actualTheme === 'dark';
 
@@ -405,7 +389,7 @@ const NoDataState: React.FC<NoDataStateProps> = ({ isSearchFiltered }) => {
     );
 };
 
-const StatsOverview: React.FC<StatsOverviewProps> = ({ data, isIPv6, direction, trafficType }) => {
+const StatsOverview: React.FC<StatsOverviewProps> = ({ data }) => {
     const { actualTheme } = useTheme();
     const isDark = actualTheme === 'dark';
 
@@ -499,7 +483,6 @@ const Statistics: NextPageWithLayout = () => {
     const [updateInterval, setUpdateInterval] = useState(3000);
     const [isPaused, setIsPaused] = useState(false);
     const [lastUpdateTime, setLastUpdateTime] = useState<Date | null>(null);
-    const [isUpdating, setIsUpdating] = useState(false);
 
     const latestDataRef = useRef<any>({});
     const lastUpdateRef = useRef<number>(0);
@@ -551,11 +534,9 @@ const Statistics: NextPageWithLayout = () => {
                 (currentUpdateInterval === 0 || (now - lastUpdateRef.current) >= currentUpdateInterval);
 
             if (shouldUpdate) {
-                setIsUpdating(true);
                 setFlowData(newData);
                 setLastUpdateTime(new Date());
                 lastUpdateRef.current = now;
-                setTimeout(() => setIsUpdating(false), 300);
             }
         }
     }, []);
@@ -591,7 +572,7 @@ const Statistics: NextPageWithLayout = () => {
             });
         });
 
-        console.log(`Total stream configs: ${streamConfigs.length}`); // 應該是 24
+        console.log(`Total stream configs: ${streamConfigs.length}`);
 
         const streams = streamConfigs.map(config => {
             const { dir, type, range, protocol } = config;
@@ -647,11 +628,9 @@ const Statistics: NextPageWithLayout = () => {
             if (Object.keys(latestDataRef.current).length > 0 &&
                 (now - lastUpdateRef.current) >= updateInterval &&
                 !isPausedRef.current) {
-                setIsUpdating(true);
                 setFlowData(latestDataRef.current);
                 setLastUpdateTime(new Date());
                 lastUpdateRef.current = now;
-                setTimeout(() => setIsUpdating(false), 300);
             }
         }, Math.min(updateInterval / 4, 1000)); // 檢查頻率為更新間隔的 1/4，最少 1 秒
 
@@ -726,10 +705,6 @@ const Statistics: NextPageWithLayout = () => {
         });
     }, []);
 
-    const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-        setSearchTerm(e.target.value);
-    }, []);
-
     if (isLoading) {
         return (
             <>
@@ -794,12 +769,7 @@ const Statistics: NextPageWithLayout = () => {
                 />
 
                 {sortedData && sortedData.length > 0 && (
-                    <StatsOverview
-                        data={sortedData}
-                        isIPv6={isIPv6}
-                        direction={direction}
-                        trafficType={trafficType}
-                    />
+                    <StatsOverview data={sortedData} />
                 )}
 
                 <div>
@@ -813,7 +783,6 @@ const Statistics: NextPageWithLayout = () => {
                             sortConfig={sortConfig}
                             handleSort={handleSort}
                             bootTime={bootTime}
-                            isUpdating={isUpdating}
                         />
                     )}
                 </div>

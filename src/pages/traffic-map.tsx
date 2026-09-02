@@ -6,15 +6,9 @@ import {
     faMapMarkedAlt,
     faGlobe,
     faNetworkWired,
-    faFilter,
     faLayerGroup,
-    faExpand,
-    faCompress,
-    faInfoCircle,
-    faTimes,
     faPause,
     faPlay,
-    faClock,
     faRefresh
 } from '@fortawesome/free-solid-svg-icons';
 import Layout from '../components/Layout';
@@ -27,10 +21,8 @@ import { map, catchError } from 'rxjs/operators';
 import {
     MapPoint,
     MapConfig,
-    GeoLocation,
     FlowDetails,
     FlowDataRecord,
-    ProtocolData,
     FlowDataState
 } from "../types/TrafficMapTypes";
 
@@ -422,7 +414,7 @@ const StatsCard: React.FC<{
 
 const TrafficMap: NextPageWithLayout = () => {
     const { actualTheme } = useTheme();
-    const { getIPv4FlowStream, getIPv6FlowStream, bootTime } = useContext(WebsocketContext);
+    const { getIPv4FlowStream, getIPv6FlowStream } = useContext(WebsocketContext);
     const isDark = actualTheme === 'dark';
 
     const [isIPv6, setIsIPv6] = useState(false);
@@ -432,7 +424,6 @@ const TrafficMap: NextPageWithLayout = () => {
     const [isPaused, setIsPaused] = useState(false);
     const [lastUpdateTime, setLastUpdateTime] = useState<Date | null>(null);
     const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
 
     const [mapPoints, setMapPoints] = useState<MapPoint[]>([]);
     const [flowData, setFlowData] = useState<FlowDataState>({});
@@ -481,13 +472,11 @@ const TrafficMap: NextPageWithLayout = () => {
 
     useEffect(() => {
         if (!getIPv4FlowStream || !getIPv6FlowStream) {
-            setError("WebSocket service unavailable");
             setIsLoading(false);
             return;
         }
 
         console.log("Initializing Traffic Map WebSocket subscriptions...");
-        setError(null);
         setIsLoading(true);
 
         const DIRECTIONS = ['ingress', 'egress'] as const;
@@ -510,7 +499,7 @@ const TrafficMap: NextPageWithLayout = () => {
             });
         });
 
-        console.log(`Total stream configs for Traffic Map: ${streamConfigs.length}`); // 24
+        console.log(`Total stream configs for Traffic Map: ${streamConfigs.length}`);
 
         const streams = streamConfigs.map(config => {
             const { dir, type, range, protocol } = config;
@@ -536,7 +525,6 @@ const TrafficMap: NextPageWithLayout = () => {
             },
             error: (error) => {
                 console.error("WebSocket subscription error:", error);
-                setError("WebSocket connection error");
                 setIsLoading(false);
             }
         });

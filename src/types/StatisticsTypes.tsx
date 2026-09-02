@@ -42,7 +42,6 @@ export interface DataTableProps {
     sortConfig: { key: string | null; direction: string };
     handleSort: (key: string) => void;
     bootTime: number | null;
-    isUpdating: boolean;
 }
 
 export interface NoDataStateProps {
@@ -51,7 +50,4 @@ export interface NoDataStateProps {
 
 export interface StatsOverviewProps {
     data: any[];
-    isIPv6: boolean;
-    direction: string;
-    trafficType: string;
 }

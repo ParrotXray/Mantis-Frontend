@@ -26,7 +26,6 @@ import { urls, NicType, FlowType, ListType } from '../config'
 import Layout from '../components/Layout'
 import { NextPageWithLayout } from '../types/NextPageWithLayout'
 import {
-    AccessControlItem,
     NotificationProps,
     ModalProps,
     ToggleButtonProps,
@@ -181,7 +180,6 @@ const AccessControl: NextPageWithLayout = () => {
         setFilteredData,
         switchTo,
         refreshData,
-        getCacheStatus
     } = useContext(AccessControlContext)
 
     const { actualTheme } = useTheme()
