@@ -43,9 +43,8 @@ export interface SuricataConfig {
     home_net: string[]
     worker_cpu_set: [number, number] | null
     management_cpu: number | null
-    af_packet_threads: string
-    af_packet_ring_size: number
-    af_packet_block_size: number
+    capture_ring_slots: number
+    capture_slot_size: number
     suppress: string[]
 }
 
