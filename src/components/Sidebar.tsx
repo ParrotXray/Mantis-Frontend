@@ -23,6 +23,7 @@ import {
     faPowerOff,
     faSpinner,
     faDatabase,
+    faFileShield,
 } from '@fortawesome/free-solid-svg-icons'
 import { useTheme } from '../providers/ThemeProvider'
 import { useAuth } from '../contexts/AuthContext'
@@ -50,8 +51,9 @@ const NAV_GROUPS = [
     {
         label: 'SECURITY',
         items: [
-            { href: '/access-control', icon: faShieldAlt, label: 'Access Control' },
-            { href: '/detection',      icon: faRobot,     label: 'Detection' },
+            { href: '/access-control', icon: faShieldAlt,  label: 'Access Control' },
+            { href: '/detection',      icon: faRobot,      label: 'Detection' },
+            { href: '/rules',          icon: faFileShield, label: 'Rules' },
         ],
     },
     {
@@ -71,6 +73,7 @@ const PAGE_META: Record<string, { title: string; icon: any }> = {
     '/traffic-map':    { title: 'Traffic Map',        icon: faMapMarkedAlt },
     '/access-control': { title: 'Access Control',     icon: faShieldAlt },
     '/detection':      { title: 'Threat Detection',   icon: faRobot },
+    '/rules':          { title: 'Suricata Rules',     icon: faFileShield },
     '/logs':           { title: 'System Logs',        icon: faScroll },
     '/resources':      { title: 'Resources',          icon: faDatabase },
     '/settings':       { title: 'Settings',           icon: faSliders },

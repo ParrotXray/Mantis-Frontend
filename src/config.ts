@@ -48,6 +48,14 @@ export const urls = {
     systemRestart: `${httpProtocol}://${host}/system/restart`,
     healthStatus: `${httpProtocol}://${host}/health/status`,
 
+    rules: {
+        list: `${httpProtocol}://${host}/rules`,
+        file: (filename: string) => `${httpProtocol}://${host}/rules/${encodeURIComponent(filename)}`,
+        enable: (filename: string) => `${httpProtocol}://${host}/rules/${encodeURIComponent(filename)}/enable`,
+        disable: (filename: string) => `${httpProtocol}://${host}/rules/${encodeURIComponent(filename)}/disable`,
+        sid: (filename: string, sid: number) => `${httpProtocol}://${host}/rules/${encodeURIComponent(filename)}/sid/${sid}`,
+    },
+
 } as const;
 
 export const websocketUrl = {
