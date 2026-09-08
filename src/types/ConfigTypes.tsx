@@ -27,7 +27,7 @@ export interface MLConfig {
     aggregator_alert_limit: number
     inference_batch_size: number
     flow_timeout_us: number
-    traffic_logging_mode: boolean
+    ml_inference_enabled: boolean
     fusion_mode: string
     fusion_window_secs: number
     ae_threshold_method: string

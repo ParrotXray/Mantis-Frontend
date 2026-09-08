@@ -53,8 +53,6 @@ const ResourcesPage: NextPageWithLayout = () => {
     const [downloadingCsv, setDownloadingCsv] = useState(false)
     const [csvDownloadError, setCsvDownloadError] = useState<string | null>(null)
 
-    // Bundles every CSV file recorded under CSV_RECORD_PATH into a zip
-    // (only written to when traffic logging mode is on).
     const handleDownloadCsv = useCallback(() => {
         setDownloadingCsv(true)
         setCsvDownloadError(null)
@@ -103,7 +101,7 @@ const ResourcesPage: NextPageWithLayout = () => {
                 <ResourceCard
                     icon={faFileCsv}
                     title="Traffic CSV Records"
-                    description="Packets logged to CSV while traffic logging mode is enabled"
+                    description="All flows, always logged to CSV regardless of ML/whitelist state"
                     isDark={isDark}
                 >
                     <div className="flex items-center gap-3">
