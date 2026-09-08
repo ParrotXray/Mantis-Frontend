@@ -42,7 +42,13 @@ export const urls = {
     access_control_import: `${httpProtocol}://${host}/ebpf/access_control/import`,
 
     csvRecordsDownload: `${httpProtocol}://${host}/records/download`,
-    threatReportExport: `${httpProtocol}://${host}/detection/export`,
+    threatReportExport: (from?: string, to?: string) => {
+        const params = new URLSearchParams()
+        if (from) params.set('from', from)
+        if (to) params.set('to', to)
+        const query = params.toString()
+        return `${httpProtocol}://${host}/detection/export${query ? `?${query}` : ''}`
+    },
 
     config: `${httpProtocol}://${host}/config`,
     systemRestart: `${httpProtocol}://${host}/system/restart`,
