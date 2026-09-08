@@ -106,12 +106,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, password }),
     })
-    if (res.status === 501) {
-      setAuthToken('disabled')
-      setToken('disabled')
-      setUser({ id: 'guest', username: 'Guest', role: 'admin' })
-      return
-    }
     if (!res.ok) throw new Error('Invalid credentials')
     const { token: newToken } = await res.json()
     await issueToken(newToken)
@@ -133,7 +127,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, [issueToken])
 
   const logout = useCallback(() => {
-    if (token && token !== 'disabled') {
+    if (token) {
       fetch(urls.auth.logout, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
