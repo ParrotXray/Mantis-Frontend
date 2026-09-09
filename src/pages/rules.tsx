@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
     faFileShield,
@@ -64,6 +64,7 @@ const RulesPage: NextPageWithLayout = () => {
     const { actualTheme } = useTheme()
     const isDark = actualTheme === 'dark'
     const { status: restartStatus, error: restartError, triggerRestart } = useRestart()
+    const prevRestartStatusRef = useRef(restartStatus)
 
     const [files, setFiles] = useState<RuleFileSummary[]>([])
     const [loading, setLoading] = useState(true)
@@ -108,6 +109,15 @@ const RulesPage: NextPageWithLayout = () => {
             .catch((e: Error) => setActionError(e.message))
             .finally(() => setDetailLoading(false))
     }, [])
+
+    useEffect(() => {
+        if (prevRestartStatusRef.current === 'waiting' && restartStatus === 'idle') {
+            setSavedNotice(false)
+            loadFiles()
+            if (selected) loadDetail(selected)
+        }
+        prevRestartStatusRef.current = restartStatus
+    }, [restartStatus, loadFiles, loadDetail, selected])
 
     const handleSelect = (filename: string) => {
         setSelected(filename)
