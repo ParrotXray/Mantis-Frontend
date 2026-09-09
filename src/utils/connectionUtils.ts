@@ -1,11 +1,13 @@
-import { getAuthHeaders } from './authStore'
+import { getAuthHeaders, getAuthToken } from './authStore'
 
 export const createWebSocket = (
   url: string,
   onMessage: (data: any) => void,
   onError?: (error: Event) => void
 ): WebSocket => {
-  const ws = new WebSocket(url)
+  const token = getAuthToken()
+  const authedUrl = token ? `${url}${url.includes('?') ? '&' : '?'}token=${encodeURIComponent(token)}` : url
+  const ws = new WebSocket(authedUrl)
 
   ws.onmessage = (event) => {
     try {

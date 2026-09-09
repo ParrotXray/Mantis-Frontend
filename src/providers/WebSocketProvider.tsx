@@ -35,18 +35,14 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const dataSubjects = useRef<{ [key: string]: BehaviorSubject<any> }>({})
     const latestDataCache = useRef<{ [key: string]: any }>({})
 
-    const fetchBootTime = async () => {
-        try {
-            await fetchData(
-                urls.bootTime,
-                (data) => setBootTime(Number(data.trim())),
-                (error) => {
-                    throw new Error(`Failed to fetch boot_time: ${error?.message || 'Unknown error'}`)
-                }
-            )
-        } catch (error) {
-            console.error('Boot time fetch error:', error)
-        }
+    const fetchBootTime = (delay: number = 1000) => {
+        fetchData(
+            urls.bootTime,
+            (data) => setBootTime(Number(data.trim())),
+            () => {
+                setTimeout(() => fetchBootTime(Math.min(delay * 2, 30000)), delay)
+            }
+        )
     }
 
     const getOrCreateSubject = (url: string) => {

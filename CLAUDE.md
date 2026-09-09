@@ -30,7 +30,9 @@ All backend endpoints are configured in `src/config.ts`. The target host default
 
 Pages subscribe to the relevant streams using RxJS operators (`combineLatest`, `map`, `catchError`). Closing the provider unsubscribes observables but intentionally **does not close** the underlying WebSocket connections (they are shared).
 
-`bootTime` — fetched once via HTTP at startup and held in `WebSocketProvider` — is required for interpreting flow timestamps, which are nanoseconds since system boot. Pages read it via `useContext(WebsocketContext).bootTime`.
+`bootTime` — fetched via HTTP at startup and held in `WebSocketProvider` — is required for interpreting flow timestamps, which are nanoseconds since system boot. Pages read it via `useContext(WebsocketContext).bootTime`. The fetch retries with exponential backoff (capped at 30s) rather than firing once: `WebSocketProvider` mounts as soon as `RouteGuard` renders the login/setup page, before a token exists, so the first attempt is expected to fail there and only succeeds once the user is authenticated.
+
+Almost every backend route requires auth now (see the Mantis repo's own CLAUDE.md), including every WebSocket endpoint. The browser's native `WebSocket` API can't set an `Authorization` header, so `createWebSocket` (`src/utils/connectionUtils.ts`) appends `?token=<jwt>` (read fresh from `authStore` on every call) to the URL instead — the existing per-connection reconnect-with-backoff in `WebSocketProvider` doubles as the retry path once a token appears, the same way `bootTime` recovers.
 
 The `isPausedRef` pattern appears throughout: a `useRef` mirrors the `isPaused` state so that WS subscription callbacks can read the current pause state without the subscription itself being torn down and re-created on every pause toggle.
 
