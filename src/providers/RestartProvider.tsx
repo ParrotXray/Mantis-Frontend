@@ -4,6 +4,8 @@ import { urls } from '../config'
 
 export type RestartStatus = 'idle' | 'waiting' | 'error'
 
+const POLL_ATTEMPTS = 90
+
 interface RestartContextType {
     status: RestartStatus
     error: string | null
@@ -61,10 +63,10 @@ export const RestartProvider: React.FC<RestartProviderProps> = ({ children }) =>
         postData(
             urls.systemRestart,
             {},
-            () => { pollTimerRef.current = setTimeout(() => pollUntilBack(30, false), 1500) },
+            () => { pollTimerRef.current = setTimeout(() => pollUntilBack(POLL_ATTEMPTS, false), 1500) },
             (err) => {
                 if (err.message.includes('409')) {
-                    pollTimerRef.current = setTimeout(() => pollUntilBack(30, false), 1500)
+                    pollTimerRef.current = setTimeout(() => pollUntilBack(POLL_ATTEMPTS, false), 1500)
                 } else {
                     setStatus('error')
                     setError(err.message)
