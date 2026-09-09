@@ -103,10 +103,11 @@ interface FieldProps {
     children: React.ReactNode
     hint?: string
     description?: string
+    wide?: boolean
 }
 
-const Field: React.FC<FieldProps> = ({ label, isDark, children, hint, description }) => (
-    <label className="flex flex-col gap-1">
+const Field: React.FC<FieldProps> = ({ label, isDark, children, hint, description, wide }) => (
+    <label className={`flex flex-col gap-1 ${wide ? 'sm:col-span-2 lg:col-span-3' : ''}`}>
         <span className={`flex items-center text-xs font-medium ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
             {label}
             {description && <InfoTooltip text={description} isDark={isDark} />}
@@ -151,6 +152,26 @@ const TextField: React.FC<{
 }> = ({ label, value, isDark, hint, description, onChange }) => (
     <Field label={label} isDark={isDark} hint={hint} description={description}>
         <input type="text" className={inputClass(isDark)} value={value} onChange={(e) => onChange(e.target.value)} />
+    </Field>
+)
+
+const TextAreaField: React.FC<{
+    label: string
+    value: string
+    isDark: boolean
+    hint?: string
+    description?: string
+    rows?: number
+    wide?: boolean
+    onChange: (v: string) => void
+}> = ({ label, value, isDark, hint, description, rows = 4, wide, onChange }) => (
+    <Field label={label} isDark={isDark} hint={hint} description={description} wide={wide}>
+        <textarea
+            rows={rows}
+            className={inputClass(isDark) + ' font-mono text-xs resize-y'}
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+        />
     </Field>
 )
 
@@ -541,9 +562,9 @@ const SettingsPage: NextPageWithLayout = () => {
                     <NumField label="Aggregator alert limit" value={ml.aggregator_alert_limit} isDark={isDark}
                         description="The alert limit N, applied per tier independently (by_flow, by_both, by_src, by_dst)"
                         onChange={(v) => { setMl({ ...ml, aggregator_alert_limit: v }); markDirty('ml') }} />
-                    <ToggleField label="Traffic logging mode" value={ml.traffic_logging_mode} isDark={isDark}
-                        description="true = disable ML inference, log packets to CSV instead (download the bundle from the Resources page)"
-                        onChange={(v) => { setMl({ ...ml, traffic_logging_mode: v }); markDirty('ml') }} />
+                    <ToggleField label="ML inference enabled" value={ml.ml_inference_enabled} isDark={isDark}
+                        description="Whether the ML inference pipeline runs. CSV traffic logging always runs regardless (download the bundle from the Resources page)"
+                        onChange={(v) => { setMl({ ...ml, ml_inference_enabled: v }); markDirty('ml') }} />
                     <ToggleField label="Adaptive threshold" value={ml.adaptive_threshold_enabled} isDark={isDark}
                         description="Periodically nudges the live threshold between ae_thresholds candidates based on recent alert volume"
                         onChange={(v) => { setMl({ ...ml, adaptive_threshold_enabled: v }); markDirty('ml') }} />
@@ -611,16 +632,19 @@ const SettingsPage: NextPageWithLayout = () => {
                             <NumField label={`Management core (0-${numCpus - 1})`} value={suricata.management_cpu ?? 0} isDark={isDark}
                                 description="Suricata management thread core"
                                 onChange={(v) => { setSuricata({ ...suricata, management_cpu: v }); markDirty('suricata') }} />
-                            <TextField label="AF_PACKET threads" value={suricata.af_packet_threads} isDark={isDark}
-                                hint={'A number, or "auto"'}
-                                description="AF_PACKET capture thread count, or auto"
-                                onChange={(v) => { setSuricata({ ...suricata, af_packet_threads: v }); markDirty('suricata') }} />
-                            <NumField label="AF_PACKET ring size" value={suricata.af_packet_ring_size} isDark={isDark}
-                                description="AF_PACKET ring buffer size"
-                                onChange={(v) => { setSuricata({ ...suricata, af_packet_ring_size: v }); markDirty('suricata') }} />
-                            <NumField label="AF_PACKET block size" value={suricata.af_packet_block_size} isDark={isDark}
-                                description="AF_PACKET ring block size"
-                                onChange={(v) => { setSuricata({ ...suricata, af_packet_block_size: v }); markDirty('suricata') }} />
+                            <NumField label="Capture ring slots" value={suricata.capture_ring_slots} isDark={isDark}
+                                hint="Power of 2"
+                                description="Slot count for each of the ingress/egress shared-memory rings fed to the mantis-capture Suricata plugin. Must be a power of two."
+                                onChange={(v) => { setSuricata({ ...suricata, capture_ring_slots: v }); markDirty('suricata') }} />
+                            <NumField label="Capture slot size" value={suricata.capture_slot_size} isDark={isDark}
+                                hint="Bytes per slot, must be > 4"
+                                description="Bytes per ring slot, including the 4-byte length prefix. Frames longer than this are truncated."
+                                onChange={(v) => { setSuricata({ ...suricata, capture_slot_size: v }); markDirty('suricata') }} />
+                            <TextAreaField label="Suppress list" value={suricata.suppress.join('\n')} isDark={isDark}
+                                wide
+                                hint={'One Suricata suppress line per row, e.g. "suppress gen_id 1, sig_id 2001234, track by_src, ip 192.168.1.0/24"'}
+                                description="Suppress known false positives - paste Suricata suppress lines directly, one per line"
+                                onChange={(v) => { setSuricata({ ...suricata, suppress: v.split('\n') }); markDirty('suricata') }} />
                         </>
                     )}
                 </SectionCard>

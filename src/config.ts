@@ -42,11 +42,25 @@ export const urls = {
     access_control_import: `${httpProtocol}://${host}/ebpf/access_control/import`,
 
     csvRecordsDownload: `${httpProtocol}://${host}/records/download`,
-    threatReportExport: `${httpProtocol}://${host}/detection/export`,
+    threatReportExport: (from?: string, to?: string) => {
+        const params = new URLSearchParams()
+        if (from) params.set('from', from)
+        if (to) params.set('to', to)
+        const query = params.toString()
+        return `${httpProtocol}://${host}/detection/export${query ? `?${query}` : ''}`
+    },
 
     config: `${httpProtocol}://${host}/config`,
     systemRestart: `${httpProtocol}://${host}/system/restart`,
     healthStatus: `${httpProtocol}://${host}/health/status`,
+
+    rules: {
+        list: `${httpProtocol}://${host}/rules`,
+        file: (filename: string) => `${httpProtocol}://${host}/rules/${encodeURIComponent(filename)}`,
+        enable: (filename: string) => `${httpProtocol}://${host}/rules/${encodeURIComponent(filename)}/enable`,
+        disable: (filename: string) => `${httpProtocol}://${host}/rules/${encodeURIComponent(filename)}/disable`,
+        sid: (filename: string, sid: number) => `${httpProtocol}://${host}/rules/${encodeURIComponent(filename)}/sid/${sid}`,
+    },
 
 } as const;
 

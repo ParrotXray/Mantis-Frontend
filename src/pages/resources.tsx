@@ -53,8 +53,6 @@ const ResourcesPage: NextPageWithLayout = () => {
     const [downloadingCsv, setDownloadingCsv] = useState(false)
     const [csvDownloadError, setCsvDownloadError] = useState<string | null>(null)
 
-    // Bundles every CSV file recorded under CSV_RECORD_PATH into a zip
-    // (only written to when traffic logging mode is on).
     const handleDownloadCsv = useCallback(() => {
         setDownloadingCsv(true)
         setCsvDownloadError(null)
@@ -73,25 +71,24 @@ const ResourcesPage: NextPageWithLayout = () => {
 
     const [downloadingReport, setDownloadingReport] = useState(false)
     const [reportDownloadError, setReportDownloadError] = useState<string | null>(null)
+    const [reportFrom, setReportFrom] = useState('')
+    const [reportTo, setReportTo] = useState('')
 
-    // The backend keeps a bounded in-memory history of ML/rule/fusion/TCP
-    // anomaly alerts (independent of the live WebSocket), exported here as a
-    // CSV threat report.
     const handleDownloadReport = useCallback(() => {
         setDownloadingReport(true)
         setReportDownloadError(null)
         fetchBlob(
-            urls.threatReportExport,
+            urls.threatReportExport(reportFrom || undefined, reportTo || undefined),
             (blob, filename) => {
                 downloadBlob(blob, filename || 'threat_report.csv')
                 setDownloadingReport(false)
             },
             (error) => {
-                setReportDownloadError(error?.message || 'Failed to export threat report')
+                setReportDownloadError(error?.message || 'Failed to download threat history')
                 setDownloadingReport(false)
             }
         )
-    }, [])
+    }, [reportFrom, reportTo])
 
     return (
         <>
@@ -104,7 +101,7 @@ const ResourcesPage: NextPageWithLayout = () => {
                 <ResourceCard
                     icon={faFileCsv}
                     title="Traffic CSV Records"
-                    description="Packets logged to CSV while traffic logging mode is enabled"
+                    description="All flows, always logged to CSV regardless of ML/whitelist state"
                     isDark={isDark}
                 >
                     <div className="flex items-center gap-3">
@@ -127,11 +124,31 @@ const ResourcesPage: NextPageWithLayout = () => {
 
                 <ResourceCard
                     icon={faShieldHalved}
-                    title="Threat Report"
-                    description="Detected ML / rule / fusion / TCP anomaly alerts, most recent 500"
+                    title="Threat History"
+                    description="Detected ML / rule / fusion / TCP anomaly alerts, persisted by date"
                     isDark={isDark}
                 >
-                    <div className="flex items-center gap-3">
+                    <div className="flex flex-wrap items-center gap-3">
+                        <label className="flex items-center gap-1.5">
+                            <span className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>From</span>
+                            <input
+                                type="date"
+                                value={reportFrom}
+                                onChange={(e) => setReportFrom(e.target.value)}
+                                max={reportTo || undefined}
+                                className={`px-2 py-1 rounded-md text-xs border outline-none ${isDark ? 'bg-[#0a1620] border-slate-700 text-slate-200' : 'bg-white border-slate-300 text-slate-800'}`}
+                            />
+                        </label>
+                        <label className="flex items-center gap-1.5">
+                            <span className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>To</span>
+                            <input
+                                type="date"
+                                value={reportTo}
+                                onChange={(e) => setReportTo(e.target.value)}
+                                min={reportFrom || undefined}
+                                className={`px-2 py-1 rounded-md text-xs border outline-none ${isDark ? 'bg-[#0a1620] border-slate-700 text-slate-200' : 'bg-white border-slate-300 text-slate-800'}`}
+                            />
+                        </label>
                         <button
                             onClick={handleDownloadReport}
                             disabled={downloadingReport}
@@ -141,12 +158,13 @@ const ResourcesPage: NextPageWithLayout = () => {
                             style={{ background: ACCENT }}
                         >
                             <FontAwesomeIcon icon={downloadingReport ? faSpinner : faDownload} spin={downloadingReport} className="text-xs" />
-                            Export threat report
+                            Download
                         </button>
                         {reportDownloadError && (
                             <span className={`text-xs ${isDark ? 'text-red-400' : 'text-red-600'}`}>{reportDownloadError}</span>
                         )}
                     </div>
+                    <p className={`mt-2 text-[11px] ${isDark ? 'text-slate-600' : 'text-slate-400'}`}>Leave both blank for the full history.</p>
                 </ResourceCard>
 
                 <ResourceCard
