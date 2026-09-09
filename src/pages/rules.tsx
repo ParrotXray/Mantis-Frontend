@@ -358,17 +358,16 @@ const RulesPage: NextPageWithLayout = () => {
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {detail.rules.map((r) => (
+                                            {detail.rules.filter((r) => r.sid !== null).map((r) => (
                                                 <tr key={r.line_number} className={`border-t ${isDark ? 'border-slate-800/60' : 'border-slate-100'} ${!r.enabled ? 'opacity-50' : ''}`}>
                                                     <td className="px-4 py-2">
                                                         <ToggleSwitch
                                                             value={r.enabled}
-                                                            disabled={r.sid === null}
                                                             isDark={isDark}
                                                             onChange={(v) => handleToggleRule(r, v)}
                                                         />
                                                     </td>
-                                                    <td className={`px-2 py-2 font-mono text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{r.sid ?? '—'}</td>
+                                                    <td className={`px-2 py-2 font-mono text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{r.sid}</td>
                                                     <td className={`px-2 py-2 truncate max-w-0 ${isDark ? 'text-slate-200' : 'text-slate-800'}`} title={r.raw}>
                                                         {r.msg ?? r.raw}
                                                     </td>
@@ -376,8 +375,8 @@ const RulesPage: NextPageWithLayout = () => {
                                                     <td className={`px-2 py-2 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{r.proto ?? ''}</td>
                                                 </tr>
                                             ))}
-                                            {detail.rules.length === 0 && (
-                                                <tr><td colSpan={5} className={`px-4 py-8 text-center text-xs italic ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Empty file.</td></tr>
+                                            {detail.rules.filter((r) => r.sid !== null).length === 0 && (
+                                                <tr><td colSpan={5} className={`px-4 py-8 text-center text-xs italic ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>No rules in this file.</td></tr>
                                             )}
                                         </tbody>
                                     </table>
