@@ -1,4 +1,3 @@
-// server.js - HTTPS server with English logs
 import { createServer } from 'https';
 import { parse } from 'url';
 import next from 'next';
@@ -6,11 +5,9 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-// ES Module 中取得 __dirname
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Determine environment based on npm script
 const scriptName = process.env.npm_lifecycle_event;
 let dev;
 
@@ -21,7 +18,6 @@ if (scriptName === 'dev:https') {
     dev = false;
     console.log('Production mode');
 } else {
-    // Default to production mode
     dev = false;
     console.log('Unknown script, using production mode');
 }
@@ -32,17 +28,14 @@ const port = 3000;
 const app = next({ dev, hostname, port });
 const handle = app.getRequestHandler();
 
-// SSL certificate file paths
 const sslFiles = {
     ca: path.join(__dirname, 'ssl/root.ca-bundle'),
     cert: path.join(__dirname, 'ssl/server.crt'),
     key: path.join(__dirname, 'ssl/server.key')
 };
 
-// Check and load SSL certificates
 function loadSSLCertificates() {
     try {
-        // Check if all certificate files exist
         for (const [type, filePath] of Object.entries(sslFiles)) {
             if (!fs.existsSync(filePath)) {
                 throw new Error(`SSL ${type} file not found: ${filePath}`);
@@ -66,7 +59,6 @@ function loadSSLCertificates() {
     }
 }
 
-// Start the application
 app.prepare().then(() => {
     const httpsOptions = loadSSLCertificates();
 
@@ -92,7 +84,6 @@ app.prepare().then(() => {
     process.exit(1);
 });
 
-// Graceful shutdown
 process.on('SIGTERM', () => {
     console.log('Shutting down server...');
     process.exit(0);

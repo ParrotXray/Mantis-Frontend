@@ -6,6 +6,13 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faUser, faLock, faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons'
 import { useAuth } from '../contexts/AuthContext'
 import { useTheme } from '../providers/ThemeProvider'
+import { Config } from '../../config'
+
+const LOGOUT_REASON_TEXT: Record<string, string> = {
+  idle: 'You were signed out after a period of inactivity.',
+  expired: 'Your session expired. Please sign in again.',
+  revoked: 'Your session was ended on the server. Please sign in again.',
+}
 
 const LoginPage: React.FC = () => {
   const { login, isAuthenticated } = useAuth()
@@ -18,6 +25,18 @@ const LoginPage: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
+  const [notice, setNotice] = useState<string | null>(null)
+
+  React.useEffect(() => {
+    try {
+      const reason = sessionStorage.getItem(Config.logoutReasonKey)
+      if (reason) {
+        sessionStorage.removeItem(Config.logoutReasonKey)
+        setNotice(LOGOUT_REASON_TEXT[reason] ?? null)
+      }
+    } catch {
+    }
+  }, [])
 
   React.useEffect(() => {
     if (isAuthenticated) {
@@ -56,7 +75,6 @@ const LoginPage: React.FC = () => {
         className="min-h-screen flex items-center justify-center transition-colors duration-300"
         style={{ background: isDark ? '#0b0f17' : '#f1f5f9' }}
       >
-        {/* Background grid pattern */}
         <div
           className="absolute inset-0 opacity-[0.03]"
           style={{
@@ -71,7 +89,6 @@ const LoginPage: React.FC = () => {
           transition={{ duration: 0.4, ease: 'easeOut' }}
           className="w-full max-w-sm px-4 relative z-10"
         >
-          {/* Logo / Brand */}
           <div className="text-center mb-8">
             <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl mb-4"
               style={{ background: 'rgba(56,189,248,0.12)', border: '1px solid rgba(56,189,248,0.2)' }}
@@ -86,7 +103,6 @@ const LoginPage: React.FC = () => {
             </p>
           </div>
 
-          {/* Card */}
           <div
             className="rounded-2xl overflow-hidden shadow-2xl"
             style={{
@@ -95,7 +111,6 @@ const LoginPage: React.FC = () => {
             }}
           >
             <form onSubmit={handleSubmit} className="px-7 py-7 space-y-5">
-              {/* Username */}
               <div>
                 <label className={`block text-xs font-semibold mb-1.5 tracking-wide uppercase ${
                   isDark ? 'text-slate-400' : 'text-slate-500'
@@ -124,7 +139,6 @@ const LoginPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Password */}
               <div>
                 <label className={`block text-xs font-semibold mb-1.5 tracking-wide uppercase ${
                   isDark ? 'text-slate-400' : 'text-slate-500'
@@ -162,7 +176,19 @@ const LoginPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Error */}
+              {notice && !error && (
+                <div
+                  role="status"
+                  className={`px-3.5 py-2.5 rounded-lg text-xs ${
+                    isDark
+                      ? 'bg-amber-900/20 border border-amber-700/40 text-amber-400'
+                      : 'bg-amber-50 border border-amber-200 text-amber-700'
+                  }`}
+                >
+                  {notice}
+                </div>
+              )}
+
               {error && (
                 <motion.div
                   initial={{ opacity: 0, y: -6 }}
@@ -177,7 +203,6 @@ const LoginPage: React.FC = () => {
                 </motion.div>
               )}
 
-              {/* Submit */}
               <button
                 type="submit"
                 disabled={isLoading}

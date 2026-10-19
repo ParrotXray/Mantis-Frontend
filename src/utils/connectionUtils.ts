@@ -1,11 +1,18 @@
-import { getAuthHeaders } from './authStore'
+import { getAuthHeaders, getAuthToken } from './authStore'
+
+export const withToken = (url: string): string => {
+  const token = getAuthToken()
+  if (!token) return url
+  const sep = url.includes('?') ? '&' : '?'
+  return `${url}${sep}token=${encodeURIComponent(token)}`
+}
 
 export const createWebSocket = (
-  url: string,
-  onMessage: (data: any) => void,
-  onError?: (error: Event) => void
+    url: string,
+    onMessage: (data: any) => void,
+    onError?: (error: Event) => void
 ): WebSocket => {
-  const ws = new WebSocket(url)
+  const ws = new WebSocket(withToken(url))
 
   ws.onmessage = (event) => {
     try {
@@ -139,6 +146,35 @@ export const putData = async (
     if (onSuccess) onSuccess(data)
   } catch (error) {
     console.error(`Failed to send PUT request to URL: ${url}`, error)
+    if (onError) onError(error as Error)
+  }
+}
+
+export const patchData = async (
+  url: string,
+  payload: any,
+  onSuccess?: (data?: any) => void,
+  onError?: (error: Error) => void
+): Promise<void> => {
+  try {
+    const response = await fetch(url, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        ...getAuthHeaders(),
+      },
+      body: JSON.stringify(payload),
+    })
+
+    if (!response.ok) throw new Error(`HTTP Error: ${response.status}`)
+
+    const contentType = response.headers.get("Content-Type")
+    const isJsonResponse = contentType && contentType.includes("application/json")
+    const data = isJsonResponse ? await response.json() : null
+
+    if (onSuccess) onSuccess(data)
+  } catch (error) {
+    console.error(`Failed to send PATCH request to URL: ${url}`, error)
     if (onError) onError(error as Error)
   }
 }

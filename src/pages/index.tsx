@@ -34,16 +34,8 @@ import {
     HealthCardProps,
     NetworkStatsProps
 } from '../types/HomeTypes'
-
-const formatBytes = (bytes: number): string => {
-    const units = ['B', 'KB', 'MB', 'GB', 'TB']
-    if (bytes === 0) return '0 B'
-
-    const i = Math.floor(Math.log(bytes) / Math.log(1024))
-    const value = bytes / Math.pow(1024, i)
-
-    return `${value.toFixed(1)} ${units[i]}`
-}
+import { Format } from '../utils/format'
+import { UI } from '../constants/ui'
 
 const formatUptimeFromSeconds = (seconds: number): string => {
     const days = Math.floor(seconds / (24 * 3600))
@@ -144,7 +136,6 @@ const SystemDetailModal: React.FC<SystemDetailModalProps> = ({ isOpen, onClose, 
                     color: 'text-[#4ab5cc]',
                     content: (
                         <div className="space-y-4">
-                            {/* Processor Information */}
                             <div className={`rounded-xl border p-4 ${sectionCls}`}>
                                 <SectionHeader icon={faMicrochip} iconColor="text-[#4ab5cc]" label="Processor Information" />
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -162,7 +153,6 @@ const SystemDetailModal: React.FC<SystemDetailModalProps> = ({ isOpen, onClose, 
                                 </div>
                             </div>
 
-                            {/* Usage per core */}
                             {systemHealth.cpu_details?.cores && (
                                 <div className={`rounded-xl border p-4 ${sectionCls}`}>
                                     <SectionHeader icon={faTachometerAlt} iconColor="text-[#4ab5cc]" label="Usage per core" />
@@ -193,7 +183,6 @@ const SystemDetailModal: React.FC<SystemDetailModalProps> = ({ isOpen, onClose, 
                                 </div>
                             )}
 
-                            {/* System load average */}
                             {systemHealth.load_average ? (
                                 <div className={`rounded-xl border p-4 ${sectionCls}`}>
                                     <SectionHeader icon={faWeight} iconColor="text-amber-400" label="System load average" />
@@ -248,7 +237,6 @@ const SystemDetailModal: React.FC<SystemDetailModalProps> = ({ isOpen, onClose, 
                     color: 'text-emerald-400',
                     content: (
                         <div className="space-y-4">
-                            {/* Physical Memory */}
                             <div className={`rounded-xl border p-4 ${sectionCls}`}>
                                 <SectionHeader icon={faMemory} iconColor="text-emerald-400" label="Physical Memory (RAM)" />
                                 <div className="flex items-center justify-center mb-4">
@@ -273,9 +261,9 @@ const SystemDetailModal: React.FC<SystemDetailModalProps> = ({ isOpen, onClose, 
                                 </div>
                                 <div className="grid grid-cols-2 gap-3">
                                     {[
-                                        { label: 'Total Capacity', value: formatBytes(memoryTotal),    color: valueCls },
-                                        { label: 'Used',           value: formatBytes(memoryUsed),     color: valueCls },
-                                        { label: 'Available',      value: formatBytes(memoryAvailable), color: valueCls },
+                                        { label: 'Total Capacity', value: Format.bytes(memoryTotal, 1),    color: valueCls },
+                                        { label: 'Used',           value: Format.bytes(memoryUsed, 1),     color: valueCls },
+                                        { label: 'Available',      value: Format.bytes(memoryAvailable, 1), color: valueCls },
                                         { label: 'Usage',          value: `${memoryPercent.toFixed(1)}%`,
                                           color: memoryPercent < 60 ? 'text-emerald-400' : memoryPercent < 85 ? 'text-yellow-400' : 'text-red-400' },
                                     ].map(({ label, value, color }) => (
@@ -287,7 +275,6 @@ const SystemDetailModal: React.FC<SystemDetailModalProps> = ({ isOpen, onClose, 
                                 </div>
                             </div>
 
-                            {/* Swap */}
                             {swapTotal > 0 && (
                                 <div className={`rounded-xl border p-4 ${sectionCls}`}>
                                     <SectionHeader icon={faHdd} iconColor="text-[#4ab5cc]" label="Swap" />
@@ -304,11 +291,11 @@ const SystemDetailModal: React.FC<SystemDetailModalProps> = ({ isOpen, onClose, 
                                     <div className="grid grid-cols-2 gap-3">
                                         <div className={`rounded-lg border p-3 ${innerCellCls}`}>
                                             <div className={`text-xs mb-0.5 ${labelCls}`}>Total Capacity</div>
-                                            <div className={`text-sm font-semibold ${valueCls}`}>{formatBytes(swapTotal)}</div>
+                                            <div className={`text-sm font-semibold ${valueCls}`}>{Format.bytes(swapTotal, 1)}</div>
                                         </div>
                                         <div className={`rounded-lg border p-3 ${innerCellCls}`}>
                                             <div className={`text-xs mb-0.5 ${labelCls}`}>Used</div>
-                                            <div className={`text-sm font-semibold ${valueCls}`}>{formatBytes(swapUsed)}</div>
+                                            <div className={`text-sm font-semibold ${valueCls}`}>{Format.bytes(swapUsed, 1)}</div>
                                         </div>
                                     </div>
                                 </div>
@@ -329,7 +316,6 @@ const SystemDetailModal: React.FC<SystemDetailModalProps> = ({ isOpen, onClose, 
                     color: 'text-orange-400',
                     content: (
                         <div className="space-y-4">
-                            {/* Current temperature */}
                             <div className={`rounded-xl border p-4 ${sectionCls}`}>
                                 <SectionHeader icon={faThermometerHalf} iconColor="text-orange-400" label="Current system temperature" />
                                 <div className="text-center mb-5">
@@ -368,7 +354,6 @@ const SystemDetailModal: React.FC<SystemDetailModalProps> = ({ isOpen, onClose, 
                                 </div>
                             </div>
 
-                            {/* Legend */}
                             <div className={`rounded-xl border p-4 ${sectionCls}`}>
                                 <div className="grid grid-cols-3 gap-3 text-center">
                                     {[
@@ -465,12 +450,11 @@ const HealthCard: React.FC<HealthCardProps> = ({metric, index, onClick}) => {
                 isClickable ? 'cursor-pointer hover:shadow-lg hover:-translate-y-0.5' : ''
             } ${isDark ? 'bg-[#0e1e2c] border-slate-700/40' : 'bg-white border-slate-200'}`}
         >
-            {/* Top row: icon + name + status badge */}
             <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2.5">
                     <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
                         style={{ background: 'rgba(74,181,204,0.12)' }}>
-                        <FontAwesomeIcon icon={metric.icon} className="text-sm" style={{ color: '#4ab5cc' }} />
+                        <FontAwesomeIcon icon={metric.icon} className="text-sm" style={{ color: UI.accent }} />
                     </div>
                     <span className={`text-sm font-medium ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                         {metric.name}
@@ -482,7 +466,6 @@ const HealthCard: React.FC<HealthCardProps> = ({metric, index, onClick}) => {
                 </span>
             </div>
 
-            {/* Value */}
             <div className={`text-3xl font-bold tabular-nums mb-3 ${isDark ? 'text-slate-100' : 'text-slate-800'}`}>
                 {typeof metric.value === 'number'
                     ? metric.value.toFixed(1)
@@ -492,7 +475,6 @@ const HealthCard: React.FC<HealthCardProps> = ({metric, index, onClick}) => {
                 </span>
             </div>
 
-            {/* Progress bar */}
             <div className={`w-full h-1.5 rounded-full overflow-hidden ${isDark ? 'bg-slate-700/60' : 'bg-slate-100'}`}>
                 <div
                     className="h-full rounded-full transition-all duration-700"
@@ -500,7 +482,6 @@ const HealthCard: React.FC<HealthCardProps> = ({metric, index, onClick}) => {
                 />
             </div>
 
-            {/* Sub label */}
             {metric.description && (
                 <p className={`text-xs mt-2 ${isDark ? 'text-slate-600' : 'text-slate-400'}`}>
                     {metric.description}
@@ -563,12 +544,12 @@ const NetworkStats: React.FC<NetworkStatsProps> = ({networkStats}) => {
                             <div className="grid grid-cols-2 gap-3 text-sm">
                                 <div>
                                     <div className={`text-xs mb-0.5 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Received</div>
-                                    <div className={`font-semibold ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>{formatBytes(stats.bytes_received)}</div>
+                                    <div className={`font-semibold ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>{Format.bytes(stats.bytes_received, 1)}</div>
                                     <div className={`text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>{stats.packets_received.toLocaleString()} packets</div>
                                 </div>
                                 <div>
                                     <div className={`text-xs mb-0.5 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Transmitted</div>
-                                    <div className={`font-semibold ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>{formatBytes(stats.bytes_transmitted)}</div>
+                                    <div className={`font-semibold ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>{Format.bytes(stats.bytes_transmitted, 1)}</div>
                                     <div className={`text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>{stats.packets_transmitted.toLocaleString()} packets</div>
                                 </div>
                             </div>
@@ -740,7 +721,7 @@ const Home: NextPageWithLayout = function Home() {
                 icon: faMemory,
                 color: 'bg-green-500',
                 bgColor: 'bg-green-50',
-                description: `Used ${formatBytes(systemHealth.memory_usage.used)} / ${formatBytes(systemHealth.memory_usage.total)}`
+                description: `Used ${Format.bytes(systemHealth.memory_usage.used, 1)} / ${Format.bytes(systemHealth.memory_usage.total, 1)}`
             },
             {
                 name: 'System Temperature',
@@ -812,7 +793,6 @@ const Home: NextPageWithLayout = function Home() {
                     type={modalState.type!}
                 />
 
-                {/* Compact status bar */}
                 <motion.div
                     initial={{opacity: 0, y: -10}}
                     animate={{opacity: 1, y: 0}}
@@ -870,7 +850,6 @@ const Home: NextPageWithLayout = function Home() {
                     </motion.div>
                 )}
 
-                {/* Health metric cards */}
                 {healthMetrics.length > 0 && (
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-6">
                         {healthMetrics.map((metric, index) => (
@@ -884,10 +863,8 @@ const Home: NextPageWithLayout = function Home() {
                     </div>
                 )}
 
-                {/* System Info + Network Stats side by side */}
                 {systemHealth && (
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-6 items-stretch">
-                        {/* System Information */}
                         <motion.div
                             initial={{opacity: 0, y: 20}}
                             animate={{opacity: 1, y: 0}}
@@ -911,7 +888,7 @@ const Home: NextPageWithLayout = function Home() {
                                         { label: 'CPU', value: systemHealth.cpu_details.cpu_brand },
                                         { label: 'Cores', value: `${systemHealth.cpu_details.core_count} cores · ${systemHealth.cpu_details.cpu_frequency} MHz` },
                                     ] : []),
-                                    { label: 'Memory', value: formatBytes(systemHealth.memory_usage.total) },
+                                    { label: 'Memory', value: Format.bytes(systemHealth.memory_usage.total, 1) },
                                     { label: 'System Time', value: new Date(systemHealth.timestamp * 1000).toLocaleString('zh-TW') },
                                     ...(systemHealth.uptime_seconds ? [{ label: 'Uptime', value: formatUptimeFromSeconds(systemHealth.uptime_seconds) }] : []),
                                 ].map(({ label, value }) => (
@@ -925,7 +902,6 @@ const Home: NextPageWithLayout = function Home() {
                             </div>
                         </motion.div>
 
-                        {/* Network Stats */}
                         <motion.div
                             initial={{opacity: 0, y: 20}}
                             animate={{opacity: 1, y: 0}}

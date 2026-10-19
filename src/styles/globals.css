@@ -25,21 +25,18 @@ svg.svg-inline--fa {
     box-sizing: content-box;
 }
 
-/* Light mode: html/body background + scrollbar color-scheme */
 html, body {
     color-scheme: light;
     background-color: #f1f5f9;
     scrollbar-color: rgba(74, 181, 204, 0.30) transparent;
 }
 
-/* Dark mode driven by .dark class set by ThemeProvider */
 html.dark, html.dark body {
     color-scheme: dark;
     background-color: #0c2130;
     scrollbar-color: rgba(74, 181, 204, 0.20) transparent;
 }
 
-/* Scrollbar — slim, slate-sky palette */
 ::-webkit-scrollbar {
     width: 5px;
     height: 5px;

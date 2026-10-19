@@ -29,36 +29,8 @@ import {
     EChartsComponentProps
 } from '../types/DashboardTypes'
 import { useTheme } from "../providers/ThemeProvider"
-
-const UPDATE_INTERVALS = [
-    { label: "immediate", value: 0 },
-    { label: "0.5s", value: 500 },
-    { label: "1s", value: 1000 },
-    { label: "2s", value: 2000 },
-    { label: "3s", value: 3000 },
-    { label: "5s", value: 5000 },
-    { label: "10s", value: 10000 }
-];
-
-const formatBytesWithUnit = (bytes: number): {value: number, unit: string} => {
-    const units = ["B", "KB", "MB", "GB", "TB"]
-    if (bytes < 1024) return {value: bytes, unit: "B"}
-
-    let i = 0
-    let value = bytes
-
-    while (value >= 1024 && i < units.length - 1) {
-        value /= 1024
-        i++
-    }
-
-    return {value: parseFloat(value.toFixed(2)), unit: units[i]}
-}
-
-const formatBytes = (bytes: number): string => {
-    const {value, unit} = formatBytesWithUnit(bytes)
-    return `${value} ${unit}`
-}
+import { Format } from '../utils/format'
+import { UI } from '../constants/ui'
 
 const getBestChartUnit = (dataArray: TrendDataPoint[]): {unit: string, divisor: number} => {
     if (dataArray.length === 0) return {unit: "B", divisor: 1}
@@ -73,19 +45,6 @@ const getBestChartUnit = (dataArray: TrendDataPoint[]): {unit: string, divisor: 
         return {unit: "MB", divisor: 1024 * 1024}
     } else {
         return {unit: "GB", divisor: 1024 * 1024 * 1024}
-    }
-}
-
-const getProtocolName = (protocol: number): string => {
-    switch (protocol) {
-        case 1: return 'ICMP'
-        case 6: return 'TCP'
-        case 17: return 'UDP'
-        case 47: return 'GRE'
-        case 50: return 'ESP'
-        case 51: return 'AH'
-        case 58: return 'ICMPv6'
-        default: return `Proto ${protocol}`
     }
 }
 
@@ -121,7 +80,7 @@ const UpdateControl: React.FC<UpdateControlProps> = ({
                     isDark ? 'bg-[#131929] border-slate-600 text-slate-300' : 'bg-white border-slate-300 text-slate-700'
                 }`}
             >
-                {UPDATE_INTERVALS.map(interval => (
+                {UI.fineUpdateIntervals.map(interval => (
                     <option key={interval.value} value={interval.value}>
                         {interval.label}
                     </option>
@@ -801,7 +760,7 @@ const Dashboard: NextPageWithLayout = () => {
                     }
 
                     if (data.protocol !== undefined) {
-                        const protoName = getProtocolName(data.protocol)
+                        const protoName = Format.protocolName(data.protocol)
                         setProtocolCounts(prev => ({
                             ...prev,
                             [protoName]: (prev[protoName] || 0) + 1
@@ -822,28 +781,28 @@ const Dashboard: NextPageWithLayout = () => {
     const statsCards = [
         {
             title: 'IPv4 Ingress Traffic',
-            value: formatBytes(trafficData.ipv4.ingressSource),
+            value: Format.bytes(trafficData.ipv4.ingressSource),
             icon: faGlobe,
             iconColor: 'text-[#4ab5cc]',
             bgColor: 'bg-blue-50'
         },
         {
             title: 'IPv4 Egress Traffic',
-            value: formatBytes(trafficData.ipv4.egressSource),
+            value: Format.bytes(trafficData.ipv4.egressSource),
             icon: faNetworkWired,
             iconColor: 'text-amber-500',
             bgColor: 'bg-amber-50'
         },
         {
             title: 'IPv6 Ingress Traffic',
-            value: formatBytes(trafficData.ipv6.ingressSource),
+            value: Format.bytes(trafficData.ipv6.ingressSource),
             icon: faGlobe,
             iconColor: 'text-green-600',
             bgColor: 'bg-green-50'
         },
         {
             title: 'IPv6 Egress Traffic',
-            value: formatBytes(trafficData.ipv6.egressSource),
+            value: Format.bytes(trafficData.ipv6.egressSource),
             icon: faNetworkWired,
             iconColor: 'text-yellow-600',
             bgColor: 'bg-yellow-50'
@@ -893,7 +852,6 @@ const Dashboard: NextPageWithLayout = () => {
                 <meta name="description" content="Mantis Network Traffic Monitoring Dashboard" />
             </Head>
 
-            {/* Compact controls bar */}
                 <motion.div
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -928,7 +886,6 @@ const Dashboard: NextPageWithLayout = () => {
                     />
                 </motion.div>
 
-                {/* Stats cards */}
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-5">
                     {statsCards.map((card, index) => (
                         <motion.div
@@ -955,7 +912,6 @@ const Dashboard: NextPageWithLayout = () => {
                     ))}
                 </div>
 
-                {/* Trend charts */}
                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-5 mb-5">
                     <motion.div
                         initial={{ opacity: 0, x: -20 }}
@@ -988,7 +944,6 @@ const Dashboard: NextPageWithLayout = () => {
                     </motion.div>
                 </div>
 
-                {/* Distribution charts */}
                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}

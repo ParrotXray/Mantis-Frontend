@@ -16,16 +16,29 @@ import {
     faList,
     faPause,
     faPlay,
+    faBellSlash,
+    faSlidersH,
 } from '@fortawesome/free-solid-svg-icons'
 import { WebsocketContext } from '../providers/WebSocketProvider'
 import { useTheme } from '../providers/ThemeProvider'
-import { putData } from '../utils/connectionUtils'
-import { urls, NicType } from '../config'
+import { fetchData, putData } from '../utils/connectionUtils'
+import { urls } from '../utils/apiManager'
+import { NicType } from '../types/AccessControlTypes'
 import Layout from '../components/Layout'
 import LoadingSpinner from '../components/LoadingSpinner'
+import SuppressionDialog from '../components/SuppressionDialog'
+import SuppressionRules from '../components/SuppressionRules'
+import ThresholdPanel from '../components/ThresholdPanel'
 import { NextPageWithLayout } from '../types/NextPageWithLayout'
+import { Format } from '../utils/format'
+import { UI } from '../constants/ui'
+import { SuppressionList } from '../types/SuppressionTypes'
+import { Device, DeviceList } from '../types/DeviceTypes'
 
-type AlertSource = 'ml' | 'rule' | 'fusion'
+const DEVICES_POLL_MS = 60_000
+
+type AlertSource = 'ml' | 'rule' | 'fusion' | 'tcp_anomaly'
+const ALERT_SOURCES: AlertSource[] = ['ml', 'rule', 'fusion', 'tcp_anomaly']
 type AlertSeverity = 'high' | 'critical'
 
 interface UnifiedAlert {
@@ -44,9 +57,6 @@ interface UnifiedAlert {
     ae_score: number
     rule_sid: number | null
     rule_msg: string | null
-    // Which NIC actually captured this traffic -- null for pure Suricata rule
-    // matches, which have no direction info anywhere in the pipeline (see
-    // backend UnifiedAlert.direction).
     direction: NicType | null
 }
 
@@ -66,7 +76,11 @@ interface AlertDetailsProps {
     log: UnifiedAlert
     onClose: () => void
     showNotification: (message: string, type: 'success' | 'error' | 'warning' | 'info') => void
+    onMarkFalsePositive: (log: UnifiedAlert) => void
+    deviceByIp: Map<string, Device>
 }
+
+type DetectionView = 'alerts' | 'suppressions' | 'threshold'
 
 interface AlertItemProps {
     log: UnifiedAlert
@@ -83,36 +97,16 @@ interface FilterButtonProps {
     activeHoverClassName?: string
 }
 
-const UPDATE_INTERVALS = [
-    { label: 'immediate', value: 0 },
-    { label: '1s', value: 1000 },
-    { label: '3s', value: 3000 },
-    { label: '5s', value: 5000 },
-    { label: '10s', value: 10000 },
-]
-
 const SOURCE_CONFIG: Record<AlertSource, { label: string; color: string; bgColor: string }> = {
     ml:     { label: 'ML',     color: '#818cf8', bgColor: 'rgba(129,140,248,0.1)' },
     rule:   { label: 'Rule',   color: '#0284c7', bgColor: 'rgba(2,132,199,0.1)'  },
     fusion: { label: 'Fusion', color: '#0f766e', bgColor: 'rgba(15,118,110,0.1)' },
+    tcp_anomaly: { label: 'TCP flags', color: '#b45309', bgColor: 'rgba(180,83,9,0.1)' },
 }
 
 const SEVERITY_CONFIG: Record<AlertSeverity, PriorityInfo> = {
     critical: { color: '#e53e3e', bgColor: 'rgba(239,68,68,0.1)',  label: 'Critical' },
     high:     { color: '#dd6b20', bgColor: 'rgba(251,146,60,0.1)', label: 'High'     },
-}
-
-const getProtocolName = (protocol: number): string => {
-    switch (protocol) {
-        case 1:  return 'ICMP'
-        case 6:  return 'TCP'
-        case 17: return 'UDP'
-        case 47: return 'GRE'
-        case 50: return 'ESP'
-        case 51: return 'AH'
-        case 58: return 'ICMPv6'
-        default: return `Proto ${protocol}`
-    }
 }
 
 const formatTimestamp = (timestamp: number): string => {
@@ -128,8 +122,8 @@ const parseAlertData = (rawData: any): UnifiedAlert | null => {
         const data = typeof rawData === 'string' ? JSON.parse(rawData) : rawData
         if (!data || typeof data !== 'object') return null
 
-        const source: AlertSource = data.source === 'ml' || data.source === 'rule' || data.source === 'fusion'
-            ? data.source : 'ml'
+        if (!ALERT_SOURCES.includes(data.source)) return null
+        const source: AlertSource = data.source
         const severity: AlertSeverity = data.severity === 'critical' ? 'critical' : 'high'
         const direction: NicType | null = data.direction === 'ingress' || data.direction === 'egress' ? data.direction : null
 
@@ -184,7 +178,7 @@ const Notification: React.FC<NotificationProps> = ({ message, type, onClose }) =
     )
 }
 
-const AlertDetails: React.FC<AlertDetailsProps> = ({ log, onClose, showNotification }) => {
+const AlertDetails: React.FC<AlertDetailsProps> = ({ log, onClose, showNotification, onMarkFalsePositive, deviceByIp }) => {
     const { actualTheme } = useTheme()
     const isDark = actualTheme === 'dark'
     const priorityInfo = SEVERITY_CONFIG[log.severity]
@@ -193,22 +187,11 @@ const AlertDetails: React.FC<AlertDetailsProps> = ({ log, onClose, showNotificat
     const isIPv6Source = log.src_ip.includes(':') && !log.src_ip.includes('.')
     const isIPv6Dest   = log.dst_ip.includes(':') && !log.dst_ip.includes('.')
 
-    // The alert's own capture direction, when known (ML/fusion/TCP-anomaly
-    // alerts carry it; pure Suricata rule matches don't -- see backend
-    // UnifiedAlert.direction). Blocking/allowing an IP has to target the NIC
-    // that actually saw this traffic, not a fixed guess, or the rule ends up
-    // on a list the real packets never pass through. Default to ingress only
-    // when direction is genuinely unknown.
     const nic: NicType = log.direction === 'egress' ? 'egress' : 'ingress'
     const mirrorNic: NicType = nic === 'ingress' ? 'egress' : 'ingress'
     const nicLabel = nic === 'ingress' ? 'Ingress' : 'Egress'
     const mirrorNicLabel = mirrorNic === 'ingress' ? 'Ingress' : 'Egress'
 
-    // "Apply to both directions" also writes the mirrored (nic.flip(),
-    // flow.flip()) bucket -- e.g. Ingress/Source + Egress/Destination --
-    // covering both legs of a conversation with this IP in one click,
-    // matching the backend's ?both_directions=true and the same toggle on
-    // the Access Control page.
     const [applyBothDirections, setApplyBothDirections] = useState(false)
     const mirrorNote = applyBothDirections ? ` + ${mirrorNicLabel}` : ''
 
@@ -255,7 +238,6 @@ const AlertDetails: React.FC<AlertDetailsProps> = ({ log, onClose, showNotificat
                 className={`rounded-xl border flex flex-col h-full ${isDark ? 'bg-[#0e1e2c] border-slate-700/40' : 'bg-white border-slate-200'}`}
                 style={{ maxHeight: 'calc(100vh - 280px)', minHeight: '400px' }}
             >
-                {/* Header */}
                 <div className={`px-5 py-3 border-b flex items-center justify-between flex-shrink-0 ${isDark ? 'border-slate-700/40' : 'border-slate-200'}`}>
                     <div className="flex items-center gap-2">
                         <div className="w-6 h-6 rounded-md bg-[#4ab5cc]/15 flex items-center justify-center">
@@ -271,14 +253,12 @@ const AlertDetails: React.FC<AlertDetailsProps> = ({ log, onClose, showNotificat
                     </button>
                 </div>
 
-                {/* Scrollable content */}
                 <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                    {/* Basic info */}
                     <div className={`rounded-lg border p-3 space-y-2.5 ${isDark ? 'bg-[#131929] border-slate-700/40' : 'bg-slate-50 border-slate-200'}`}>
                         {[
                             { label: 'Timestamp', value: formatTimestamp(log.timestamp) },
                             { label: 'Attack Type', value: log.attack_type ?? '—' },
-                            { label: 'Protocol', value: getProtocolName(log.protocol) },
+                            { label: 'Protocol', value: Format.protocolName(log.protocol) },
                             { label: 'Direction', value: log.direction ? (log.direction === 'ingress' ? 'Ingress' : 'Egress') : 'Unknown' },
                         ].map(({ label, value }) => (
                             <div key={label} className="flex justify-between items-center">
@@ -305,6 +285,20 @@ const AlertDetails: React.FC<AlertDetailsProps> = ({ log, onClose, showNotificat
                                 {sourceInfo.label}
                             </span>
                         </div>
+                        {[
+                            { label: 'Source device', device: deviceByIp.get(log.src_ip) },
+                            { label: 'Destination device', device: deviceByIp.get(log.dst_ip) },
+                        ].filter(({ device }) => device !== undefined).map(({ label, device }) => (
+                            <div key={label} className="flex justify-between items-center gap-3">
+                                <span className={`text-xs font-medium ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>{label}</span>
+                                <span className={`text-xs text-right ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
+                                    <span className="font-mono">{device!.mac}</span>
+                                    <span className={isDark ? 'text-slate-500' : 'text-slate-400'}>
+                                        {' '}({device!.randomized ? 'randomized MAC' : device!.vendor ?? 'unknown vendor'})
+                                    </span>
+                                </span>
+                            </div>
+                        ))}
                         <div className="flex justify-between items-center">
                             <span className={`text-xs font-medium ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Is Attack</span>
                             <span className={`text-xs font-semibold ${log.is_attack ? 'text-amber-400' : 'text-emerald-400'}`}>
@@ -313,7 +307,6 @@ const AlertDetails: React.FC<AlertDetailsProps> = ({ log, onClose, showNotificat
                         </div>
                     </div>
 
-                    {/* ML Score Details */}
                     {(log.source === 'ml' || log.source === 'fusion') && (
                         <div>
                             <span className={`text-xs font-semibold uppercase tracking-wider ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>ML Score Details</span>
@@ -338,7 +331,24 @@ const AlertDetails: React.FC<AlertDetailsProps> = ({ log, onClose, showNotificat
                         </div>
                     )}
 
-                    {/* Rule Match */}
+                    {log.source === 'ml' && (
+                        <div>
+                            <span className={`text-xs font-semibold uppercase tracking-wider ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>False Positive</span>
+                            <div className={`mt-2 rounded-lg border p-3 ${isDark ? 'bg-[#131929] border-slate-700/40' : 'bg-slate-50 border-slate-200'}`}>
+                                <p className={`text-xs mb-2 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+                                    Stops ML alerts for this kind of traffic only. Unlike Allow, blocking and Suricata keep working.
+                                </p>
+                                <button
+                                    onClick={() => onMarkFalsePositive(log)}
+                                    className={`w-full px-2 py-1.5 rounded-lg text-xs font-medium transition-colors border ${isDark ? 'bg-[#4ab5cc]/10 border-[#4ab5cc]/30 text-[#4ab5cc] hover:bg-[#4ab5cc]/20' : 'bg-cyan-50 border-cyan-200 text-cyan-700 hover:bg-cyan-100'}`}
+                                >
+                                    <FontAwesomeIcon icon={faBellSlash} className="mr-1 text-[10px]" />
+                                    Mark as false positive
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
                     {(log.source === 'rule' || log.source === 'fusion') && (log.rule_sid !== null || log.rule_msg !== null) && (
                         <div>
                             <span className={`text-xs font-semibold uppercase tracking-wider ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Rule Match</span>
@@ -359,7 +369,6 @@ const AlertDetails: React.FC<AlertDetailsProps> = ({ log, onClose, showNotificat
                         </div>
                     )}
 
-                    {/* Connection Details */}
                     <div>
                         <span className={`text-xs font-semibold uppercase tracking-wider ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Connection</span>
                         <div className={`mt-2 rounded-lg border p-3 flex items-center justify-between ${isDark ? 'bg-[#131929] border-slate-700/40' : 'bg-slate-50 border-slate-200'}`}>
@@ -377,7 +386,6 @@ const AlertDetails: React.FC<AlertDetailsProps> = ({ log, onClose, showNotificat
                         </div>
                     </div>
 
-                    {/* IP Management */}
                     <div>
                         <div className="flex items-center justify-between">
                             <span className={`text-xs font-semibold uppercase tracking-wider ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>IP Management</span>
@@ -490,7 +498,7 @@ const AlertItem: React.FC<AlertItemProps> = ({ log, index, onClick }) => {
                         <span>{log.src_ip}:{log.src_port} </span>
                         <FontAwesomeIcon icon={faArrowRight} className={isDark ? 'text-gray-500' : 'text-gray-400'} />
                         <span> {log.dst_ip}:{log.dst_port}</span>
-                        <span className="ml-1 text-xs opacity-70">({getProtocolName(log.protocol)})</span>
+                        <span className="ml-1 text-xs opacity-70">({Format.protocolName(log.protocol)})</span>
                     </div>
                     <div className="flex items-center justify-between">
                         <span
@@ -551,6 +559,11 @@ const Detection: NextPageWithLayout = () => {
     const [isPaused, setIsPaused] = useState(false)
     const [updateInterval, setUpdateInterval] = useState(0)
     const [lastUpdateTime, setLastUpdateTime] = useState<Date | null>(null)
+    const [view, setView] = useState<DetectionView>('alerts')
+    const [falsePositiveAlert, setFalsePositiveAlert] = useState<UnifiedAlert | null>(null)
+    const [suppressionList, setSuppressionList] = useState<SuppressionList | null>(null)
+    const [suppressionsLoading, setSuppressionsLoading] = useState(false)
+    const [suppressionsError, setSuppressionsError] = useState<string | null>(null)
 
     const bufferRef = useRef<UnifiedAlert[]>([])
     const updateIntervalRef = useRef<number>(updateInterval)
@@ -564,6 +577,47 @@ const Detection: NextPageWithLayout = () => {
     }, [])
 
     const closeNotification = useCallback(() => setNotification(null), [])
+
+    const loadSuppressions = useCallback(() => {
+        setSuppressionsLoading(true)
+        fetchData(
+            urls.suppressions.list,
+            (text) => {
+                try {
+                    setSuppressionList(JSON.parse(text) as SuppressionList)
+                    setSuppressionsError(null)
+                } catch {
+                    setSuppressionsError('Unexpected response from the backend')
+                }
+                setSuppressionsLoading(false)
+            },
+            (error) => {
+                setSuppressionsError(`Failed to load suppression rules: ${error?.message ?? 'unknown error'}`)
+                setSuppressionsLoading(false)
+            },
+        )
+    }, [])
+
+    const [deviceByIp, setDeviceByIp] = useState<Map<string, Device>>(new Map())
+    useEffect(() => {
+        const load = () => fetchData(
+            urls.devices,
+            (text) => {
+                try {
+                    const list = JSON.parse(text) as DeviceList
+                    setDeviceByIp(new Map(list.devices.map(d => [d.current_ip, d])))
+                } catch {  }
+            },
+        )
+        load()
+        const id = setInterval(load, DEVICES_POLL_MS)
+        return () => clearInterval(id)
+    }, [])
+
+    useEffect(() => { loadSuppressions() }, [loadSuppressions])
+    useEffect(() => { if (view === 'suppressions') loadSuppressions() }, [view, loadSuppressions])
+
+    const handleMarkFalsePositive = useCallback((log: UnifiedAlert) => setFalsePositiveAlert(log), [])
 
     const flushBuffer = useCallback(() => {
         if (bufferRef.current.length === 0) return
@@ -579,7 +633,6 @@ const Detection: NextPageWithLayout = () => {
         return () => clearInterval(timer)
     }, [updateInterval, isPaused, flushBuffer])
 
-    // Reads isPaused via ref so this callback never changes, avoiding WS re-subscription on pause toggle
     const processNewLogData = useCallback((rawData: any) => {
         if (isPausedRef.current) return
         const alert = parseAlertData(rawData)
@@ -634,6 +687,7 @@ const Detection: NextPageWithLayout = () => {
         ml:        logs.filter(l => l.source === 'ml').length,
         rule:      logs.filter(l => l.source === 'rule').length,
         fusion:    logs.filter(l => l.source === 'fusion').length,
+        tcpAnomaly: logs.filter(l => l.source === 'tcp_anomaly').length,
         uniqueIPs: new Set([...logs.map(l => l.src_ip), ...logs.map(l => l.dst_ip)]).size,
     }), [logs])
 
@@ -665,15 +719,60 @@ const Detection: NextPageWithLayout = () => {
                     )}
                 </AnimatePresence>
 
-                {/* Stats strip */}
-                <div className="grid grid-cols-4 lg:grid-cols-7 gap-3 mb-5">
+                {falsePositiveAlert && (
+                    <SuppressionDialog
+                        alert={falsePositiveAlert}
+                        alerts={logs}
+                        defaultScoreCap={suppressionList?.default_score_cap ?? falsePositiveAlert.ae_score * 2}
+                        onClose={() => setFalsePositiveAlert(null)}
+                        onCreated={(rule) => {
+                            setFalsePositiveAlert(null)
+                            showNotification(`Suppression rule #${rule.id} created; matching ML alerts stop from the next inference tick`, 'success')
+                            loadSuppressions()
+                        }}
+                        onError={(message) => showNotification(message, 'error')}
+                    />
+                )}
+
+                <div className="flex items-center gap-2 mb-4">
+                    <FilterButton isActive={view === 'alerts'} onClick={() => setView('alerts')}>
+                        <FontAwesomeIcon icon={faShieldAlt} className="mr-1" />
+                        Alerts
+                    </FilterButton>
+                    <FilterButton isActive={view === 'suppressions'} onClick={() => setView('suppressions')}>
+                        <FontAwesomeIcon icon={faBellSlash} className="mr-1" />
+                        Suppression rules
+                        {suppressionList && suppressionList.rules.length > 0 && (
+                            <span className="ml-1 opacity-70">({suppressionList.rules.length})</span>
+                        )}
+                    </FilterButton>
+                    <FilterButton isActive={view === 'threshold'} onClick={() => setView('threshold')}>
+                        <FontAwesomeIcon icon={faSlidersH} className="mr-1" />
+                        Threshold
+                    </FilterButton>
+                </div>
+
+                {view === 'threshold' ? (
+                    <ThresholdPanel />
+                ) : view === 'suppressions' ? (
+                    <SuppressionRules
+                        rules={suppressionList?.rules ?? []}
+                        isLoading={suppressionsLoading}
+                        error={suppressionsError}
+                        onRefresh={loadSuppressions}
+                        showNotification={showNotification}
+                    />
+                ) : (
+                <>
+                <div className="grid grid-cols-4 lg:grid-cols-8 gap-3 mb-5">
                     {[
-                        { label: 'Total',      value: stats.total,     icon: faList,                color: '#4ab5cc' },
+                        { label: 'Total',      value: stats.total,     icon: faList,                color: UI.accent },
                         { label: 'Critical',   value: stats.critical,  icon: faExclamationTriangle, color: '#ef4444' },
                         { label: 'High',       value: stats.high,      icon: faExclamationTriangle, color: '#f97316' },
                         { label: 'ML',         value: stats.ml,        icon: faRobot,               color: '#64748b' },
-                        { label: 'Rule',       value: stats.rule,      icon: faShieldAlt,           color: '#4ab5cc' },
+                        { label: 'Rule',       value: stats.rule,      icon: faShieldAlt,           color: UI.accent },
                         { label: 'Fusion',     value: stats.fusion,    icon: faShieldAlt,           color: '#14b8a6' },
+                        { label: 'TCP flags',  value: stats.tcpAnomaly, icon: faExclamationTriangle, color: '#b45309' },
                         { label: 'Unique IPs', value: stats.uniqueIPs, icon: faGlobe,               color: '#6366f1' },
                     ].map(({ label, value, icon, color }, i) => (
                         <motion.div
@@ -692,7 +791,6 @@ const Detection: NextPageWithLayout = () => {
                     ))}
                 </div>
 
-                {/* Compact controls + filter bar */}
                 <motion.div
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -700,7 +798,6 @@ const Detection: NextPageWithLayout = () => {
                         isDark ? 'bg-[#0e1e2c] border-slate-700/40' : 'bg-white border-slate-200'
                     }`}
                 >
-                    {/* Update interval */}
                     <div className="flex items-center gap-1.5">
                         <FontAwesomeIcon icon={faClock} className="text-[#4ab5cc] text-xs" />
                         <select
@@ -710,7 +807,7 @@ const Detection: NextPageWithLayout = () => {
                                 isDark ? 'bg-[#131929] border-slate-600 text-slate-300' : 'bg-white border-slate-300 text-slate-700'
                             }`}
                         >
-                            {UPDATE_INTERVALS.map(i => (
+                            {UI.updateIntervals.map(i => (
                                 <option key={i.value} value={i.value}>{i.label}</option>
                             ))}
                         </select>
@@ -730,7 +827,6 @@ const Detection: NextPageWithLayout = () => {
 
                     <div className={`w-px h-4 ${isDark ? 'bg-slate-700' : 'bg-slate-200'}`} />
 
-                    {/* Severity filters */}
                     <div className="flex items-center gap-1.5">
                         <span className={`text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Severity:</span>
                         <FilterButton isActive={severityFilter === 'all'} onClick={() => { setSeverityFilter('all'); setSelectedLogIndex(null) }}>All</FilterButton>
@@ -746,7 +842,6 @@ const Detection: NextPageWithLayout = () => {
 
                     <div className={`w-px h-4 ${isDark ? 'bg-slate-700' : 'bg-slate-200'}`} />
 
-                    {/* Source filters */}
                     <div className="flex items-center gap-1.5">
                         <span className={`text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Source:</span>
                         <FilterButton isActive={sourceFilter === 'all'} onClick={() => { setSourceFilter('all'); setSelectedLogIndex(null) }}>All</FilterButton>
@@ -756,6 +851,8 @@ const Detection: NextPageWithLayout = () => {
                                       activeClassName="bg-sky-600 text-white shadow-sm" activeHoverClassName="hover:bg-sky-700">Rule</FilterButton>
                         <FilterButton isActive={sourceFilter === 'fusion'} onClick={() => { setSourceFilter('fusion'); setSelectedLogIndex(null) }}
                                       activeClassName="bg-teal-600 text-white shadow-sm" activeHoverClassName="hover:bg-teal-700">Fusion</FilterButton>
+                        <FilterButton isActive={sourceFilter === 'tcp_anomaly'} onClick={() => { setSourceFilter('tcp_anomaly'); setSelectedLogIndex(null) }}
+                                      activeClassName="bg-amber-700 text-white shadow-sm" activeHoverClassName="hover:bg-amber-800">TCP flags</FilterButton>
                     </div>
 
                     {lastUpdateTime && (
@@ -765,7 +862,6 @@ const Detection: NextPageWithLayout = () => {
                     )}
                 </motion.div>
 
-                {/* Alert list + detail panel */}
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
                     <motion.div
                         initial={{ opacity: 0, x: -30 }}
@@ -824,10 +920,14 @@ const Detection: NextPageWithLayout = () => {
                                 log={filteredLogs[selectedLogIndex]}
                                 onClose={handleCloseDetails}
                                 showNotification={showNotification}
+                                onMarkFalsePositive={handleMarkFalsePositive}
+                                deviceByIp={deviceByIp}
                             />
                         </motion.div>
                     )}
                 </div>
+                </>
+                )}
         </>
     )
 }

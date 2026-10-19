@@ -8,3 +8,5 @@ export const getAuthHeaders = (): Record<string, string> => {
   if (!_token) return {};
   return { Authorization: `Bearer ${_token}` };
 };
+
+export const getAuthToken = (): string | null => _token;

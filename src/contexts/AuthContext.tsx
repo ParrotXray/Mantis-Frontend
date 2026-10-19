@@ -1,12 +1,15 @@
 import React, { createContext, useState, useCallback, useEffect, useContext } from 'react'
 import { useRouter } from 'next/router'
 import { setAuthToken } from '../utils/authStore'
-import { urls, TokenKey } from '../config'
+import { urls } from '../utils/apiManager'
+import { Config } from '../../config'
 
 export interface UserInfo {
   id: string
   username: string
   role: string
+  idle_timeout_secs?: number
+  expires_at?: number
 }
 
 interface AuthContextType {
@@ -44,7 +47,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true)
 
   const clearAuth = useCallback(() => {
-    localStorage.removeItem(TokenKey)
+    localStorage.removeItem(Config.tokenKey)
     setAuthToken(null)
     setToken(null)
     setUser(null)
@@ -69,7 +72,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, [])
 
   const issueToken = useCallback(async (rawToken: string) => {
-    localStorage.setItem(TokenKey, rawToken)
+    localStorage.setItem(Config.lastActivityKey, String(Date.now()))
+    localStorage.setItem(Config.tokenKey, rawToken)
     const valid = await applyToken(rawToken)
     if (!valid) throw new Error('Token validation failed')
   }, [applyToken])
@@ -87,10 +91,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           }
         }
       } catch {
-        // If status endpoint fails, assume initialized
       }
 
-      const stored = localStorage.getItem(TokenKey)
+      const stored = localStorage.getItem(Config.tokenKey)
       if (stored) {
         const valid = await applyToken(stored)
         if (!valid) clearAuth()
@@ -99,6 +102,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
     init()
   }, [])
+
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.key !== Config.tokenKey) return
+      if (e.newValue) {
+        applyToken(e.newValue).then(valid => { if (!valid) clearAuth() })
+      } else {
+        setAuthToken(null)
+        setToken(null)
+        setUser(null)
+      }
+    }
+    window.addEventListener('storage', onStorage)
+    return () => window.removeEventListener('storage', onStorage)
+  }, [applyToken, clearAuth])
 
   const login = useCallback(async (username: string, password: string) => {
     const res = await fetch(urls.auth.login, {

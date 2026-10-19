@@ -1,3 +1,5 @@
+import { GeoLocation } from './TrafficMapTypes';
+
 export interface ToggleButtonProps {
     isActive: boolean;
     onClick: () => void;
@@ -6,9 +8,9 @@ export interface ToggleButtonProps {
 }
 
 export interface TableHeaderProps {
-    column: { key: string; label: string };
-    sortConfig: { key: string | null; direction: string };
-    onSort: (key: string) => void;
+    column: { key: StatisticsSortKey; label: string };
+    sortConfig: SortConfig;
+    onSort: (key: StatisticsSortKey) => void;
 }
 
 export interface UpdateControlProps {
@@ -38,9 +40,9 @@ export interface ControlPanelProps {
 }
 
 export interface DataTableProps {
-    data: any[];
-    sortConfig: { key: string | null; direction: string };
-    handleSort: (key: string) => void;
+    data: StatisticsRow[];
+    sortConfig: SortConfig;
+    handleSort: (key: StatisticsSortKey) => void;
     bootTime: number | null;
 }
 
@@ -50,4 +52,18 @@ export interface NoDataStateProps {
 
 export interface StatsOverviewProps {
     data: any[];
+}
+export interface StatisticsRow {
+    ip: string;
+    bytes: number;
+    geo: GeoLocation | null;
+    packets: number;
+    last_seen: number;
+}
+
+export type StatisticsSortKey = keyof StatisticsRow;
+
+export interface SortConfig {
+    key: StatisticsSortKey | null;
+    direction: 'asc' | 'desc';
 }

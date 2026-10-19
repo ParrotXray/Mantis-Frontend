@@ -1,6 +1,6 @@
 import React from 'react'
 import Head from 'next/head'
-import { siteUrl } from '../config'
+import { siteUrl } from '../utils/apiManager'
 import Sidebar from './Sidebar'
 
 interface LayoutProps {

@@ -12,9 +12,10 @@ import {
     faPlay,
 } from '@fortawesome/free-solid-svg-icons'
 import { useTheme } from '../providers/ThemeProvider'
-import { websocketUrl } from '../config'
+import { websocketUrl } from '../utils/apiManager'
 import Layout from '../components/Layout'
 import { NextPageWithLayout } from '../types/NextPageWithLayout'
+import { withToken } from '../utils/connectionUtils'
 
 interface LogRecord {
     timestamp: string
@@ -55,7 +56,7 @@ const LogsPage: NextPageWithLayout = () => {
 
     useEffect(() => {
         const connect = () => {
-            const ws = new WebSocket(websocketUrl.logs)
+            const ws = new WebSocket(withToken(websocketUrl.logs))
             wsRef.current = ws
 
             ws.onopen = () => setIsConnected(true)
@@ -84,7 +85,6 @@ const LogsPage: NextPageWithLayout = () => {
         return () => wsRef.current?.close()
     }, [])
 
-    // Flush buffer when unpaused
     useEffect(() => {
         if (!isPaused && bufferRef.current.length > 0) {
             const buffered = bufferRef.current.splice(0)
@@ -95,7 +95,6 @@ const LogsPage: NextPageWithLayout = () => {
         }
     }, [isPaused])
 
-    // Auto-scroll to bottom
     useEffect(() => {
         if (autoScroll && !isPaused) {
             bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -132,7 +131,6 @@ const LogsPage: NextPageWithLayout = () => {
             <Head>
                 <title>Logs - Mantis</title>
             </Head>
-            {/* Compact controls + filter bar */}
                 <motion.div
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -140,7 +138,6 @@ const LogsPage: NextPageWithLayout = () => {
                         isDark ? 'bg-[#0e1e2c] border-slate-700/40' : 'bg-white border-slate-200'
                     }`}
                 >
-                    {/* Level filter tabs */}
                     <div className={`flex items-center gap-1 p-0.5 rounded-lg border ${
                         isDark ? 'bg-[#131929] border-slate-700/50' : 'bg-slate-50 border-slate-200'
                     }`}>
@@ -175,7 +172,6 @@ const LogsPage: NextPageWithLayout = () => {
                     </div>
 
                     <div className="flex items-center gap-2 ml-auto">
-                        {/* Live status */}
                         <div className="flex items-center gap-1.5">
                             <FontAwesomeIcon icon={faCircle} className={`text-[8px] ${isConnected ? 'text-green-400' : 'text-red-400'}`} />
                             <span className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
@@ -222,7 +218,6 @@ const LogsPage: NextPageWithLayout = () => {
                     </div>
                 </motion.div>
 
-                {/* Log list */}
                 <div className={`rounded-xl border overflow-hidden ${isDark ? 'bg-[#0b0f17] border-slate-700/50' : 'bg-slate-50 border-slate-200'}`}>
                     <div className="h-[calc(100vh-320px)] min-h-64 overflow-y-auto font-mono text-xs">
                         {filteredLogs.length === 0 ? (

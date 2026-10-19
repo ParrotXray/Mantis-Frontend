@@ -30,39 +30,21 @@ import {
     ControlPanelProps,
     DataTableProps,
     NoDataStateProps,
-    StatsOverviewProps
+    StatsOverviewProps,
+    SortConfig,
+    StatisticsRow,
+    StatisticsSortKey,
 } from '../types/StatisticsTypes';
+import { Format } from '../utils/format'
+import { UI } from '../constants/ui'
 
 const TIME_RANGES = ["1min", "10min", "1hour"];
-
-const UPDATE_INTERVALS = [
-    { label: "immediate", value: 0 },
-    { label: "1s", value: 1000 },
-    { label: "3s", value: 3000 },
-    { label: "5s", value: 5000 },
-    { label: "10s", value: 10000 }
-];
 
 const formatTimestamp = (timestamp: number | string, bootTime: number | null): string => {
     if (!timestamp || !bootTime) return "Loading...";
     const date = new Date((bootTime + Number(timestamp)) / 1e6);
-    date.setHours(date.getHours() + 8); // GMT+8
+    date.setHours(date.getHours() + 8);
     return date.toISOString().replace("T", " ").split(".")[0];
-};
-
-const formatBytes = (bytes: number): string => {
-    const units = ["B", "KB", "MB", "GB", "TB"];
-    if (bytes < 1024) return `${bytes} B`;
-
-    let i = 0;
-    let value = bytes;
-
-    while (value >= 1024 && i < units.length - 1) {
-        value /= 1024;
-        i++;
-    }
-
-    return `${value.toFixed(2)} ${units[i]}`;
 };
 
 const getIPSortValue = (ip: string, isIPv6: boolean): any => {
@@ -161,7 +143,7 @@ const UpdateControl: React.FC<UpdateControlProps> = ({
                     isDark ? 'bg-[#131929] border-slate-600 text-slate-300' : 'bg-white border-slate-300 text-slate-700'
                 }`}
             >
-                {UPDATE_INTERVALS.map(interval => (
+                {UI.updateIntervals.map(interval => (
                     <option key={interval.value} value={interval.value}>{interval.label}</option>
                 ))}
             </select>
@@ -213,7 +195,6 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
                 isDark ? 'bg-[#0e1e2c] border-slate-700/40' : 'bg-white border-slate-200'
             }`}
         >
-            {/* Update controls */}
             <UpdateControl
                 updateInterval={updateInterval}
                 setUpdateInterval={setUpdateInterval}
@@ -224,7 +205,6 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
 
             <div className={`w-px h-4 ${isDark ? 'bg-slate-700' : 'bg-slate-200'}`} />
 
-            {/* Search */}
             <div className="relative flex-1 min-w-40">
                 <FontAwesomeIcon icon={faSearch} className={`absolute left-2.5 top-1/2 -translate-y-1/2 text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`} />
                 <input
@@ -272,7 +252,7 @@ const DataTable: React.FC<DataTableProps> = ({ data, sortConfig, handleSort, boo
     const { actualTheme } = useTheme();
     const isDark = actualTheme === 'dark';
 
-    const columns = [
+    const columns: { key: StatisticsSortKey; label: string }[] = [
         { key: "ip", label: "IP Address" },
         { key: "geo", label: "Location" },
         { key: "bytes", label: "Bytes" },
@@ -338,7 +318,7 @@ const DataTable: React.FC<DataTableProps> = ({ data, sortConfig, handleSort, boo
                                 {formatGeoLocation(row.geo)}
                             </td>
                             <td className={`px-4 py-1.5 whitespace-nowrap text-sm ${isDark ? 'text-slate-300' : 'text-slate-800'}`}>
-                                {formatBytes(row.bytes)}
+                                {Format.bytes(row.bytes)}
                             </td>
                             <td className={`px-4 py-1.5 whitespace-nowrap text-sm ${isDark ? 'text-slate-300' : 'text-slate-800'}`}>
                                 {row.packets.toLocaleString()}
@@ -399,10 +379,8 @@ const StatsOverview: React.FC<StatsOverviewProps> = ({ data }) => {
     const uniqueIPs = new Set(
         data.map(item => {
             if (item.ip.includes('[') && item.ip.includes(']:')) {
-                // IPv6: [ip]:port -> ip
                 return item.ip.split(']:')[0] + ']';
             } else if (item.ip.includes(':') && !item.ip.includes('[')) {
-                // IPv4: ip:port -> ip
                 return item.ip.split(':').slice(0, -1).join(':');
             }
             return item.ip;
@@ -412,7 +390,7 @@ const StatsOverview: React.FC<StatsOverviewProps> = ({ data }) => {
     const stats = [
         {
             title: 'Total Traffic',
-            value: formatBytes(totalBytes),
+            value: Format.bytes(totalBytes),
             icon: faNetworkWired,
             color: 'bg-[#4ab5cc]'
         },
@@ -475,7 +453,7 @@ const Statistics: NextPageWithLayout = () => {
     const [trafficType, setTrafficType] = useState("source");
     const [direction, setDirection] = useState("ingress");
     const [timeRange, setTimeRange] = useState("1min");
-    const [sortConfig, setSortConfig] = useState({ key: null, direction: "desc" });
+    const [sortConfig, setSortConfig] = useState<SortConfig>({ key: null, direction: "desc" });
     const [searchTerm, setSearchTerm] = useState("");
     const [isLoading, setIsLoading] = useState(true);
     const [flowData, setFlowData] = useState<any>({});
@@ -604,7 +582,6 @@ const Statistics: NextPageWithLayout = () => {
             }
         });
 
-        // 清理函數：只取消訂閱，不關閉 WebSocket 連線
         return () => {
             console.log("Unsubscribing from Statistics WebSocket streams");
             subscription.unsubscribe();
@@ -633,7 +610,7 @@ const Statistics: NextPageWithLayout = () => {
                 setLastUpdateTime(new Date());
                 lastUpdateRef.current = now;
             }
-        }, Math.min(updateInterval / 4, 1000)); // 檢查頻率為更新間隔的 1/4，最少 1 秒
+        }, Math.min(updateInterval / 4, 1000));
 
         return () => clearInterval(intervalId);
     }, [updateInterval, isPaused]);
@@ -668,13 +645,13 @@ const Statistics: NextPageWithLayout = () => {
         }
 
         const sortedData = [...data].sort((a, b) => {
-            let valA = a[sortConfig.key as keyof typeof a];
-            let valB = b[sortConfig.key as keyof typeof b];
-
-            if (sortConfig.key === "ip") {
-                valA = getIPSortValue(valA as string, isIPv6);
-                valB = getIPSortValue(valB as string, isIPv6);
-            }
+            const key = sortConfig.key as StatisticsSortKey;
+            const sortValue = (row: StatisticsRow) =>
+                key === "ip" ? getIPSortValue(row.ip, isIPv6)
+                    : key === "geo" ? row.geo?.country_code ?? ""
+                        : row[key];
+            const valA = sortValue(a);
+            const valB = sortValue(b);
 
             if (valA < valB) {
                 return sortConfig.direction === "asc" ? -1 : 1;
@@ -698,8 +675,7 @@ const Statistics: NextPageWithLayout = () => {
         return searchTerm.trim() !== "" && parseCurrentData() !== null;
     }, [searchTerm, parseCurrentData]);
 
-
-    const handleSort = useCallback((key: string) => {
+    const handleSort = useCallback((key: StatisticsSortKey) => {
         setSortConfig(prevConfig => {
             const direction = prevConfig.key === key && prevConfig.direction === "asc" ? "desc" : "asc";
             return { key, direction };

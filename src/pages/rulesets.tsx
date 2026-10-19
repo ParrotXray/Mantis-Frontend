@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
+import { motion } from 'framer-motion'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
     faFileShield,
@@ -15,12 +16,11 @@ import {
 import { useTheme } from '../providers/ThemeProvider'
 import { useRestart } from '../providers/RestartProvider'
 import { getAuthHeaders } from '../utils/authStore'
-import { urls } from '../config'
+import { urls } from '../utils/apiManager'
 import Layout from '../components/Layout'
 import { NextPageWithLayout } from '../types/NextPageWithLayout'
 import { RuleFileSummary, RuleFileDetail, RuleLine } from '../types/RuleTypes'
-
-const ACCENT = '#4ab5cc'
+import { UI } from '../constants/ui'
 
 async function api<T = void>(url: string, init?: RequestInit): Promise<T> {
     const response = await fetch(url, {
@@ -54,7 +54,7 @@ const ToggleSwitch: React.FC<{ value: boolean; disabled?: boolean; isDark: boole
         disabled={disabled}
         onClick={() => onChange(!value)}
         className="relative w-9 h-5 rounded-full transition-colors flex-shrink-0 disabled:opacity-30"
-        style={{ background: value ? ACCENT : isDark ? '#334155' : '#cbd5e1' }}
+        style={{ background: value ? UI.accent : isDark ? '#334155' : '#cbd5e1' }}
     >
         <span className="absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all" style={{ left: value ? '18px' : '2px' }} />
     </button>
@@ -204,33 +204,37 @@ const RulesPage: NextPageWithLayout = () => {
     return (
         <div className="flex flex-col gap-4 h-full">
             {restartStatus === 'waiting' && (
-                <div className={`flex items-center gap-2 rounded-xl border px-4 py-3 text-sm ${isDark ? 'bg-sky-500/10 border-sky-500/30 text-sky-400' : 'bg-sky-50 border-sky-200 text-sky-600'}`}>
+                <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className={`flex items-center gap-2 rounded-xl border px-4 py-3 text-sm ${isDark ? 'bg-sky-500/10 border-sky-500/30 text-sky-400' : 'bg-sky-50 border-sky-200 text-sky-600'}`}>
                     <FontAwesomeIcon icon={faSpinner} spin />
                     Restarting Mantis... this may take a few seconds.
-                </div>
+                </motion.div>
             )}
             {restartStatus === 'error' && (
-                <div className={`flex items-center justify-between gap-2 rounded-xl border px-4 py-3 text-sm ${isDark ? 'bg-red-500/10 border-red-500/30 text-red-400' : 'bg-red-50 border-red-200 text-red-600'}`}>
+                <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className={`flex items-center justify-between gap-2 rounded-xl border px-4 py-3 text-sm ${isDark ? 'bg-red-500/10 border-red-500/30 text-red-400' : 'bg-red-50 border-red-200 text-red-600'}`}>
                     <span className="flex items-center gap-2"><FontAwesomeIcon icon={faExclamationTriangle} />{restartError}</span>
                     <button onClick={triggerRestart} className="underline flex-shrink-0">Try again</button>
-                </div>
+                </motion.div>
             )}
             {savedNotice && restartStatus === 'idle' && (
-                <div className={`flex items-center justify-between gap-2 rounded-xl border px-4 py-3 text-sm ${isDark ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' : 'bg-emerald-50 border-emerald-200 text-emerald-600'}`}>
+                <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className={`flex items-center justify-between gap-2 rounded-xl border px-4 py-3 text-sm ${isDark ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' : 'bg-emerald-50 border-emerald-200 text-emerald-600'}`}>
                     <span className="flex items-center gap-2"><FontAwesomeIcon icon={faCircleCheck} />Rule changes saved. Restart Mantis for Suricata to pick them up.</span>
                     <button
                         onClick={triggerRestart}
                         className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-white text-xs font-medium flex-shrink-0"
-                        style={{ background: ACCENT }}
+                        style={{ background: UI.accent }}
                     >
                         <FontAwesomeIcon icon={faPowerOff} />
                         Restart now
                     </button>
-                </div>
+                </motion.div>
             )}
 
             <div className="flex gap-4 flex-1 min-h-0">
-                <div className={`w-72 flex-shrink-0 flex flex-col rounded-xl border overflow-hidden ${isDark ? 'bg-[#0c1a24] border-slate-800' : 'bg-white border-slate-200'}`}>
+                <motion.div
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    className={`w-72 flex-shrink-0 flex flex-col rounded-xl border overflow-hidden ${isDark ? 'bg-[#0c1a24] border-slate-800' : 'bg-white border-slate-200'}`}
+                >
                     <div className={`p-3 border-b flex gap-2 ${isDark ? 'border-slate-800' : 'border-slate-200'}`}>
                         <input
                             type="text"
@@ -244,7 +248,7 @@ const RulesPage: NextPageWithLayout = () => {
                             onClick={handleCreate}
                             disabled={creating || !newFileName.trim()}
                             className="w-8 h-8 flex-shrink-0 flex items-center justify-center rounded-md text-white disabled:opacity-40"
-                            style={{ background: ACCENT }}
+                            style={{ background: UI.accent }}
                         >
                             <FontAwesomeIcon icon={creating ? faSpinner : faPlus} spin={creating} />
                         </button>
@@ -252,15 +256,18 @@ const RulesPage: NextPageWithLayout = () => {
 
                     <div className="flex-1 overflow-y-auto">
                         {loading ? (
-                            <div className="flex items-center justify-center py-8"><FontAwesomeIcon icon={faSpinner} spin style={{ color: ACCENT }} /></div>
+                            <div className="flex items-center justify-center py-8"><FontAwesomeIcon icon={faSpinner} spin style={{ color: UI.accent }} /></div>
                         ) : loadError ? (
                             <p className={`p-3 text-xs ${isDark ? 'text-red-400' : 'text-red-600'}`}>{loadError}</p>
                         ) : files.length === 0 ? (
                             <p className={`p-3 text-xs italic ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>No rule files yet.</p>
                         ) : (
-                            files.map((f) => (
-                                <button
+                            files.map((f, index) => (
+                                <motion.button
                                     key={f.filename}
+                                    initial={{ opacity: 0, x: -8 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    transition={{ delay: Math.min(index * 0.03, 0.5) }}
                                     onClick={() => handleSelect(f.filename)}
                                     className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-left border-b transition-colors ${isDark ? 'border-slate-800/60' : 'border-slate-100'} ${
                                         selected === f.filename ? (isDark ? 'bg-slate-800/60' : 'bg-slate-100') : (isDark ? 'hover:bg-slate-800/30' : 'hover:bg-slate-50')
@@ -269,7 +276,7 @@ const RulesPage: NextPageWithLayout = () => {
                                     <FontAwesomeIcon
                                         icon={f.enabled ? faFileShield : faFileCircleXmark}
                                         className="flex-shrink-0"
-                                        style={{ color: f.enabled ? ACCENT : isDark ? '#475569' : '#94a3b8' }}
+                                        style={{ color: f.enabled ? UI.accent : isDark ? '#475569' : '#94a3b8' }}
                                     />
                                     <div className="flex-1 min-w-0">
                                         <p className={`text-sm truncate ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>{f.filename}</p>
@@ -280,26 +287,37 @@ const RulesPage: NextPageWithLayout = () => {
                                     {!f.enabled && (
                                         <span className={`text-[10px] font-semibold uppercase flex-shrink-0 ${isDark ? 'text-slate-600' : 'text-slate-400'}`}>off</span>
                                     )}
-                                </button>
+                                </motion.button>
                             ))
                         )}
                     </div>
-                </div>
+                </motion.div>
 
-                <div className={`flex-1 min-w-0 flex flex-col rounded-xl border overflow-hidden ${isDark ? 'bg-[#0c1a24] border-slate-800' : 'bg-white border-slate-200'}`}>
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.1 }}
+                    className={`flex-1 min-w-0 flex flex-col rounded-xl border overflow-hidden ${isDark ? 'bg-[#0c1a24] border-slate-800' : 'bg-white border-slate-200'}`}
+                >
                     {!selected ? (
                         <div className={`flex-1 flex items-center justify-center text-sm ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
                             Select a rule file, or create a new one.
                         </div>
                     ) : detailLoading || !detail ? (
-                        <div className="flex-1 flex items-center justify-center"><FontAwesomeIcon icon={faSpinner} spin style={{ color: ACCENT }} /></div>
+                        <div className="flex-1 flex items-center justify-center"><FontAwesomeIcon icon={faSpinner} spin style={{ color: UI.accent }} /></div>
                     ) : (
-                        <>
+                        <motion.div
+                            key={detail.filename}
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ duration: 0.2 }}
+                            className="flex-1 min-h-0 flex flex-col"
+                        >
                             <div className={`flex items-center gap-2 px-4 py-3 border-b flex-wrap ${isDark ? 'border-slate-800' : 'border-slate-200'}`}>
                                 <h2 className={`text-sm font-semibold ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>{detail.filename}</h2>
                                 <span
                                     className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full"
-                                    style={{ background: detail.enabled ? 'rgba(74,181,204,0.15)' : isDark ? '#1e293b' : '#f1f5f9', color: detail.enabled ? ACCENT : isDark ? '#64748b' : '#94a3b8' }}
+                                    style={{ background: detail.enabled ? UI.accentDim : isDark ? '#1e293b' : '#f1f5f9', color: detail.enabled ? UI.accent : isDark ? '#64748b' : '#94a3b8' }}
                                 >
                                     {detail.enabled ? 'Enabled' : 'Disabled'}
                                 </span>
@@ -310,14 +328,14 @@ const RulesPage: NextPageWithLayout = () => {
                                     <button
                                         onClick={() => setViewMode('rules')}
                                         className="px-3 py-1.5 text-xs font-medium flex items-center gap-1.5"
-                                        style={viewMode === 'rules' ? { background: ACCENT, color: 'white' } : { color: isDark ? '#94a3b8' : '#64748b' }}
+                                        style={viewMode === 'rules' ? { background: UI.accent, color: 'white' } : { color: isDark ? '#94a3b8' : '#64748b' }}
                                     >
                                         <FontAwesomeIcon icon={faListCheck} /> Rules
                                     </button>
                                     <button
                                         onClick={() => setViewMode('raw')}
                                         className="px-3 py-1.5 text-xs font-medium flex items-center gap-1.5"
-                                        style={viewMode === 'raw' ? { background: ACCENT, color: 'white' } : { color: isDark ? '#94a3b8' : '#64748b' }}
+                                        style={viewMode === 'raw' ? { background: UI.accent, color: 'white' } : { color: isDark ? '#94a3b8' : '#64748b' }}
                                     >
                                         <FontAwesomeIcon icon={faCode} /> Raw
                                     </button>
@@ -368,8 +386,13 @@ const RulesPage: NextPageWithLayout = () => {
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {detail.rules.filter((r) => r.sid !== null).map((r) => (
-                                                <tr key={r.line_number} className={`border-t ${isDark ? 'border-slate-800/60' : 'border-slate-100'} ${!r.enabled ? 'opacity-50' : ''}`}>
+                                            {detail.rules.filter((r) => r.sid !== null).map((r, index) => (
+                                                <motion.tr
+                                                    key={r.line_number}
+                                                    initial={{ opacity: 0 }}
+                                                    animate={{ opacity: 1 }}
+                                                    transition={{ delay: Math.min(index * 0.01, 0.5) }}
+                                                    className={`border-t ${isDark ? 'border-slate-800/60' : 'border-slate-100'} ${!r.enabled ? 'opacity-50' : ''}`}>
                                                     <td className="px-4 py-2">
                                                         <ToggleSwitch
                                                             value={r.enabled}
@@ -383,7 +406,7 @@ const RulesPage: NextPageWithLayout = () => {
                                                     </td>
                                                     <td className={`px-2 py-2 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{r.action ?? ''}</td>
                                                     <td className={`px-2 py-2 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{r.proto ?? ''}</td>
-                                                </tr>
+                                                </motion.tr>
                                             ))}
                                             {detail.rules.filter((r) => r.sid !== null).length === 0 && (
                                                 <tr><td colSpan={5} className={`px-4 py-8 text-center text-xs italic ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>No rules in this file.</td></tr>
@@ -413,16 +436,16 @@ const RulesPage: NextPageWithLayout = () => {
                                         onClick={handleSaveRaw}
                                         disabled={!dirty || saving}
                                         className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white disabled:opacity-40"
-                                        style={{ background: ACCENT }}
+                                        style={{ background: UI.accent }}
                                     >
                                         {saving && <FontAwesomeIcon icon={faSpinner} spin />}
                                         Save
                                     </button>
                                 </div>
                             )}
-                        </>
+                        </motion.div>
                     )}
-                </div>
+                </motion.div>
             </div>
         </div>
     )

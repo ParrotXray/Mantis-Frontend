@@ -4,8 +4,11 @@ import { ThemeProvider } from '../providers/ThemeProvider'
 import { WebSocketProvider } from '../providers/WebSocketProvider'
 import { AccessControlProvider } from '../providers/AccessControlProvider'
 import { RestartProvider } from '../providers/RestartProvider'
+import { IsolationProvider } from '../providers/IsolationProvider'
+import { NotificationProvider } from '../providers/NotificationProvider'
 import { AuthProvider, RouteGuard } from '../contexts/AuthContext'
 import ErrorDialog from '../components/ErrorDialog'
+import SessionTimeout from '../components/SessionTimeout'
 import { NextPageWithLayout } from '../types/NextPageWithLayout'
 import '../styles/globals.css'
 
@@ -14,8 +17,6 @@ type AppPropsWithLayout = AppProps & {
 }
 
 export default function App({ Component, pageProps }: AppPropsWithLayout) {
-  // Pages provide their own getLayout so Sidebar/Layout mount once and
-  // persist across route changes instead of remounting on every navigation.
   const getLayout = Component.getLayout ?? ((page) => page)
 
   return (
@@ -26,11 +27,16 @@ export default function App({ Component, pageProps }: AppPropsWithLayout) {
             <WebSocketProvider>
               <AccessControlProvider>
                 <RestartProvider>
-                  {getLayout(<Component {...pageProps} />)}
+                  <IsolationProvider>
+                    <NotificationProvider>
+                      {getLayout(<Component {...pageProps} />)}
+                    </NotificationProvider>
+                  </IsolationProvider>
                 </RestartProvider>
               </AccessControlProvider>
             </WebSocketProvider>
           </RouteGuard>
+          <SessionTimeout />
         </AuthProvider>
       </ThemeProvider>
     </ErrorBoundary>

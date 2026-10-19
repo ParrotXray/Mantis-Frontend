@@ -1,6 +1,7 @@
 import React, { createContext, useState, useCallback, useMemo, useRef } from 'react'
 import { fetchData } from '../utils/connectionUtils'
-import { urls, NicType, FlowType, ListType, IpVersion } from '../config'
+import { urls } from '../utils/apiManager'
+import { NicType, FlowType, ListType, IpVersion } from '../types/AccessControlTypes'
 
 interface AccessControlItem {
     ip: string;

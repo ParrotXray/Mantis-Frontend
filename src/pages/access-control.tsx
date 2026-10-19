@@ -29,8 +29,10 @@ import { AccessControlContext } from '../providers/AccessControlProvider'
 import { useTheme } from '../providers/ThemeProvider'
 import { fetchData, fetchBlob, postCsvFile, putData, deleteData } from '../utils/connectionUtils'
 import { downloadBlob } from '../utils/download'
-import { urls, NicType, FlowType, ListType } from '../config'
+import { urls } from '../utils/apiManager'
+import { NicType, FlowType, ListType } from '../types/AccessControlTypes'
 import Layout from '../components/Layout'
+import NetworkIsolationCard from '../components/NetworkIsolationCard'
 import { NextPageWithLayout } from '../types/NextPageWithLayout'
 import {
     NotificationProps,
@@ -139,9 +141,6 @@ const ToggleButton: React.FC<ToggleButtonProps> = ({ isActive, onClick, children
     )
 }
 
-// Mirrors the sortable <th> used on the Statistics page (src/pages/statistics.tsx)
-// so both tables share the same look: uppercase label + sort icon, highlighted
-// when it's the active sort column.
 type SortDirection = 'asc' | 'desc'
 type SortKey = 'ip' | 'port' | 'note'
 
@@ -208,10 +207,6 @@ const FLOW_LABELS: Record<FlowType, string> = {
     destination: 'Destination',
 }
 
-// The mirrored bucket for a given (nic, flow) -- e.g. Egress/Destination's
-// mirror is Ingress/Source. Together they cover both legs of one
-// conversation (an outbound request and its inbound response), matching
-// the backend's `both_directions` flag.
 const mirrorNic = (n: NicType): NicType => (n === 'ingress' ? 'egress' : 'ingress')
 const mirrorFlow = (f: FlowType): FlowType => (f === 'source' ? 'destination' : 'source')
 
@@ -257,12 +252,6 @@ const AccessControl: NextPageWithLayout = () => {
 
     const closeNotification = useCallback(() => setNotification(null), [])
 
-    // Notes are informational-only remarks per IP (e.g. "Cloudflare edge for
-    // status.example.com") and live in their own backend store, separate
-    // from the rule list itself -- fetched alongside it, merged by IP for
-    // display. If the backend has no DB configured (auth disabled), the
-    // note endpoints error out; treat that the same as "no notes yet"
-    // rather than surfacing it as a failure.
     const fetchNotes = useCallback((isIPv6: boolean, listType: ListType, nic: NicType, flow: FlowType) => {
         const ipVersion = isIPv6 ? 'ipv6' as const : 'ipv4' as const
         const url = urls.access_control_note(nic, ipVersion, flow, listType)
@@ -335,9 +324,6 @@ const AccessControl: NextPageWithLayout = () => {
         }
     }, [isIPv6, listType, nic, flow, refreshData, fetchNotes, showNotification])
 
-    // Export/import cover every (nic, flow, list_type, ip_version) combination
-    // at once -- not just the currently viewed list -- since that's the
-    // natural unit for a backup/restore of the whole rule set.
     const handleExportClick = useCallback(() => {
         fetchBlob(
             urls.access_control_export,
@@ -409,8 +395,6 @@ const AccessControl: NextPageWithLayout = () => {
         }))
     }, [])
 
-    // Same numeric IPv4/IPv6 comparison as the Statistics page, so "IP Address"
-    // sorts by address value rather than lexicographically.
     const getIPSortValue = useCallback((ip: string): number | bigint | string => {
         if (isIPv6) {
             const expandIPv6 = (addr: string) => {
@@ -491,10 +475,6 @@ const AccessControl: NextPageWithLayout = () => {
         return !isNaN(portNum) && portNum >= 1 && portNum <= 65535
     }, [])
 
-    // Shared by the Add Rule modal (optional note alongside a new rule) and
-    // the standalone note-edit modal (updating/clearing a note on an
-    // existing entry). An empty trimmed value clears the note (DELETE)
-    // rather than persisting an empty string.
     const saveNote = useCallback((ip: string, note: string) => {
         const ipVersion = isIPv6 ? 'ipv6' as const : 'ipv4' as const
         const url = urls.access_control_note(nic, ipVersion, flow, listType)
@@ -661,7 +641,8 @@ const AccessControl: NextPageWithLayout = () => {
                     )}
                 </AnimatePresence>
 
-                {/* Stats strip */}
+                <NetworkIsolationCard showNotification={showNotification} />
+
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-5">
                     <StatsCard title="Unique IPs" value={stats.uniqueIPs} icon={faGlobe} color="bg-[#4ab5cc]" />
                     <StatsCard title="Total Rules" value={stats.totalEntries} icon={faNetworkWired} color="bg-green-500" />
@@ -669,7 +650,6 @@ const AccessControl: NextPageWithLayout = () => {
                     <StatsCard title="Specific Port Rules" value={stats.specificPortEntries} icon={faCheck} color="bg-orange-500" />
                 </div>
 
-                {/* Compact controls bar */}
                 <motion.div
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -677,7 +657,6 @@ const AccessControl: NextPageWithLayout = () => {
                         isDark ? 'bg-[#0e1e2c] border-slate-700/40' : 'bg-white border-slate-200'
                     }`}
                 >
-                    {/* Search */}
                     <div className="relative flex-1 min-w-40">
                         <FontAwesomeIcon icon={faSearch} className={`absolute left-2.5 top-1/2 -translate-y-1/2 text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`} />
                         <input
@@ -773,7 +752,6 @@ const AccessControl: NextPageWithLayout = () => {
                     </div>
                 </motion.div>
 
-                {/* Rules table */}
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}

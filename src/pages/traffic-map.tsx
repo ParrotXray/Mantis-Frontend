@@ -25,6 +25,7 @@ import {
     FlowDataRecord,
     FlowDataState
 } from "../types/TrafficMapTypes";
+import { Format } from '../utils/format'
 
 const INITIAL_MAP_CONFIG: MapConfig = {
     center: [0, 20],
@@ -38,21 +39,6 @@ const INITIAL_MAP_CONFIG: MapConfig = {
     dragRotate: false,
     pitchWithRotate: false,
     renderWorldCopies: false
-};
-
-const formatBytes = (bytes: number): string => {
-    const units = ['B', 'KB', 'MB', 'GB', 'TB'];
-    if (bytes < 1024) return `${bytes} B`;
-
-    let i = 0;
-    let value = bytes;
-
-    while (value >= 1024 && i < units.length - 1) {
-        value /= 1024;
-        i++;
-    }
-
-    return `${value.toFixed(2)} ${units[i]}`;
 };
 
 const ToggleButton: React.FC<{
@@ -270,7 +256,7 @@ const MapComponent: React.FC<{
                             bytes: point.bytes,
                             packets: point.packets,
                             type: point.type,
-                            traffic: formatBytes(point.bytes)
+                            traffic: Format.bytes(point.bytes)
                         }
                     }))
                 };
@@ -564,10 +550,8 @@ const TrafficMap: NextPageWithLayout = () => {
 
             let ip = ipPort;
             if (ipPort.includes('[') && ipPort.includes(']:')) {
-                // IPv6 格式: [ip]:port
                 ip = ipPort.split(']:')[0].replace('[', '') + ']';
             } else if (ipPort.includes(':')) {
-                // IPv4 格式: ip:port
                 const parts = ipPort.split(':');
                 ip = parts.slice(0, -1).join(':');
             }
@@ -622,7 +606,7 @@ const TrafficMap: NextPageWithLayout = () => {
         const uniqueRegions = new Set(mapPoints.map(point => point.regions)).size;
 
         return {
-            totalBytes: formatBytes(totalBytes),
+            totalBytes: Format.bytes(totalBytes),
             totalPackets: totalPackets.toLocaleString(),
             uniqueIPs: uniqueIPs.size,
             uniqueRegions

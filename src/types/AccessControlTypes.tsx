@@ -1,3 +1,8 @@
+export type NicType = 'ingress' | 'egress'
+export type FlowType = 'source' | 'destination'
+export type ListType = 'white_list' | 'black_list'
+export type IpVersion = 'ipv4' | 'ipv6'
+
 export interface NotificationProps {
     message: string
     type: 'success' | 'error' | 'warning' | 'info'

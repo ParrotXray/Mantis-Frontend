@@ -16,21 +16,32 @@ npm run start:https  # HTTPS production via custom server.js
 
 No test suite exists in this project.
 
+`tsconfig.json` has `strict: true`; `npx tsc --noEmit -p .` must pass (`npm run build` runs the same check).
+
 For HTTPS modes, SSL certificates must exist at `ssl/root.ca-bundle`, `ssl/server.crt`, and `ssl/server.key`.
 
 ## Architecture
 
 ### Backend connection
 
-All backend endpoints are configured in `src/config.ts`. The target host defaults to `192.168.1.3:8080`. Change `hostname` and `port` there to point at a different backend. All page-level API/WS URLs are derived from that single file.
+The backend target lives in the `Config` object in `config.ts` (repo root). The host defaults to `192.168.1.3:8080`; change `Config.hostname` and `Config.port` to point at a different backend. Every page-level API/WS URL is derived from it in `src/utils/apiManager.ts`.
 
 ### Data flow: WebSockets + RxJS
 
-`WebSocketProvider` (`src/providers/WebSocketProvider.tsx`) is the central hub. On mount it eagerly opens **all** WebSocket connections at once — 24 flow-stats streams (2 IP versions × 2 directions × 2 flow types × 3 time ranges) plus one system-health stream and one detection-alert stream. Each connection is wrapped in a RxJS `BehaviorSubject` and exposed as a shared observable via `getIPv4FlowStream()`, `getIPv6FlowStream()`, `getDetectionAlertStream()`, and `getSystemHealthStream()`.
+`WebSocketProvider` (`src/providers/WebSocketProvider.tsx`) is the central hub. Once a token exists (it reads `useAuth().token`) it eagerly opens **all** WebSocket connections at once — 24 flow-stats streams (2 IP versions × 2 directions × 2 flow types × 3 time ranges) plus one system-health stream, one detection-alert stream and one notification stream (27). Each connection is wrapped in a RxJS `BehaviorSubject` and exposed as a shared observable via `getIPv4FlowStream()`, `getIPv6FlowStream()`, `getDetectionAlertStream()`, `getSystemHealthStream()` and `getNotificationStream()`.
 
 Pages subscribe to the relevant streams using RxJS operators (`combineLatest`, `map`, `catchError`). Closing the provider unsubscribes observables but intentionally **does not close** the underlying WebSocket connections (they are shared).
 
-`bootTime` — fetched once via HTTP at startup and held in `WebSocketProvider` — is required for interpreting flow timestamps, which are nanoseconds since system boot. Pages read it via `useContext(WebsocketContext).bootTime`.
+It connects only with a token because `/login` and `/setup` also render inside it: without a token every socket
+is rejected, and the reconnect backoff (up to 30s) used to delay the post-login connect, so a first login showed
+fewer than all streams until a reload. A token change (login, logout) tears everything down and reconnects
+immediately with the new token. The connected count is the size of the set of currently open URLs, so sockets
+that close without ever opening cannot pull it below the real number; a socket replaced or torn down on purpose
+does not schedule a reconnect. On the first connect after login the provider renders a full-page spinner
+instead of its children until every stream is open and `bootTime` is loaded, capped at 10s so a partly down
+backend still lets the UI through; later disconnects do not bring the spinner back.
+
+`bootTime` — fetched via HTTP after login and held in `WebSocketProvider` — is required for interpreting flow timestamps, which are nanoseconds since system boot. Pages read it via `useContext(WebsocketContext).bootTime`.
 
 The `isPausedRef` pattern appears throughout: a `useRef` mirrors the `isPaused` state so that WS subscription callbacks can read the current pause state without the subscription itself being torn down and re-created on every pause toggle.
 
@@ -42,7 +53,9 @@ ErrorBoundary
     WebSocketProvider  → all WS streams + bootTime
       AccessControlProvider  → cached fetch layer for IP allow/block lists
         RestartProvider      → shared POST /system/restart trigger + poll status
-          getLayout(<Page>)  → per-page Layout wrapper, applied here so Sidebar persists
+          IsolationProvider  → network isolation state (15s poll)
+            NotificationProvider → notifications (WS push, 60s poll) + unseen alert count
+              getLayout(<Page>)  → per-page Layout wrapper, applied here so Sidebar persists
 ```
 
 ### Persistent layout (`getLayout`)
@@ -70,15 +83,61 @@ the innermost content differs; `getLayout` supplies the wrapper once, after the 
 
 Tailwind CSS v4. Dark/light mode is managed entirely through `ThemeProvider`; components read `isDark = actualTheme === 'dark'` and apply conditional class strings inline. There are no CSS modules.
 
+Every page animates its content in with framer-motion, in the same pattern: header blocks and banners fade
+down from `y: -10`, cards fade up from `y: 20` with a 0.1s stagger, and table rows / list items fade in with a
+`Math.min(index * 0.01, 0.5)` delay. Rows are keyed by a stable id, so a poll that refreshes the data does not
+replay the animation; only newly mounted rows (a pushed notification, a new device) animate. Content that
+swaps in place (a Settings tab, a selected rule file) is keyed or mounted per item, so the swap plays it too.
+
+### Session timeout
+
+`SessionTimeout` (`src/components/SessionTimeout.tsx`, mounted next to `RouteGuard` inside `AuthProvider`) signs
+the user out after the backend's idle timeout without keyboard, mouse, wheel, scroll or touch input, and when the
+JWT's own `exp` passes. The timeout is `idle_timeout_secs` from `GET /auth/me` (`[Config].session_idle_timeout_mins`,
+editable on the Settings page's General tab; 0 turns idle sign-out off); a backend without the field falls back to
+`IDLE_TIMEOUT_MS` (30 min, `config.ts`). WebSocket and polling traffic never count as activity. Before the idle
+sign-out (`IDLE_WARNING_MS`, 60s, or a quarter of a shorter timeout) it shows a "Still there?" dialog with a
+countdown; while it is up only its "Stay signed in" button keeps the session, so a stray mouse movement does not
+dismiss it unseen.
+
+The backend enforces the same timeout on its side: tokens are backed by server-side sessions, so a signed-out or
+idle token stops working, not only the page. Input is reported to `POST /auth/activity` at most every 30s (and at
+once on "Stay signed in"); the backend allows 60s of grace for that lag, so the browser always signs out first.
+Logout calls `POST /auth/logout`, which ends the session. Every 60s the component also calls `GET /auth/me`, which
+does not count as activity; a 401 there or from `/auth/activity` means the backend ended the session, and the
+browser signs out with the `revoked` reason.
+
+The idle clock is shared by every tab of the browser through `localStorage` (`LastActivityKey`, written at most
+every 5s), so working in one tab keeps the others signed in. It survives closing the browser: reopening after the
+timeout signs out on load. Login writes the current time first, so a stale value cannot bounce a fresh login.
+`AuthProvider` listens for `storage` events on the token key, so a logout (manual, idle or expired) or a login in
+one tab applies to the others too. The sign-out reason goes in `sessionStorage` (`LogoutReasonKey`) and the login
+page shows it once.
+
 ### Settings page
 
 `src/pages/settings.tsx` edits the backend's `config.toml` through `GET`/`PUT urls.config` (`/config`).
 It fetches the editable sections (`nic`, `cpu_affinity`, `ml`, general, `suricata`) plus a `risks` array of
-per-section warnings and `num_cpus`, tracks which sections the user touched in a `dirty` set, and on save
+per-section warnings, the available CPU cores (`cpus`) and the backend's field limits (`limits`, `ifname_max_len`), tracks which sections the user touched in a `dirty` set, and on save
 sends only those sections back as a partial `ConfigUpdate` (types in `src/types/ConfigTypes.tsx`). The
 backend never hot-reloads, so every successful save shows a "restart required" notice instead of assuming
-the change is live. The Suricata section is read-only when `config.suricata` is `null` (feature disabled in
-`config.toml`) — this page cannot enable/disable it, only edit an already-present section.
+the change is live. The Suricata section is always present: the backend requires it and always runs the rule engine.
+
+Limits are never copied into the UI: `limits` maps each numeric `section.key` (general keys have no section) to
+`{min, max, power_of_two}` from the backend's own Setting consts. `ConfigCheck` (`src/utils/configCheck.ts`) checks
+every value against them, plus the checks that are not plain ranges (interface names, distinct ingress / egress
+interfaces, `fill_queue_size` <= `frame_count`, every core of a CPU range in `cpus`, home_net CIDRs, target alerts
+min <= max), and the backend's `byte_caps` (UMEM total, each Suricata ring), shown on every field of the product. Field names are typed: `ConfigKey` (`src/types/ConfigTypes.tsx`) is derived from `ConfigView`, so it is exactly the set of
+`section.key` paths (general keys bare), and `ConfigValue<K>` is that field's type. Every key the page writes goes
+through it (`check(key)`, `errorOf(key)`, `ConfigCheck.at(view, key)`, which returns the key with its value), so a
+misspelled or renamed field fails `tsc` instead of silently matching nothing. Each `NumField` takes `{...check(key)}`, which sets the input's min / max, appends the range to its hint
+and shows the error in red in place of the hint. Save is disabled while a dirty section has an error, so only
+sections being saved block it; the backend still validates the whole config and its 400 is shown as before.
+
+`home_net` is a top-level config key (the protected network, used by the ML aggregator and as Suricata's
+HOME_NET), so it sits on the General tab and stays editable with Suricata disabled. The input keeps the raw
+comma-separated text and only splits it on save; re-parsing on every keystroke dropped the comma before the next
+entry could be typed.
 
 Sections are shown one at a time behind a tab bar (`TABS` / `activeTab`, not a scrolling stack); a tab
 gets a small dot when its section is in the `dirty` set. Save/Reload act across every dirty section
@@ -107,3 +166,88 @@ specifically because the provider only needs a liveness check, not the config pa
 page does its own `load()` separately once `useRestart().status` flips from `waiting` to `idle`. Gives up
 with an error after 30 attempts (~30s). `triggerRestart()` asks for a native `window.confirm()` first
 since the topbar button is reachable from every page, not just after a config save.
+
+### Alert sources
+
+The Detection page knows every backend `AlertSource`: `ml`, `rule`, `fusion` and `tcp_anomaly` (XDP TCP flag
+checks). `parseAlertData` drops an alert with an unknown source instead of filing it under `ml`, which used to show
+TCP anomaly alerts as ML ones, with a false-positive button that cannot apply to them.
+
+### Notifications
+
+`NotificationProvider` (`src/providers/NotificationProvider.tsx`, inside `IsolationProvider`) polls
+`GET /notifications/list` (`urls.notifications.list`, types in `src/types/NotificationTypes.tsx`) once logged in and
+every 60s after. New notifications arrive at once over `/notifications/websocket` (`getNotificationStream()`, merged by
+id since the stream replays its last message on subscribe); the poll keeps the read state in step with the account's
+other browsers and fills any gap. Read state is per account on the backend: the response carries `read_id` (highest id read; unread =
+higher ids) and `alerts_seen_at`, and `POST /notifications/read` (`urls.notifications.read`) advances them, so every
+browser the account uses agrees. Updates apply locally at once and the server only moves forward. The provider keeps
+the timestamps of attack alerts from the existing alert stream, and `newAlertCount` is those after
+`alerts_seen_at`: when another browser of the account opens Detection, this one's count clears at its next poll (up to 60s).
+While Detection is open, alerts count as seen, synced to the backend at most every 30s. Until the first response
+nothing is counted, since the stream replays its last alert on subscribe.
+
+`NotificationBell` (topbar, left of the restart button) shows a red dot when either count is non-zero. Its dropdown
+has an "N new threat alerts" row linking to Detection, the latest 8 notifications (unread tinted, with a dot, each
+linking to its `link`), Mark all read and View all. `src/pages/notifications.tsx` lists everything fetched, with
+filters by category (system, devices) and level (warning, critical). New devices are notifications, not threat
+alerts.
+
+### Devices
+
+`src/pages/devices.tsx` lists the backend's device inventory (`GET /devices/list`, `urls.devices`, types in
+`src/types/DeviceTypes.tsx`), polled every 30s: IP with an online dot (seen in the last 5 min) and a `new` badge
+(first seen in 24h), MAC, vendor or "Randomized MAC", first / last seen. Clicking a row opens a detail row with the
+full timestamps and every IP the MAC has used, most recent first (with a NAT hint when there are many). Columns sort on click, and the
+search matches IP, MAC (`-` or `:`) or vendor. A banner shows while the backend is still learning a fresh inventory.
+The API is `/devices/list`, not `/devices`, because the page itself lives at `/devices` on the same origin.
+The Detection page also loads the inventory (every 60s) to show the MAC and vendor of an alert's source or
+destination when it is a known internal device.
+
+### Suppression rules (false positives)
+
+The Detection page has two views behind a small tab bar: `Alerts` (the live stream) and `Suppression rules`.
+An ML alert's detail panel has a "Mark as false positive" button that opens `SuppressionDialog`
+(`src/components/SuppressionDialog.tsx`), which `POST`s to `urls.suppressions.list` (`/detection/suppressions`).
+The dialog prefills the alert's 5-tuple with the ephemeral source port unchecked, defaults the score cap to the
+backend's `default_score_cap` (p99.9) and the expiry to 30 days, requires a reason, and makes "Permanent"
+require an explicit confirm. It previews how many ML alerts currently in view the rule would have matched,
+using `src/utils/ipMatch.ts` for CIDR matching; the backend does the authoritative match.
+
+`SuppressionRules` (`src/components/SuppressionRules.tsx`) lists rules with hit counts and flags expired,
+expiring-soon (7 days) and unused (no hits for 14 days) rules; it extends a rule by 30 days via `PATCH` and
+soft-deletes via `DELETE`. This is deliberately separate from the Access Control whitelist: a whitelisted IP
+skips blocking, TCP anomaly checks, ML and Suricata entirely, while a suppression rule only hides matching ML
+alerts. The button is shown for `source === 'ml'` only.
+
+### ML threshold view
+
+The Detection page's third tab, `Threshold` (`src/components/ThresholdPanel.tsx`), polls `GET /detection/threshold`
+(`urls.detectionThreshold`) every 30s. It shows stat tiles (live threshold and nearest rung, baseline, allowed
+range, loosening budget, last decision), a step line of the live threshold with dashed baseline / floor reference
+lines (the ceiling only when the threshold gets within half of it, since it usually sits an order of magnitude
+above and would flatten the chart), a column chart of ML-only alerts per evaluation over the target band, and a
+table of recent evaluations as the table view. History starts at the backend's last restart.
+
+A decision counts as loosening or tightening only when the target rung differs from the rung nearest the
+starting value; the controller always eases toward its target, so small moves onto the current rung are shown
+as held. A window with network isolation on (`loosen_hold = network_isolated`) is shown as held and skipped,
+since the backend never moves the threshold for it. Reference lines are separate line series, not `markLine`: in
+ECharts 6 a `markLine` is not rendered once the y-axis has an explicit min/max.
+
+### Network isolation
+
+`IsolationProvider` (`src/providers/IsolationProvider.tsx`, inside `RestartProvider`) polls `GET /ebpf/isolation`
+(`urls.isolation.status`) every 15s once logged in, since isolation can be switched from another browser and
+survives a backend restart. While `enabled`, Sidebar renders a red full-width strip under the topbar on every page,
+linking to Access Control. `NetworkIsolationCard` at the top of the Access Control page shows the state (since,
+by whom) and toggles it via `POST /ebpf/isolation/enable` / `disable` after a `window.confirm()`. Isolation drops
+every packet on both monitored interfaces in XDP, independent of the whitelist and blacklist; the web UI is on a
+separate interface.
+
+### Conventions
+
+- No comments in source files.
+- Shared types go in `src/types/`, shared values in `src/constants/` (`UI`: accent colors, update intervals), shared
+  helpers in `src/utils/` as one exported object (`Format.bytes`, `Format.protocolName`). Do not copy a helper
+  or constant into a page; import it.

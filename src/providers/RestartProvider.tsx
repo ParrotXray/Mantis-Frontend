@@ -1,6 +1,6 @@
 import React, { createContext, useCallback, useContext, useRef, useState } from 'react'
 import { fetchData, postData } from '../utils/connectionUtils'
-import { urls } from '../config'
+import { urls } from '../utils/apiManager'
 
 export type RestartStatus = 'idle' | 'waiting' | 'error'
 
@@ -24,10 +24,6 @@ interface RestartProviderProps {
     children: React.ReactNode
 }
 
-// Mantis re-execs itself in place on restart (same PID), so the only
-// observable signal is the HTTP server dropping a request and then
-// answering again -- hence waiting for at least one failure before a
-// success counts as "back".
 export const RestartProvider: React.FC<RestartProviderProps> = ({ children }) => {
     const [status, setStatus] = useState<RestartStatus>('idle')
     const [error, setError] = useState<string | null>(null)

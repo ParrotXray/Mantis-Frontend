@@ -24,11 +24,16 @@ import {
     faSpinner,
     faDatabase,
     faFileShield,
+    faLaptop,
+    faBell,
 } from '@fortawesome/free-solid-svg-icons'
 import { useTheme } from '../providers/ThemeProvider'
 import { useAuth } from '../contexts/AuthContext'
 import { WebsocketContext } from '../providers/WebSocketProvider'
+import NotificationBell from './NotificationBell'
 import { useRestart } from '../providers/RestartProvider'
+import { UI } from '../constants/ui'
+import { useIsolation } from '../providers/IsolationProvider'
 
 type ThemeValue = 'light' | 'dark' | 'system'
 
@@ -53,6 +58,7 @@ const NAV_GROUPS = [
         items: [
             { href: '/access-control', icon: faShieldAlt,  label: 'Access Control' },
             { href: '/detection',      icon: faRobot,      label: 'Detection' },
+            { href: '/devices',        icon: faLaptop,     label: 'Devices' },
             { href: '/rulesets',          icon: faFileShield, label: 'Rules' },
         ],
     },
@@ -73,22 +79,13 @@ const PAGE_META: Record<string, { title: string; icon: any }> = {
     '/traffic-map':    { title: 'Traffic Map',        icon: faMapMarkedAlt },
     '/access-control': { title: 'Access Control',     icon: faShieldAlt },
     '/detection':      { title: 'Threat Detection',   icon: faRobot },
+    '/devices':        { title: 'Devices',            icon: faLaptop },
+    '/notifications':  { title: 'Notifications',      icon: faBell },
     '/rulesets':          { title: 'Suricata Rules',     icon: faFileShield },
     '/logs':           { title: 'System Logs',        icon: faScroll },
     '/resources':      { title: 'Resources',          icon: faDatabase },
     '/settings':       { title: 'Settings',           icon: faSliders },
 }
-
-// Logo palette
-// Sidebar bg:   #0c2130  (dark teal-navy, matches logo circle bg)
-// Accent:       #4ab5cc  (steel teal-blue, matches logo shield)
-// Accent hover: rgba(74,181,204,0.15)
-// Separator:    rgba(74,181,204,0.12)
-
-const ACCENT       = '#4ab5cc'
-const ACCENT_DIM   = 'rgba(74,181,204,0.15)'
-const SIDEBAR_BG   = '#0c2130'
-const SIDEBAR_CARD = '#0a1c28'
 
 interface SidebarProps {
     children: React.ReactNode
@@ -109,6 +106,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ children }) => {
     const { user, logout } = useAuth()
     const { wsConnectedCount } = useContext(WebsocketContext)
     const { status: restartStatus, triggerRestart } = useRestart()
+    const { status: isolation } = useIsolation()
     const [isCollapsed, setIsCollapsed] = useState(false)
     const [showThemePicker, setShowThemePicker] = useState(false)
     const [isMobile, setIsMobile] = useState(false)
@@ -124,7 +122,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ children }) => {
         return () => window.removeEventListener('resize', check)
     }, [])
 
-    // Close drawer when navigating on mobile
     useEffect(() => {
         if (isMobile) setIsMobileOpen(false)
     }, [router.pathname, isMobile])
@@ -151,7 +148,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ children }) => {
     return (
         <div className="flex min-h-screen" style={{ background: pageBg }}>
 
-            {/* ── Mobile backdrop ── */}
             <AnimatePresence>
                 {isMobile && isMobileOpen && (
                     <motion.div
@@ -166,14 +162,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ children }) => {
                 )}
             </AnimatePresence>
 
-            {/* ── Sidebar ── */}
             <motion.aside
                 className="fixed top-0 left-0 h-screen flex flex-col z-50 overflow-hidden"
-                style={{ background: SIDEBAR_BG }}
+                style={{ background: UI.sidebarBg }}
                 animate={sidebarAnimate}
                 transition={{ duration: 0.25, ease: 'easeInOut' }}
             >
-                {/* Logo */}
                 <div
                     className="flex items-center justify-between px-3 h-[52px] flex-shrink-0"
                     style={{ borderBottom: `1px solid rgba(74,181,204,0.14)` }}
@@ -197,7 +191,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ children }) => {
                                 isCollapsed ? 'mx-auto' : ''
                             }`}
                             style={{ color: 'rgba(74,181,204,0.6)' }}
-                            onMouseEnter={e => (e.currentTarget.style.color = ACCENT)}
+                            onMouseEnter={e => (e.currentTarget.style.color = UI.accent)}
                             onMouseLeave={e => (e.currentTarget.style.color = 'rgba(74,181,204,0.6)')}
                         >
                             <FontAwesomeIcon icon={faBars} className="text-sm" />
@@ -208,7 +202,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ children }) => {
                             onClick={() => setIsMobileOpen(false)}
                             className="w-8 h-8 flex items-center justify-center rounded-md transition-colors ml-auto"
                             style={{ color: 'rgba(74,181,204,0.6)' }}
-                            onMouseEnter={e => (e.currentTarget.style.color = ACCENT)}
+                            onMouseEnter={e => (e.currentTarget.style.color = UI.accent)}
                             onMouseLeave={e => (e.currentTarget.style.color = 'rgba(74,181,204,0.6)')}
                         >
                             <FontAwesomeIcon icon={faBars} className="text-sm" />
@@ -216,7 +210,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ children }) => {
                     )}
                 </div>
 
-                {/* Nav groups */}
                 <nav className="flex-1 py-2 overflow-y-auto overflow-x-hidden">
                     {NAV_GROUPS.map((group, gi) => (
                         <div key={group.label} className={gi > 0 ? 'mt-1' : ''}>
@@ -245,8 +238,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ children }) => {
                                                 (isCollapsed && !isMobile) ? 'w-10 h-10 justify-center' : 'px-3 py-2.5'
                                             }`}
                                             style={{
-                                                background: active ? ACCENT_DIM : 'transparent',
-                                                color: active ? ACCENT : 'rgba(148,163,184,0.7)',
+                                                background: active ? UI.accentDim : 'transparent',
+                                                color: active ? UI.accent : 'rgba(148,163,184,0.7)',
                                             }}
                                             onMouseEnter={e => {
                                                 if (!active) {
@@ -263,7 +256,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ children }) => {
                                         >
                                             {active && (!isCollapsed || isMobile) && (
                                                 <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 rounded-r-full"
-                                                    style={{ background: ACCENT }} />
+                                                    style={{ background: UI.accent }} />
                                             )}
                                             <span className="w-5 h-5 flex items-center justify-center flex-shrink-0">
                                                 <FontAwesomeIcon icon={item.icon} className="text-sm" />
@@ -286,7 +279,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ children }) => {
                     ))}
                 </nav>
 
-                {/* Bottom: user + theme */}
                 <div className="flex-shrink-0" style={{ borderTop: `1px solid rgba(74,181,204,0.12)` }}>
                     {(isCollapsed && !isMobile) ? (
                         <div className="flex flex-col items-center py-2 gap-1">
@@ -324,7 +316,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ children }) => {
                                         exit={{ opacity: 0, y: 6 }}
                                         transition={{ duration: 0.12 }}
                                         className="absolute bottom-full left-2 right-2 mb-1.5 rounded-xl shadow-2xl overflow-hidden z-50"
-                                        style={{ background: SIDEBAR_CARD, border: `1px solid rgba(74,181,204,0.15)` }}
+                                        style={{ background: UI.sidebarCard, border: `1px solid rgba(74,181,204,0.15)` }}
                                     >
                                         {THEME_OPTIONS.map((option) => (
                                             <button
@@ -332,8 +324,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ children }) => {
                                                 onClick={() => { setTheme(option.value); setShowThemePicker(false) }}
                                                 className="w-full px-4 py-2.5 flex items-center gap-3 text-sm transition-colors"
                                                 style={{
-                                                    background: theme === option.value ? ACCENT_DIM : 'transparent',
-                                                    color: theme === option.value ? ACCENT : 'rgba(148,163,184,0.7)',
+                                                    background: theme === option.value ? UI.accentDim : 'transparent',
+                                                    color: theme === option.value ? UI.accent : 'rgba(148,163,184,0.7)',
                                                 }}
                                                 onMouseEnter={e => { if (theme !== option.value) { e.currentTarget.style.background = 'rgba(74,181,204,0.07)'; e.currentTarget.style.color = '#cbd5e1' } }}
                                                 onMouseLeave={e => { if (theme !== option.value) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'rgba(148,163,184,0.7)' } }}
@@ -341,7 +333,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ children }) => {
                                                 <FontAwesomeIcon icon={option.icon} className="w-3.5" />
                                                 <span>{option.label}</span>
                                                 {theme === option.value && (
-                                                    <span className="ml-auto w-1.5 h-1.5 rounded-full" style={{ background: ACCENT }} />
+                                                    <span className="ml-auto w-1.5 h-1.5 rounded-full" style={{ background: UI.accent }} />
                                                 )}
                                             </button>
                                         ))}
@@ -353,12 +345,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ children }) => {
                                 <div className="fixed inset-0 z-40" onClick={() => setShowThemePicker(false)} />
                             )}
 
-                            {/* User */}
                             <div className="flex items-center gap-2.5 px-3 py-2.5"
                                 style={{ borderBottom: `1px solid rgba(74,181,204,0.1)` }}>
                                 <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
-                                    style={{ background: ACCENT_DIM }}>
-                                    <FontAwesomeIcon icon={faUser} className="text-xs" style={{ color: ACCENT }} />
+                                    style={{ background: UI.accentDim }}>
+                                    <FontAwesomeIcon icon={faUser} className="text-xs" style={{ color: UI.accent }} />
                                 </div>
                                 <div className="flex-1 min-w-0">
                                     <p className="text-sm font-semibold text-slate-200 truncate leading-none mb-0.5">
@@ -380,7 +371,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ children }) => {
                                 </button>
                             </div>
 
-                            {/* Theme */}
                             <button
                                 onClick={() => setShowThemePicker(!showThemePicker)}
                                 className="w-full flex items-center gap-2.5 px-3 py-2.5 transition-colors"
@@ -402,7 +392,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ children }) => {
                 </div>
             </motion.aside>
 
-            {/* ── Right column ── */}
             <div
                 className="flex-1 flex flex-col h-screen overflow-hidden"
                 style={{
@@ -410,7 +399,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ children }) => {
                     transition: 'margin-left 0.25s ease',
                 }}
             >
-                {/* Top bar */}
                 <header
                     className="sticky top-0 z-40 flex items-center justify-between px-4 lg:px-6 h-[52px] flex-shrink-0"
                     style={{
@@ -419,7 +407,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ children }) => {
                     }}
                 >
                     <div className="flex items-center gap-2.5">
-                        {/* Mobile hamburger */}
                         {isMobile && (
                             <button
                                 onClick={() => setIsMobileOpen(true)}
@@ -430,8 +417,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ children }) => {
                             </button>
                         )}
                         <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
-                            style={{ background: ACCENT_DIM }}>
-                            <FontAwesomeIcon icon={pageMeta.icon} className="text-xs" style={{ color: ACCENT }} />
+                            style={{ background: UI.accentDim }}>
+                            <FontAwesomeIcon icon={pageMeta.icon} className="text-xs" style={{ color: UI.accent }} />
                         </div>
                         <h1 className={`text-sm font-semibold tracking-tight ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
                             {pageMeta.title}
@@ -442,7 +429,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ children }) => {
                     </div>
 
                     <div className="flex items-center gap-4">
-                        {/* WS status */}
                         <div className="flex items-center gap-1.5">
                             <div className={`w-1.5 h-1.5 rounded-full ${
                                 wsConnectedCount > 0 ? 'bg-green-500 animate-pulse' : 'bg-red-500'
@@ -455,7 +441,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ children }) => {
                         <div className={`w-px h-3 ${isDark ? 'bg-slate-700' : 'bg-slate-300'}`} />
 
                         <div className={`flex items-center gap-1.5 text-xs tabular-nums font-mono ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
-                            <FontAwesomeIcon icon={faClock} style={{ color: ACCENT, opacity: 0.7 }} className="text-[10px]" />
+                            <FontAwesomeIcon icon={faClock} style={{ color: UI.accent, opacity: 0.7 }} className="text-[10px]" />
                             {now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                         </div>
                         <span className={`hidden sm:block text-xs ${isDark ? 'text-slate-600' : 'text-slate-400'}`}>
@@ -464,13 +450,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ children }) => {
 
                         <div className={`w-px h-3 ${isDark ? 'bg-slate-700' : 'bg-slate-300'}`} />
 
+                        <NotificationBell />
+
                         <button
                             onClick={triggerRestart}
                             disabled={restartStatus === 'waiting'}
                             title={restartStatus === 'error' ? 'Restart failed - click to retry' : 'Restart Mantis'}
                             className="w-7 h-7 flex items-center justify-center rounded-md transition-colors"
                             style={{ color: restartStatus === 'error' ? '#f87171' : 'rgba(74,181,204,0.6)' }}
-                            onMouseEnter={e => { if (restartStatus !== 'waiting') e.currentTarget.style.color = ACCENT }}
+                            onMouseEnter={e => { if (restartStatus !== 'waiting') e.currentTarget.style.color = UI.accent }}
                             onMouseLeave={e => { if (restartStatus !== 'error') e.currentTarget.style.color = 'rgba(74,181,204,0.6)' }}
                         >
                             <FontAwesomeIcon icon={restartStatus === 'waiting' ? faSpinner : faPowerOff} spin={restartStatus === 'waiting'} className="text-xs" />
@@ -478,7 +466,16 @@ export const Sidebar: React.FC<SidebarProps> = ({ children }) => {
                     </div>
                 </header>
 
-                {/* Content */}
+                {isolation?.enabled && (
+                    <Link
+                        href="/access-control"
+                        className="no-underline flex items-center justify-center gap-2 px-4 py-2 bg-red-600 text-white text-xs font-semibold"
+                    >
+                        NETWORK ISOLATED: all traffic on both interfaces is dropped
+                        {isolation.enabled_by ? ` (by ${isolation.enabled_by})` : ''}. Manage in Access Control.
+                    </Link>
+                )}
+
                 <section className="flex-1 overflow-y-auto p-6">
                     {children}
                 </section>
