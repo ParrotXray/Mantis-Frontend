@@ -1,11 +1,18 @@
-import { getAuthHeaders } from './authStore'
+import { getAuthHeaders, getAuthToken } from './authStore'
+
+export const withToken = (url: string): string => {
+  const token = getAuthToken()
+  if (!token) return url
+  const sep = url.includes('?') ? '&' : '?'
+  return `${url}${sep}token=${encodeURIComponent(token)}`
+}
 
 export const createWebSocket = (
-  url: string,
-  onMessage: (data: any) => void,
-  onError?: (error: Event) => void
+    url: string,
+    onMessage: (data: any) => void,
+    onError?: (error: Event) => void
 ): WebSocket => {
-  const ws = new WebSocket(url)
+  const ws = new WebSocket(withToken(url))
 
   ws.onmessage = (event) => {
     try {

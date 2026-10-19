@@ -20,7 +20,7 @@ import {
 import { WebsocketContext } from '../providers/WebSocketProvider'
 import { useTheme } from '../providers/ThemeProvider'
 import { putData } from '../utils/connectionUtils'
-import { urls, NicType } from '../config'
+import { urls, NicType } from '../utils/apiManager'
 import Layout from '../components/Layout'
 import LoadingSpinner from '../components/LoadingSpinner'
 import { NextPageWithLayout } from '../types/NextPageWithLayout'

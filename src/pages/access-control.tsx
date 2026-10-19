@@ -29,7 +29,7 @@ import { AccessControlContext } from '../providers/AccessControlProvider'
 import { useTheme } from '../providers/ThemeProvider'
 import { fetchData, fetchBlob, postCsvFile, putData, deleteData } from '../utils/connectionUtils'
 import { downloadBlob } from '../utils/download'
-import { urls, NicType, FlowType, ListType } from '../config'
+import { urls, NicType, FlowType, ListType } from '../utils/apiManager'
 import Layout from '../components/Layout'
 import { NextPageWithLayout } from '../types/NextPageWithLayout'
 import {

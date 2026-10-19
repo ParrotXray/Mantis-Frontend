@@ -1,11 +1,11 @@
-let httpProtocol = "http";
-let websocketProtocol = "ws";
-const hostname = "192.168.1.3";
-const port = 8080;
-export const host = `${hostname}:${port}`;
-export const siteUrl = `${httpProtocol}://${host}`
+import { websocketProtocol, httpProtocol, hostname, port } from '../../config'
 
-export const TokenKey = 'mantis_auth_token'
+
+export const host = process.env.NODE_ENV === "development" || typeof window === "undefined"
+    ? `${hostname}:${port}`
+    : window.location.host;
+
+export const siteUrl = `${httpProtocol}://${host}`
 
 export type NicType = 'ingress' | 'egress'
 export type FlowType = 'source' | 'destination'
@@ -74,5 +74,3 @@ export const websocketUrl = {
     detectionAlert: `${websocketProtocol}://${host}/detection/websocket/alert`,
     logs: `${websocketProtocol}://${host}/logs/websocket`,
 } as const;
-
-export const REFRESH_INTERVAL = 50000;

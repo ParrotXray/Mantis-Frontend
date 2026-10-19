@@ -1,5 +1,5 @@
 import React, { createContext, useState, useEffect, useRef, useCallback } from 'react'
-import { websocketUrl, urls } from '../config'
+import { websocketUrl, urls } from '../utils/apiManager'
 import { createWebSocket, fetchData } from '../utils/connectionUtils'
 import { BehaviorSubject } from 'rxjs'
 import { share } from 'rxjs/operators'

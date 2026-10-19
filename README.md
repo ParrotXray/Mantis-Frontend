@@ -32,7 +32,7 @@ For HTTPS modes, place certificates at `ssl/root.ca-bundle`, `ssl/server.crt`, a
 
 ## Configuration
 
-All backend endpoints are defined in [`src/config.ts`](src/config.ts). Change `hostname` and `port` there to point at a different backend — every page derives its API and WebSocket URLs from that single file.
+All backend endpoints are defined in [`src/config.ts`](config.ts). Change `hostname` and `port` there to point at a different backend — every page derives its API and WebSocket URLs from that single file.
 
 ```ts
 const hostname = "192.168.1.3";

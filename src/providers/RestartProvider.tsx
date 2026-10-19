@@ -1,6 +1,6 @@
 import React, { createContext, useCallback, useContext, useRef, useState } from 'react'
 import { fetchData, postData } from '../utils/connectionUtils'
-import { urls } from '../config'
+import { urls } from '../utils/apiManager'
 
 export type RestartStatus = 'idle' | 'waiting' | 'error'
 

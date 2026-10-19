@@ -16,7 +16,7 @@ import {
 import { useTheme } from '../providers/ThemeProvider'
 import { useRestart } from '../providers/RestartProvider'
 import { fetchData, putData } from '../utils/connectionUtils'
-import { urls } from '../config'
+import { urls } from '../utils/apiManager'
 import Layout from '../components/Layout'
 import { NextPageWithLayout } from '../types/NextPageWithLayout'
 import {

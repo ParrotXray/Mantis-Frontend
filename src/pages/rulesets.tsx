@@ -15,7 +15,7 @@ import {
 import { useTheme } from '../providers/ThemeProvider'
 import { useRestart } from '../providers/RestartProvider'
 import { getAuthHeaders } from '../utils/authStore'
-import { urls } from '../config'
+import { urls } from '../utils/apiManager'
 import Layout from '../components/Layout'
 import { NextPageWithLayout } from '../types/NextPageWithLayout'
 import { RuleFileSummary, RuleFileDetail, RuleLine } from '../types/RuleTypes'

@@ -12,9 +12,10 @@ import {
     faPlay,
 } from '@fortawesome/free-solid-svg-icons'
 import { useTheme } from '../providers/ThemeProvider'
-import { websocketUrl } from '../config'
+import { websocketUrl } from '../utils/apiManager'
 import Layout from '../components/Layout'
 import { NextPageWithLayout } from '../types/NextPageWithLayout'
+import { withToken } from '../utils/connectionUtils'
 
 interface LogRecord {
     timestamp: string
@@ -55,7 +56,7 @@ const LogsPage: NextPageWithLayout = () => {
 
     useEffect(() => {
         const connect = () => {
-            const ws = new WebSocket(websocketUrl.logs)
+            const ws = new WebSocket(withToken(websocketUrl.logs))
             wsRef.current = ws
 
             ws.onopen = () => setIsConnected(true)

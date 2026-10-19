@@ -12,7 +12,7 @@ import {
 import { useTheme } from '../providers/ThemeProvider'
 import { fetchBlob } from '../utils/connectionUtils'
 import { downloadBlob } from '../utils/download'
-import { urls } from '../config'
+import { urls } from '../utils/apiManager'
 import Layout from '../components/Layout'
 import { NextPageWithLayout } from '../types/NextPageWithLayout'
 

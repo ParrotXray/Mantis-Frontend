@@ -1,7 +1,8 @@
 import React, { createContext, useState, useCallback, useEffect, useContext } from 'react'
 import { useRouter } from 'next/router'
 import { setAuthToken } from '../utils/authStore'
-import { urls, TokenKey } from '../config'
+import { urls } from '../utils/apiManager'
+import { TokenKey } from '../../config'
 
 export interface UserInfo {
   id: string
