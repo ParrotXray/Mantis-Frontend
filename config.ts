@@ -5,4 +5,4 @@ export const port = 8080;
 
 export const TokenKey = 'mantis_auth_token'
 
-export const REFRESH_INTERVAL = 50000;
+// export const REFRESH_INTERVAL = 50000;
