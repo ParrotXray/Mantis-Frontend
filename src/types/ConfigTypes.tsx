@@ -37,6 +37,9 @@ export interface MLConfig {
     adaptive_target_alerts_min: number
     adaptive_target_alerts_max: number
     adaptive_max_lenient_method: string
+    adaptive_min_strict_method: string
+    adaptive_loosen_consecutive: number
+    adaptive_max_loosen_steps_per_day: number
 }
 
 export interface SuricataConfig {

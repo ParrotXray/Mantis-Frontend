@@ -575,14 +575,24 @@ const SettingsPage: NextPageWithLayout = () => {
                         description="Re-evaluation interval for the adaptive threshold"
                         onChange={(v) => { setMl({ ...ml, adaptive_recalibrate_secs: v }); markDirty('ml') }} />
                     <NumField label="Adaptive target alerts min" value={ml.adaptive_target_alerts_min} isDark={isDark}
-                        description="Below this per window, step stricter"
+                        description="Below this many ML-only alerts per window, step stricter"
                         onChange={(v) => { setMl({ ...ml, adaptive_target_alerts_min: v }); markDirty('ml') }} />
                     <NumField label="Adaptive target alerts max" value={ml.adaptive_target_alerts_max} isDark={isDark}
-                        description="Above this per window, step more lenient"
+                        description="Above this many ML-only alerts per window, step more lenient. Alerts corroborated by a Suricata rule are excluded, and any corroborated alert in the window blocks loosening"
                         onChange={(v) => { setMl({ ...ml, adaptive_target_alerts_max: v }); markDirty('ml') }} />
                     <TextField label="Adaptive max lenient method" value={ml.adaptive_max_lenient_method} isDark={isDark}
                         description="Most lenient rung allowed; empty disables loosening"
                         onChange={(v) => { setMl({ ...ml, adaptive_max_lenient_method: v }); markDirty('ml') }} />
+                    <TextField label="Adaptive min strict method" value={ml.adaptive_min_strict_method} isDark={isDark}
+                        description="Strictest rung allowed; empty disables tightening"
+                        onChange={(v) => { setMl({ ...ml, adaptive_min_strict_method: v }); markDirty('ml') }} />
+                    <NumField label="Adaptive loosen consecutive" value={ml.adaptive_loosen_consecutive} isDark={isDark}
+                        hint="At least 1"
+                        description="Consecutive over-target windows required before each loosening step. Tightening is never delayed"
+                        onChange={(v) => { setMl({ ...ml, adaptive_loosen_consecutive: v }); markDirty('ml') }} />
+                    <NumField label="Adaptive max loosen steps / day" value={ml.adaptive_max_loosen_steps_per_day} isDark={isDark}
+                        description="Loosening steps allowed in any rolling 24h window; 0 disables loosening. Guards against slow baseline poisoning"
+                        onChange={(v) => { setMl({ ...ml, adaptive_max_loosen_steps_per_day: v }); markDirty('ml') }} />
                 </SectionCard>
                 )}
 
