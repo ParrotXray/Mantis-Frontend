@@ -26,11 +26,20 @@ All backend endpoints are configured in `src/config.ts`. The target host default
 
 ### Data flow: WebSockets + RxJS
 
-`WebSocketProvider` (`src/providers/WebSocketProvider.tsx`) is the central hub. On mount it eagerly opens **all** WebSocket connections at once — 24 flow-stats streams (2 IP versions × 2 directions × 2 flow types × 3 time ranges) plus one system-health stream and one detection-alert stream. Each connection is wrapped in a RxJS `BehaviorSubject` and exposed as a shared observable via `getIPv4FlowStream()`, `getIPv6FlowStream()`, `getDetectionAlertStream()`, and `getSystemHealthStream()`.
+`WebSocketProvider` (`src/providers/WebSocketProvider.tsx`) is the central hub. Once a token exists (it reads `useAuth().token`) it eagerly opens **all** WebSocket connections at once — 24 flow-stats streams (2 IP versions × 2 directions × 2 flow types × 3 time ranges) plus one system-health stream and one detection-alert stream. Each connection is wrapped in a RxJS `BehaviorSubject` and exposed as a shared observable via `getIPv4FlowStream()`, `getIPv6FlowStream()`, `getDetectionAlertStream()`, and `getSystemHealthStream()`.
 
 Pages subscribe to the relevant streams using RxJS operators (`combineLatest`, `map`, `catchError`). Closing the provider unsubscribes observables but intentionally **does not close** the underlying WebSocket connections (they are shared).
 
-`bootTime` — fetched once via HTTP at startup and held in `WebSocketProvider` — is required for interpreting flow timestamps, which are nanoseconds since system boot. Pages read it via `useContext(WebsocketContext).bootTime`.
+It connects only with a token because `/login` and `/setup` also render inside it: without a token every socket
+is rejected, and the reconnect backoff (up to 30s) used to delay the post-login connect, so a first login showed
+fewer than 26 streams until a reload. A token change (login, logout) tears everything down and reconnects
+immediately with the new token. The connected count is the size of the set of currently open URLs, so sockets
+that close without ever opening cannot pull it below the real number; a socket replaced or torn down on purpose
+does not schedule a reconnect. On the first connect after login the provider renders a full-page spinner
+instead of its children until all 26 streams are open and `bootTime` is loaded, capped at 10s so a partly down
+backend still lets the UI through; later disconnects do not bring the spinner back.
+
+`bootTime` — fetched via HTTP after login and held in `WebSocketProvider` — is required for interpreting flow timestamps, which are nanoseconds since system boot. Pages read it via `useContext(WebsocketContext).bootTime`.
 
 The `isPausedRef` pattern appears throughout: a `useRef` mirrors the `isPaused` state so that WS subscription callbacks can read the current pause state without the subscription itself being torn down and re-created on every pause toggle.
 
@@ -107,3 +116,33 @@ specifically because the provider only needs a liveness check, not the config pa
 page does its own `load()` separately once `useRestart().status` flips from `waiting` to `idle`. Gives up
 with an error after 30 attempts (~30s). `triggerRestart()` asks for a native `window.confirm()` first
 since the topbar button is reachable from every page, not just after a config save.
+
+### Suppression rules (false positives)
+
+The Detection page has two views behind a small tab bar: `Alerts` (the live stream) and `Suppression rules`.
+An ML alert's detail panel has a "Mark as false positive" button that opens `SuppressionDialog`
+(`src/components/SuppressionDialog.tsx`), which `POST`s to `urls.suppressions.list` (`/detection/suppressions`).
+The dialog prefills the alert's 5-tuple with the ephemeral source port unchecked, defaults the score cap to the
+backend's `default_score_cap` (p99.9) and the expiry to 30 days, requires a reason, and makes "Permanent"
+require an explicit confirm. It previews how many ML alerts currently in view the rule would have matched,
+using `src/utils/ipMatch.ts` for CIDR matching; the backend does the authoritative match.
+
+`SuppressionRules` (`src/components/SuppressionRules.tsx`) lists rules with hit counts and flags expired,
+expiring-soon (7 days) and unused (no hits for 14 days) rules; it extends a rule by 30 days via `PATCH` and
+soft-deletes via `DELETE`. This is deliberately separate from the Access Control whitelist: a whitelisted IP
+skips blocking, TCP anomaly checks, ML and Suricata entirely, while a suppression rule only hides matching ML
+alerts. The button is shown for `source === 'ml'` only.
+
+### ML threshold view
+
+The Detection page's third tab, `Threshold` (`src/components/ThresholdPanel.tsx`), polls `GET /detection/threshold`
+(`urls.detectionThreshold`) every 30s. It shows stat tiles (live threshold and nearest rung, baseline, allowed
+range, loosening budget, last decision), a step line of the live threshold with dashed baseline / floor reference
+lines (the ceiling only when the threshold gets within half of it, since it usually sits an order of magnitude
+above and would flatten the chart), a column chart of ML-only alerts per evaluation over the target band, and a
+table of recent evaluations as the table view. History starts at the backend's last restart.
+
+A decision counts as loosening or tightening only when the target rung differs from the rung nearest the
+starting value; the controller always eases toward its target, so small moves onto the current rung are shown
+as held. Reference lines are separate line series, not `markLine`: in ECharts 6 a `markLine` is not rendered once
+the y-axis has an explicit min/max.

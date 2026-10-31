@@ -16,14 +16,20 @@ import {
     faList,
     faPause,
     faPlay,
+    faBellSlash,
+    faSlidersH,
 } from '@fortawesome/free-solid-svg-icons'
 import { WebsocketContext } from '../providers/WebSocketProvider'
 import { useTheme } from '../providers/ThemeProvider'
-import { putData } from '../utils/connectionUtils'
+import { fetchData, putData } from '../utils/connectionUtils'
 import { urls, NicType } from '../utils/apiManager'
 import Layout from '../components/Layout'
 import LoadingSpinner from '../components/LoadingSpinner'
+import SuppressionDialog from '../components/SuppressionDialog'
+import SuppressionRules from '../components/SuppressionRules'
+import ThresholdPanel from '../components/ThresholdPanel'
 import { NextPageWithLayout } from '../types/NextPageWithLayout'
+import { SuppressionList } from '../types/SuppressionTypes'
 
 type AlertSource = 'ml' | 'rule' | 'fusion'
 type AlertSeverity = 'high' | 'critical'
@@ -66,7 +72,10 @@ interface AlertDetailsProps {
     log: UnifiedAlert
     onClose: () => void
     showNotification: (message: string, type: 'success' | 'error' | 'warning' | 'info') => void
+    onMarkFalsePositive: (log: UnifiedAlert) => void
 }
+
+type DetectionView = 'alerts' | 'suppressions' | 'threshold'
 
 interface AlertItemProps {
     log: UnifiedAlert
@@ -184,7 +193,7 @@ const Notification: React.FC<NotificationProps> = ({ message, type, onClose }) =
     )
 }
 
-const AlertDetails: React.FC<AlertDetailsProps> = ({ log, onClose, showNotification }) => {
+const AlertDetails: React.FC<AlertDetailsProps> = ({ log, onClose, showNotification, onMarkFalsePositive }) => {
     const { actualTheme } = useTheme()
     const isDark = actualTheme === 'dark'
     const priorityInfo = SEVERITY_CONFIG[log.severity]
@@ -334,6 +343,26 @@ const AlertDetails: React.FC<AlertDetailsProps> = ({ log, onClose, showNotificat
                                         </span>
                                     </div>
                                 ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* False positive -- ML only: fusion is already rule-corroborated, and
+                        Suricata matches have their own suppress list in config.toml. */}
+                    {log.source === 'ml' && (
+                        <div>
+                            <span className={`text-xs font-semibold uppercase tracking-wider ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>False Positive</span>
+                            <div className={`mt-2 rounded-lg border p-3 ${isDark ? 'bg-[#131929] border-slate-700/40' : 'bg-slate-50 border-slate-200'}`}>
+                                <p className={`text-xs mb-2 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+                                    Stops ML alerts for this kind of traffic only. Unlike Allow, blocking and Suricata keep working.
+                                </p>
+                                <button
+                                    onClick={() => onMarkFalsePositive(log)}
+                                    className={`w-full px-2 py-1.5 rounded-lg text-xs font-medium transition-colors border ${isDark ? 'bg-[#4ab5cc]/10 border-[#4ab5cc]/30 text-[#4ab5cc] hover:bg-[#4ab5cc]/20' : 'bg-cyan-50 border-cyan-200 text-cyan-700 hover:bg-cyan-100'}`}
+                                >
+                                    <FontAwesomeIcon icon={faBellSlash} className="mr-1 text-[10px]" />
+                                    Mark as false positive
+                                </button>
                             </div>
                         </div>
                     )}
@@ -551,6 +580,11 @@ const Detection: NextPageWithLayout = () => {
     const [isPaused, setIsPaused] = useState(false)
     const [updateInterval, setUpdateInterval] = useState(0)
     const [lastUpdateTime, setLastUpdateTime] = useState<Date | null>(null)
+    const [view, setView] = useState<DetectionView>('alerts')
+    const [falsePositiveAlert, setFalsePositiveAlert] = useState<UnifiedAlert | null>(null)
+    const [suppressionList, setSuppressionList] = useState<SuppressionList | null>(null)
+    const [suppressionsLoading, setSuppressionsLoading] = useState(false)
+    const [suppressionsError, setSuppressionsError] = useState<string | null>(null)
 
     const bufferRef = useRef<UnifiedAlert[]>([])
     const updateIntervalRef = useRef<number>(updateInterval)
@@ -564,6 +598,33 @@ const Detection: NextPageWithLayout = () => {
     }, [])
 
     const closeNotification = useCallback(() => setNotification(null), [])
+
+    const loadSuppressions = useCallback(() => {
+        setSuppressionsLoading(true)
+        fetchData(
+            urls.suppressions.list,
+            (text) => {
+                try {
+                    setSuppressionList(JSON.parse(text) as SuppressionList)
+                    setSuppressionsError(null)
+                } catch {
+                    setSuppressionsError('Unexpected response from the backend')
+                }
+                setSuppressionsLoading(false)
+            },
+            (error) => {
+                setSuppressionsError(`Failed to load suppression rules: ${error?.message ?? 'unknown error'}`)
+                setSuppressionsLoading(false)
+            },
+        )
+    }, [])
+
+    // Loaded up front as well, since the false-positive dialog needs the
+    // backend's default score cap.
+    useEffect(() => { loadSuppressions() }, [loadSuppressions])
+    useEffect(() => { if (view === 'suppressions') loadSuppressions() }, [view, loadSuppressions])
+
+    const handleMarkFalsePositive = useCallback((log: UnifiedAlert) => setFalsePositiveAlert(log), [])
 
     const flushBuffer = useCallback(() => {
         if (bufferRef.current.length === 0) return
@@ -665,6 +726,52 @@ const Detection: NextPageWithLayout = () => {
                     )}
                 </AnimatePresence>
 
+                {falsePositiveAlert && (
+                    <SuppressionDialog
+                        alert={falsePositiveAlert}
+                        alerts={logs}
+                        defaultScoreCap={suppressionList?.default_score_cap ?? falsePositiveAlert.ae_score * 2}
+                        onClose={() => setFalsePositiveAlert(null)}
+                        onCreated={(rule) => {
+                            setFalsePositiveAlert(null)
+                            showNotification(`Suppression rule #${rule.id} created; matching ML alerts stop from the next inference tick`, 'success')
+                            loadSuppressions()
+                        }}
+                        onError={(message) => showNotification(message, 'error')}
+                    />
+                )}
+
+                {/* View tabs */}
+                <div className="flex items-center gap-2 mb-4">
+                    <FilterButton isActive={view === 'alerts'} onClick={() => setView('alerts')}>
+                        <FontAwesomeIcon icon={faShieldAlt} className="mr-1" />
+                        Alerts
+                    </FilterButton>
+                    <FilterButton isActive={view === 'suppressions'} onClick={() => setView('suppressions')}>
+                        <FontAwesomeIcon icon={faBellSlash} className="mr-1" />
+                        Suppression rules
+                        {suppressionList && suppressionList.rules.length > 0 && (
+                            <span className="ml-1 opacity-70">({suppressionList.rules.length})</span>
+                        )}
+                    </FilterButton>
+                    <FilterButton isActive={view === 'threshold'} onClick={() => setView('threshold')}>
+                        <FontAwesomeIcon icon={faSlidersH} className="mr-1" />
+                        Threshold
+                    </FilterButton>
+                </div>
+
+                {view === 'threshold' ? (
+                    <ThresholdPanel />
+                ) : view === 'suppressions' ? (
+                    <SuppressionRules
+                        rules={suppressionList?.rules ?? []}
+                        isLoading={suppressionsLoading}
+                        error={suppressionsError}
+                        onRefresh={loadSuppressions}
+                        showNotification={showNotification}
+                    />
+                ) : (
+                <>
                 {/* Stats strip */}
                 <div className="grid grid-cols-4 lg:grid-cols-7 gap-3 mb-5">
                     {[
@@ -824,10 +931,13 @@ const Detection: NextPageWithLayout = () => {
                                 log={filteredLogs[selectedLogIndex]}
                                 onClose={handleCloseDetails}
                                 showNotification={showNotification}
+                                onMarkFalsePositive={handleMarkFalsePositive}
                             />
                         </motion.div>
                     )}
                 </div>
+                </>
+                )}
         </>
     )
 }

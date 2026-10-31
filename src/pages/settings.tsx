@@ -578,7 +578,7 @@ const SettingsPage: NextPageWithLayout = () => {
                         description="Below this many ML-only alerts per window, step stricter"
                         onChange={(v) => { setMl({ ...ml, adaptive_target_alerts_min: v }); markDirty('ml') }} />
                     <NumField label="Adaptive target alerts max" value={ml.adaptive_target_alerts_max} isDark={isDark}
-                        description="Above this many ML-only alerts per window, step more lenient. Alerts corroborated by a Suricata rule are excluded, and any corroborated alert in the window blocks loosening"
+                        description="Above this many ML-only alerts per window, step more lenient. Only alerts scoring just above the threshold count. Any Suricata-corroborated alert or FLOOD / SCAN / TARGETED verdict in the window blocks loosening"
                         onChange={(v) => { setMl({ ...ml, adaptive_target_alerts_max: v }); markDirty('ml') }} />
                     <TextField label="Adaptive max lenient method" value={ml.adaptive_max_lenient_method} isDark={isDark}
                         description="Most lenient rung allowed; empty disables loosening"
