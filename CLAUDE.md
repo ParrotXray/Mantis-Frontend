@@ -123,3 +123,17 @@ expiring-soon (7 days) and unused (no hits for 14 days) rules; it extends a rule
 soft-deletes via `DELETE`. This is deliberately separate from the Access Control whitelist: a whitelisted IP
 skips blocking, TCP anomaly checks, ML and Suricata entirely, while a suppression rule only hides matching ML
 alerts. The button is shown for `source === 'ml'` only.
+
+### ML threshold view
+
+The Detection page's third tab, `Threshold` (`src/components/ThresholdPanel.tsx`), polls `GET /detection/threshold`
+(`urls.detectionThreshold`) every 30s. It shows stat tiles (live threshold and nearest rung, baseline, allowed
+range, loosening budget, last decision), a step line of the live threshold with dashed baseline / floor reference
+lines (the ceiling only when the threshold gets within half of it, since it usually sits an order of magnitude
+above and would flatten the chart), a column chart of ML-only alerts per evaluation over the target band, and a
+table of recent evaluations as the table view. History starts at the backend's last restart.
+
+A decision counts as loosening or tightening only when the target rung differs from the rung nearest the
+starting value; the controller always eases toward its target, so small moves onto the current rung are shown
+as held. Reference lines are separate line series, not `markLine`: in ECharts 6 a `markLine` is not rendered once
+the y-axis has an explicit min/max.

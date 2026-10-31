@@ -17,6 +17,7 @@ import {
     faPause,
     faPlay,
     faBellSlash,
+    faSlidersH,
 } from '@fortawesome/free-solid-svg-icons'
 import { WebsocketContext } from '../providers/WebSocketProvider'
 import { useTheme } from '../providers/ThemeProvider'
@@ -26,6 +27,7 @@ import Layout from '../components/Layout'
 import LoadingSpinner from '../components/LoadingSpinner'
 import SuppressionDialog from '../components/SuppressionDialog'
 import SuppressionRules from '../components/SuppressionRules'
+import ThresholdPanel from '../components/ThresholdPanel'
 import { NextPageWithLayout } from '../types/NextPageWithLayout'
 import { SuppressionList } from '../types/SuppressionTypes'
 
@@ -73,7 +75,7 @@ interface AlertDetailsProps {
     onMarkFalsePositive: (log: UnifiedAlert) => void
 }
 
-type DetectionView = 'alerts' | 'suppressions'
+type DetectionView = 'alerts' | 'suppressions' | 'threshold'
 
 interface AlertItemProps {
     log: UnifiedAlert
@@ -752,9 +754,15 @@ const Detection: NextPageWithLayout = () => {
                             <span className="ml-1 opacity-70">({suppressionList.rules.length})</span>
                         )}
                     </FilterButton>
+                    <FilterButton isActive={view === 'threshold'} onClick={() => setView('threshold')}>
+                        <FontAwesomeIcon icon={faSlidersH} className="mr-1" />
+                        Threshold
+                    </FilterButton>
                 </div>
 
-                {view === 'suppressions' ? (
+                {view === 'threshold' ? (
+                    <ThresholdPanel />
+                ) : view === 'suppressions' ? (
                     <SuppressionRules
                         rules={suppressionList?.rules ?? []}
                         isLoading={suppressionsLoading}
