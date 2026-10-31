@@ -276,7 +276,9 @@ const SettingsPage: NextPageWithLayout = () => {
     const [risks, setRisks] = useState<RiskNote[]>([])
     const [numCpus, setNumCpus] = useState(1)
 
-    const [general, setGeneral] = useState({ http_server_bind_port: 8080, refresh_interval: 5 })
+    // home_net is kept as the raw text and split on save, so typing a comma
+    // to start the next entry is not undone by a re-parse.
+    const [general, setGeneral] = useState({ http_server_bind_port: 8080, refresh_interval: 5, home_net: '' })
     const [nic, setNic] = useState<NICConfig | null>(null)
     const [cpuAffinity, setCpuAffinity] = useState<CPUAffinityConfig | null>(null)
     const [ml, setMl] = useState<MLConfig | null>(null)
@@ -306,6 +308,7 @@ const SettingsPage: NextPageWithLayout = () => {
                 setGeneral({
                     http_server_bind_port: parsed.config.http_server_bind_port,
                     refresh_interval: parsed.config.refresh_interval,
+                    home_net: (parsed.config.home_net ?? []).join(', '),
                 })
                 setNic(parsed.config.nic)
                 setCpuAffinity(parsed.config.cpu_affinity)
@@ -345,6 +348,7 @@ const SettingsPage: NextPageWithLayout = () => {
         if (dirty.has('general')) {
             body.http_server_bind_port = general.http_server_bind_port
             body.refresh_interval = general.refresh_interval
+            body.home_net = general.home_net.split(',').map((s) => s.trim()).filter(Boolean)
         }
         if (dirty.has('nic')) body.nic = nic
         if (dirty.has('cpu_affinity')) body.cpu_affinity = cpuAffinity
@@ -466,6 +470,18 @@ const SettingsPage: NextPageWithLayout = () => {
                         description="Statistics refresh interval, in seconds"
                         onChange={(v) => { setGeneral((g) => ({ ...g, refresh_interval: v })); markDirty('general') }}
                     />
+                    <Field label="Home net (comma-separated CIDRs)" isDark={isDark}
+                        hint="Required while Suricata is enabled"
+                        description="The protected network. The ML aggregator applies source-level FLOOD / SCAN and TARGETED only to flows into it, and Suricata uses it as HOME_NET. Applies with Suricata disabled too.">
+                        <input type="text" className={inputClass(isDark)}
+                            value={general.home_net}
+                            placeholder="140.130.34.0/24"
+                            onChange={(e) => {
+                                const home_net = e.target.value
+                                setGeneral((g) => ({ ...g, home_net }))
+                                markDirty('general')
+                            }} />
+                    </Field>
                 </SectionCard>
                 )}
 
@@ -607,16 +623,6 @@ const SettingsPage: NextPageWithLayout = () => {
                 >
                     {suricata && (
                         <>
-                            <Field label="Home net (comma-separated CIDRs)" isDark={isDark}
-                                description="Suricata's HOME_NET address group, as CIDR ranges">
-                                <input type="text" className={inputClass(isDark)}
-                                    value={suricata.home_net.join(', ')}
-                                    onChange={(e) => {
-                                        const home_net = e.target.value.split(',').map((s) => s.trim()).filter(Boolean)
-                                        setSuricata({ ...suricata, home_net })
-                                        markDirty('suricata')
-                                    }} />
-                            </Field>
                             <Field label={`Worker core range (0-${numCpus - 1})`} isDark={isDark}
                                 description="Suricata worker threads, core range [start, end]">
                                 <div className="flex items-center gap-2">

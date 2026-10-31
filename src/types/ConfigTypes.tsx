@@ -43,7 +43,6 @@ export interface MLConfig {
 }
 
 export interface SuricataConfig {
-    home_net: string[]
     worker_cpu_set: [number, number] | null
     management_cpu: number | null
     capture_ring_slots: number
@@ -62,6 +61,8 @@ export interface RiskNote {
 export interface ConfigView {
     http_server_bind_port: number
     refresh_interval: number
+    // Protected network; used by the ML aggregator and as Suricata's HOME_NET.
+    home_net: string[]
     nic: NICConfig
     cpu_affinity: CPUAffinityConfig
     ml: MLConfig
@@ -79,6 +80,7 @@ export type ConfigSection = 'general' | 'nic' | 'cpu_affinity' | 'ml' | 'suricat
 export interface ConfigUpdate {
     http_server_bind_port?: number
     refresh_interval?: number
+    home_net?: string[]
     nic?: NICConfig
     cpu_affinity?: CPUAffinityConfig
     ml?: MLConfig
