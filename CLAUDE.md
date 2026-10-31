@@ -146,13 +146,3 @@ A decision counts as loosening or tightening only when the target rung differs f
 starting value; the controller always eases toward its target, so small moves onto the current rung are shown
 as held. Reference lines are separate line series, not `markLine`: in ECharts 6 a `markLine` is not rendered once
 the y-axis has an explicit min/max.
-
-### Host isolation
-
-An alert's detail panel has an "Isolate host" button under each IP (source and destination). After a
-`window.confirm()` it blacklists `ip:0` (all ports) with two both-directions `PUT`s to `urls.access_control`:
-`ingress/source` (mirrored to `egress/destination`) and `egress/source` (mirrored to `ingress/destination`), so every
-packet to or from the IP is dropped on both NICs whether the host is internal or external. XDP is stateless, so
-this also drops replies to the host's own connections: it is full isolation, not a one-way rule. A partial failure
-(e.g. the IP is whitelisted on one side) is reported as such. Release is done on the Access Control page by
-removing the IP from those blacklists.
