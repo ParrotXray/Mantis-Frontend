@@ -24,6 +24,7 @@ const HOLD_TEXT: Record<LoosenHold, string> = {
     awaiting_streak: 'waiting for consecutive over-target windows',
     daily_budget: 'daily loosening budget used',
     at_ceiling: 'already at the most lenient rung',
+    network_isolated: 'network isolation was on, window skipped',
 }
 
 type Decision = 'Loosened' | 'Tightened' | 'Held'

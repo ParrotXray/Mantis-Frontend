@@ -13,6 +13,7 @@ export type LoosenHold =
     | 'awaiting_streak'
     | 'daily_budget'
     | 'at_ceiling'
+    | 'network_isolated'
 
 export interface ThresholdEvaluation {
     // Unix seconds.
