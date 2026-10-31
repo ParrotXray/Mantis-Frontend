@@ -50,6 +50,11 @@ export const urls = {
         return `${httpProtocol}://${host}/detection/export${query ? `?${query}` : ''}`
     },
 
+    suppressions: {
+        list: `${httpProtocol}://${host}/detection/suppressions`,
+        item: (id: number) => `${httpProtocol}://${host}/detection/suppressions/${id}`,
+    },
+
     config: `${httpProtocol}://${host}/config`,
     systemRestart: `${httpProtocol}://${host}/system/restart`,
     healthStatus: `${httpProtocol}://${host}/health/status`,

@@ -150,6 +150,35 @@ export const putData = async (
   }
 }
 
+export const patchData = async (
+  url: string,
+  payload: any,
+  onSuccess?: (data?: any) => void,
+  onError?: (error: Error) => void
+): Promise<void> => {
+  try {
+    const response = await fetch(url, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        ...getAuthHeaders(),
+      },
+      body: JSON.stringify(payload),
+    })
+
+    if (!response.ok) throw new Error(`HTTP Error: ${response.status}`)
+
+    const contentType = response.headers.get("Content-Type")
+    const isJsonResponse = contentType && contentType.includes("application/json")
+    const data = isJsonResponse ? await response.json() : null
+
+    if (onSuccess) onSuccess(data)
+  } catch (error) {
+    console.error(`Failed to send PATCH request to URL: ${url}`, error)
+    if (onError) onError(error as Error)
+  }
+}
+
 export const deleteData = async (
   url: string,
   data: any,

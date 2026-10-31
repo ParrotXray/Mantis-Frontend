@@ -107,3 +107,19 @@ specifically because the provider only needs a liveness check, not the config pa
 page does its own `load()` separately once `useRestart().status` flips from `waiting` to `idle`. Gives up
 with an error after 30 attempts (~30s). `triggerRestart()` asks for a native `window.confirm()` first
 since the topbar button is reachable from every page, not just after a config save.
+
+### Suppression rules (false positives)
+
+The Detection page has two views behind a small tab bar: `Alerts` (the live stream) and `Suppression rules`.
+An ML alert's detail panel has a "Mark as false positive" button that opens `SuppressionDialog`
+(`src/components/SuppressionDialog.tsx`), which `POST`s to `urls.suppressions.list` (`/detection/suppressions`).
+The dialog prefills the alert's 5-tuple with the ephemeral source port unchecked, defaults the score cap to the
+backend's `default_score_cap` (p99.9) and the expiry to 30 days, requires a reason, and makes "Permanent"
+require an explicit confirm. It previews how many ML alerts currently in view the rule would have matched,
+using `src/utils/ipMatch.ts` for CIDR matching; the backend does the authoritative match.
+
+`SuppressionRules` (`src/components/SuppressionRules.tsx`) lists rules with hit counts and flags expired,
+expiring-soon (7 days) and unused (no hits for 14 days) rules; it extends a rule by 30 days via `PATCH` and
+soft-deletes via `DELETE`. This is deliberately separate from the Access Control whitelist: a whitelisted IP
+skips blocking, TCP anomaly checks, ML and Suricata entirely, while a suppression rule only hides matching ML
+alerts. The button is shown for `source === 'ml'` only.
