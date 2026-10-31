@@ -89,6 +89,11 @@ backend never hot-reloads, so every successful save shows a "restart required" n
 the change is live. The Suricata section is read-only when `config.suricata` is `null` (feature disabled in
 `config.toml`) — this page cannot enable/disable it, only edit an already-present section.
 
+`home_net` is a top-level config key (the protected network, used by the ML aggregator and as Suricata's
+HOME_NET), so it sits on the General tab and stays editable with Suricata disabled. The input keeps the raw
+comma-separated text and only splits it on save; re-parsing on every keystroke dropped the comma before the next
+entry could be typed.
+
 Sections are shown one at a time behind a tab bar (`TABS` / `activeTab`, not a scrolling stack); a tab
 gets a small dot when its section is in the `dirty` set. Save/Reload act across every dirty section
 regardless of which tab is active, since `dirty` tracks all of them, not just the visible one.
