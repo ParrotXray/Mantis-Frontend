@@ -18,6 +18,7 @@ import {
     faPlay,
     faBellSlash,
     faSlidersH,
+    faBan,
 } from '@fortawesome/free-solid-svg-icons'
 import { WebsocketContext } from '../providers/WebSocketProvider'
 import { useTheme } from '../providers/ThemeProvider'
@@ -255,6 +256,44 @@ const AlertDetails: React.FC<AlertDetailsProps> = ({ log, onClose, showNotificat
         )
     }, [isIPv6Source, isIPv6Dest, nic, nicLabel, applyBothDirections, mirrorNote, showNotification])
 
+    // Drops every packet to or from the IP, on every port and both NICs,
+    // whether it is one of ours or external. Two both-directions writes cover
+    // all four (nic, flow) blacklists: ingress/source + its mirror
+    // egress/destination, and egress/source + its mirror ingress/destination.
+    // XDP is stateless, so this also cuts replies to the host's own
+    // connections: it is full isolation, not a one-way firewall rule.
+    const handleIsolateHost = useCallback(async (ip: string) => {
+        const confirmed = window.confirm(
+            `Isolate ${ip}?\n\n` +
+            'Every packet to or from this IP, on all ports and both interfaces, will be dropped until it is ' +
+            'removed from the blacklists on the Access Control page.\n\n' +
+            'If this is the machine you use to reach Mantis, you may lose access.',
+        )
+        if (!confirmed) return
+
+        const ipv6 = ip.includes(':') && !ip.includes('.')
+        const body = `${ipv6 ? `[${ip}]` : ip}:0`
+        const ipVersion = ipv6 ? 'ipv6' as const : 'ipv4' as const
+        const write = (writeNic: NicType) => new Promise<string | null>(resolve => {
+            putData(
+                urls.access_control(writeNic, ipVersion, 'source', 'black_list', true),
+                body,
+                () => resolve(null),
+                (error) => resolve(error.message),
+            )
+        })
+        const [ingressErr, egressErr] = await Promise.all([write('ingress'), write('egress')])
+
+        if (!ingressErr && !egressErr) {
+            showNotification(`${ip} isolated: all traffic to and from it is now blocked`, 'success')
+        } else if (ingressErr && egressErr) {
+            showNotification(`Failed to isolate ${ip}: ${ingressErr} (an IP on a whitelist must be removed from it first)`, 'error')
+        } else {
+            const failed = ingressErr ? 'ingress source / egress destination' : 'egress source / ingress destination'
+            showNotification(`${ip} only partly isolated; ${failed} failed: ${ingressErr ?? egressErr}`, 'warning')
+        }
+    }, [showNotification])
+
     return (
         <AnimatePresence>
             <motion.div
@@ -459,6 +498,14 @@ const AlertDetails: React.FC<AlertDetailsProps> = ({ log, onClose, showNotificat
                                             Allow All
                                         </button>
                                     </div>
+                                    <button
+                                        className={`mt-1.5 w-full px-2 py-1.5 rounded-lg text-xs font-semibold transition-colors ${isDark ? 'bg-red-600/80 text-white hover:bg-red-600' : 'bg-red-600 text-white hover:bg-red-700'}`}
+                                        onClick={() => handleIsolateHost(ip)}
+                                        title="Block all traffic to and from this IP, every port, both interfaces"
+                                    >
+                                        <FontAwesomeIcon icon={faBan} className="mr-1 text-[10px]" />
+                                        Isolate host
+                                    </button>
                                 </div>
                             ))}
                         </div>
