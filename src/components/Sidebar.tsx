@@ -29,6 +29,7 @@ import { useTheme } from '../providers/ThemeProvider'
 import { useAuth } from '../contexts/AuthContext'
 import { WebsocketContext } from '../providers/WebSocketProvider'
 import { useRestart } from '../providers/RestartProvider'
+import { useIsolation } from '../providers/IsolationProvider'
 
 type ThemeValue = 'light' | 'dark' | 'system'
 
@@ -109,6 +110,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ children }) => {
     const { user, logout } = useAuth()
     const { wsConnectedCount } = useContext(WebsocketContext)
     const { status: restartStatus, triggerRestart } = useRestart()
+    const { status: isolation } = useIsolation()
     const [isCollapsed, setIsCollapsed] = useState(false)
     const [showThemePicker, setShowThemePicker] = useState(false)
     const [isMobile, setIsMobile] = useState(false)
@@ -477,6 +479,18 @@ export const Sidebar: React.FC<SidebarProps> = ({ children }) => {
                         </button>
                     </div>
                 </header>
+
+                {/* Network isolation is drastic and survives restarts, so it is
+                    flagged on every page, not just where it is toggled. */}
+                {isolation?.enabled && (
+                    <Link
+                        href="/access-control"
+                        className="no-underline flex items-center justify-center gap-2 px-4 py-2 bg-red-600 text-white text-xs font-semibold"
+                    >
+                        NETWORK ISOLATED: all traffic on both interfaces is dropped
+                        {isolation.enabled_by ? ` (by ${isolation.enabled_by})` : ''}. Manage in Access Control.
+                    </Link>
+                )}
 
                 {/* Content */}
                 <section className="flex-1 overflow-y-auto p-6">

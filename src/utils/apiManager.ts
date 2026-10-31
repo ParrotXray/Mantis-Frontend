@@ -50,6 +50,12 @@ export const urls = {
         return `${httpProtocol}://${host}/detection/export${query ? `?${query}` : ''}`
     },
 
+    isolation: {
+        status: `${httpProtocol}://${host}/ebpf/isolation`,
+        enable: `${httpProtocol}://${host}/ebpf/isolation/enable`,
+        disable: `${httpProtocol}://${host}/ebpf/isolation/disable`,
+    },
+
     detectionThreshold: `${httpProtocol}://${host}/detection/threshold`,
 
     suppressions: {

@@ -31,6 +31,7 @@ import { fetchData, fetchBlob, postCsvFile, putData, deleteData } from '../utils
 import { downloadBlob } from '../utils/download'
 import { urls, NicType, FlowType, ListType } from '../utils/apiManager'
 import Layout from '../components/Layout'
+import NetworkIsolationCard from '../components/NetworkIsolationCard'
 import { NextPageWithLayout } from '../types/NextPageWithLayout'
 import {
     NotificationProps,
@@ -660,6 +661,8 @@ const AccessControl: NextPageWithLayout = () => {
                     <Notification message={notification.message} type={notification.type} onClose={closeNotification} />
                     )}
                 </AnimatePresence>
+
+                <NetworkIsolationCard showNotification={showNotification} />
 
                 {/* Stats strip */}
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-5">

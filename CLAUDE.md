@@ -146,3 +146,13 @@ A decision counts as loosening or tightening only when the target rung differs f
 starting value; the controller always eases toward its target, so small moves onto the current rung are shown
 as held. Reference lines are separate line series, not `markLine`: in ECharts 6 a `markLine` is not rendered once
 the y-axis has an explicit min/max.
+
+### Network isolation
+
+`IsolationProvider` (`src/providers/IsolationProvider.tsx`, inside `RestartProvider`) polls `GET /ebpf/isolation`
+(`urls.isolation.status`) every 15s once logged in, since isolation can be switched from another browser and
+survives a backend restart. While `enabled`, Sidebar renders a red full-width strip under the topbar on every page,
+linking to Access Control. `NetworkIsolationCard` at the top of the Access Control page shows the state (since,
+by whom) and toggles it via `POST /ebpf/isolation/enable` / `disable` after a `window.confirm()`. Isolation drops
+every packet on both monitored interfaces in XDP, independent of the whitelist and blacklist; the web UI is on a
+separate interface.
