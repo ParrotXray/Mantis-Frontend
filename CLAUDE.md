@@ -26,11 +26,20 @@ All backend endpoints are configured in `src/config.ts`. The target host default
 
 ### Data flow: WebSockets + RxJS
 
-`WebSocketProvider` (`src/providers/WebSocketProvider.tsx`) is the central hub. On mount it eagerly opens **all** WebSocket connections at once — 24 flow-stats streams (2 IP versions × 2 directions × 2 flow types × 3 time ranges) plus one system-health stream and one detection-alert stream. Each connection is wrapped in a RxJS `BehaviorSubject` and exposed as a shared observable via `getIPv4FlowStream()`, `getIPv6FlowStream()`, `getDetectionAlertStream()`, and `getSystemHealthStream()`.
+`WebSocketProvider` (`src/providers/WebSocketProvider.tsx`) is the central hub. Once a token exists (it reads `useAuth().token`) it eagerly opens **all** WebSocket connections at once — 24 flow-stats streams (2 IP versions × 2 directions × 2 flow types × 3 time ranges) plus one system-health stream and one detection-alert stream. Each connection is wrapped in a RxJS `BehaviorSubject` and exposed as a shared observable via `getIPv4FlowStream()`, `getIPv6FlowStream()`, `getDetectionAlertStream()`, and `getSystemHealthStream()`.
 
 Pages subscribe to the relevant streams using RxJS operators (`combineLatest`, `map`, `catchError`). Closing the provider unsubscribes observables but intentionally **does not close** the underlying WebSocket connections (they are shared).
 
-`bootTime` — fetched once via HTTP at startup and held in `WebSocketProvider` — is required for interpreting flow timestamps, which are nanoseconds since system boot. Pages read it via `useContext(WebsocketContext).bootTime`.
+It connects only with a token because `/login` and `/setup` also render inside it: without a token every socket
+is rejected, and the reconnect backoff (up to 30s) used to delay the post-login connect, so a first login showed
+fewer than 26 streams until a reload. A token change (login, logout) tears everything down and reconnects
+immediately with the new token. The connected count is the size of the set of currently open URLs, so sockets
+that close without ever opening cannot pull it below the real number; a socket replaced or torn down on purpose
+does not schedule a reconnect. On the first connect after login the provider renders a full-page spinner
+instead of its children until all 26 streams are open and `bootTime` is loaded, capped at 10s so a partly down
+backend still lets the UI through; later disconnects do not bring the spinner back.
+
+`bootTime` — fetched via HTTP after login and held in `WebSocketProvider` — is required for interpreting flow timestamps, which are nanoseconds since system boot. Pages read it via `useContext(WebsocketContext).bootTime`.
 
 The `isPausedRef` pattern appears throughout: a `useRef` mirrors the `isPaused` state so that WS subscription callbacks can read the current pause state without the subscription itself being torn down and re-created on every pause toggle.
 
