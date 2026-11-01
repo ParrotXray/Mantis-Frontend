@@ -124,11 +124,9 @@ since the topbar button is reachable from every page, not just after a config sa
 
 ### Alert sources
 
-The Detection page knows every backend `AlertSource`: `ml`, `rule`, `fusion`, `tcp_anomaly` (XDP TCP flag checks)
-and `scan` (outbound address scan detection, independent of ML). `parseAlertData` drops an alert with an unknown
-source instead of filing it under `ml`, which used to show TCP anomaly alerts as ML ones. A `scan` alert covers
-many hosts on one port, so its list row reads `src → *:port`; `attack_type` names the port and the backend log
-line carries the counts.
+The Detection page knows every backend `AlertSource`: `ml`, `rule`, `fusion` and `tcp_anomaly` (XDP TCP flag
+checks). `parseAlertData` drops an alert with an unknown source instead of filing it under `ml`, which used to show
+TCP anomaly alerts as ML ones, with a false-positive button that cannot apply to them.
 
 ### Suppression rules (false positives)
 
