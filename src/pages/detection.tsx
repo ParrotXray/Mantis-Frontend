@@ -31,7 +31,9 @@ import ThresholdPanel from '../components/ThresholdPanel'
 import { NextPageWithLayout } from '../types/NextPageWithLayout'
 import { SuppressionList } from '../types/SuppressionTypes'
 
-type AlertSource = 'ml' | 'rule' | 'fusion'
+// Mirrors backend AlertSource. tcp_anomaly: XDP TCP flag checks.
+type AlertSource = 'ml' | 'rule' | 'fusion' | 'tcp_anomaly'
+const ALERT_SOURCES: AlertSource[] = ['ml', 'rule', 'fusion', 'tcp_anomaly']
 type AlertSeverity = 'high' | 'critical'
 
 interface UnifiedAlert {
@@ -104,6 +106,7 @@ const SOURCE_CONFIG: Record<AlertSource, { label: string; color: string; bgColor
     ml:     { label: 'ML',     color: '#818cf8', bgColor: 'rgba(129,140,248,0.1)' },
     rule:   { label: 'Rule',   color: '#0284c7', bgColor: 'rgba(2,132,199,0.1)'  },
     fusion: { label: 'Fusion', color: '#0f766e', bgColor: 'rgba(15,118,110,0.1)' },
+    tcp_anomaly: { label: 'TCP flags', color: '#b45309', bgColor: 'rgba(180,83,9,0.1)' },
 }
 
 const SEVERITY_CONFIG: Record<AlertSeverity, PriorityInfo> = {
@@ -137,8 +140,10 @@ const parseAlertData = (rawData: any): UnifiedAlert | null => {
         const data = typeof rawData === 'string' ? JSON.parse(rawData) : rawData
         if (!data || typeof data !== 'object') return null
 
-        const source: AlertSource = data.source === 'ml' || data.source === 'rule' || data.source === 'fusion'
-            ? data.source : 'ml'
+        // Unknown sources used to fall back to 'ml', which showed TCP anomaly
+        // alerts as ML ones (with a false-positive button that cannot apply).
+        if (!ALERT_SOURCES.includes(data.source)) return null
+        const source: AlertSource = data.source
         const severity: AlertSeverity = data.severity === 'critical' ? 'critical' : 'high'
         const direction: NicType | null = data.direction === 'ingress' || data.direction === 'egress' ? data.direction : null
 
@@ -695,6 +700,7 @@ const Detection: NextPageWithLayout = () => {
         ml:        logs.filter(l => l.source === 'ml').length,
         rule:      logs.filter(l => l.source === 'rule').length,
         fusion:    logs.filter(l => l.source === 'fusion').length,
+        tcpAnomaly: logs.filter(l => l.source === 'tcp_anomaly').length,
         uniqueIPs: new Set([...logs.map(l => l.src_ip), ...logs.map(l => l.dst_ip)]).size,
     }), [logs])
 
@@ -773,7 +779,7 @@ const Detection: NextPageWithLayout = () => {
                 ) : (
                 <>
                 {/* Stats strip */}
-                <div className="grid grid-cols-4 lg:grid-cols-7 gap-3 mb-5">
+                <div className="grid grid-cols-4 lg:grid-cols-8 gap-3 mb-5">
                     {[
                         { label: 'Total',      value: stats.total,     icon: faList,                color: '#4ab5cc' },
                         { label: 'Critical',   value: stats.critical,  icon: faExclamationTriangle, color: '#ef4444' },
@@ -781,6 +787,7 @@ const Detection: NextPageWithLayout = () => {
                         { label: 'ML',         value: stats.ml,        icon: faRobot,               color: '#64748b' },
                         { label: 'Rule',       value: stats.rule,      icon: faShieldAlt,           color: '#4ab5cc' },
                         { label: 'Fusion',     value: stats.fusion,    icon: faShieldAlt,           color: '#14b8a6' },
+                        { label: 'TCP flags',  value: stats.tcpAnomaly, icon: faExclamationTriangle, color: '#b45309' },
                         { label: 'Unique IPs', value: stats.uniqueIPs, icon: faGlobe,               color: '#6366f1' },
                     ].map(({ label, value, icon, color }, i) => (
                         <motion.div
@@ -863,6 +870,8 @@ const Detection: NextPageWithLayout = () => {
                                       activeClassName="bg-sky-600 text-white shadow-sm" activeHoverClassName="hover:bg-sky-700">Rule</FilterButton>
                         <FilterButton isActive={sourceFilter === 'fusion'} onClick={() => { setSourceFilter('fusion'); setSelectedLogIndex(null) }}
                                       activeClassName="bg-teal-600 text-white shadow-sm" activeHoverClassName="hover:bg-teal-700">Fusion</FilterButton>
+                        <FilterButton isActive={sourceFilter === 'tcp_anomaly'} onClick={() => { setSourceFilter('tcp_anomaly'); setSelectedLogIndex(null) }}
+                                      activeClassName="bg-amber-700 text-white shadow-sm" activeHoverClassName="hover:bg-amber-800">TCP flags</FilterButton>
                     </div>
 
                     {lastUpdateTime && (
