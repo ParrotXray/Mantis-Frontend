@@ -124,9 +124,20 @@ since the topbar button is reachable from every page, not just after a config sa
 
 ### Alert sources
 
-The Detection page knows every backend `AlertSource`: `ml`, `rule`, `fusion` and `tcp_anomaly` (XDP TCP flag
-checks). `parseAlertData` drops an alert with an unknown source instead of filing it under `ml`, which used to show
-TCP anomaly alerts as ML ones, with a false-positive button that cannot apply to them.
+The Detection page knows every backend `AlertSource`: `ml`, `rule`, `fusion`, `tcp_anomaly` (XDP TCP flag
+checks) and `device` (a MAC first seen on the internal network; a notice, `is_attack: false`, its row reads
+`ip  mac (vendor)`). `parseAlertData` drops an alert with an unknown source instead of filing it under `ml`, which
+used to show TCP anomaly alerts as ML ones, with a false-positive button that cannot apply to them.
+
+### Devices
+
+`src/pages/devices.tsx` lists the backend's device inventory (`GET /devices/list`, `urls.devices`, types in
+`src/types/DeviceTypes.tsx`), polled every 30s: IP with an online dot (seen in the last 5 min) and a `new` badge
+(first seen in 24h), MAC, vendor or "Randomized MAC", older IPs, first / last seen. Columns sort on click, and the
+search matches IP, MAC (`-` or `:`) or vendor. A banner shows while the backend is still learning a fresh inventory.
+The API is `/devices/list`, not `/devices`, because the page itself lives at `/devices` on the same origin.
+The Detection page also loads the inventory (every 60s) to show the MAC and vendor of an alert's source or
+destination when it is a known internal device.
 
 ### Suppression rules (false positives)
 

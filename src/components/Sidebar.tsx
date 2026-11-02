@@ -24,6 +24,7 @@ import {
     faSpinner,
     faDatabase,
     faFileShield,
+    faLaptop,
 } from '@fortawesome/free-solid-svg-icons'
 import { useTheme } from '../providers/ThemeProvider'
 import { useAuth } from '../contexts/AuthContext'
@@ -54,6 +55,7 @@ const NAV_GROUPS = [
         items: [
             { href: '/access-control', icon: faShieldAlt,  label: 'Access Control' },
             { href: '/detection',      icon: faRobot,      label: 'Detection' },
+            { href: '/devices',        icon: faLaptop,     label: 'Devices' },
             { href: '/rulesets',          icon: faFileShield, label: 'Rules' },
         ],
     },
@@ -74,6 +76,7 @@ const PAGE_META: Record<string, { title: string; icon: any }> = {
     '/traffic-map':    { title: 'Traffic Map',        icon: faMapMarkedAlt },
     '/access-control': { title: 'Access Control',     icon: faShieldAlt },
     '/detection':      { title: 'Threat Detection',   icon: faRobot },
+    '/devices':        { title: 'Devices',            icon: faLaptop },
     '/rulesets':          { title: 'Suricata Rules',     icon: faFileShield },
     '/logs':           { title: 'System Logs',        icon: faScroll },
     '/resources':      { title: 'Resources',          icon: faDatabase },

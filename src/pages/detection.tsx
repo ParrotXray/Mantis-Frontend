@@ -30,10 +30,14 @@ import SuppressionRules from '../components/SuppressionRules'
 import ThresholdPanel from '../components/ThresholdPanel'
 import { NextPageWithLayout } from '../types/NextPageWithLayout'
 import { SuppressionList } from '../types/SuppressionTypes'
+import { Device, DeviceList } from '../types/DeviceTypes'
 
-// Mirrors backend AlertSource. tcp_anomaly: XDP TCP flag checks.
-type AlertSource = 'ml' | 'rule' | 'fusion' | 'tcp_anomaly'
-const ALERT_SOURCES: AlertSource[] = ['ml', 'rule', 'fusion', 'tcp_anomaly']
+const DEVICES_POLL_MS = 60_000
+
+// Mirrors backend AlertSource. tcp_anomaly: XDP TCP flag checks; device: a
+// MAC address first seen on the internal network (a notice, not an attack).
+type AlertSource = 'ml' | 'rule' | 'fusion' | 'tcp_anomaly' | 'device'
+const ALERT_SOURCES: AlertSource[] = ['ml', 'rule', 'fusion', 'tcp_anomaly', 'device']
 type AlertSeverity = 'high' | 'critical'
 
 interface UnifiedAlert {
@@ -75,6 +79,8 @@ interface AlertDetailsProps {
     onClose: () => void
     showNotification: (message: string, type: 'success' | 'error' | 'warning' | 'info') => void
     onMarkFalsePositive: (log: UnifiedAlert) => void
+    // Internal devices by current IP, from GET /devices.
+    deviceByIp: Map<string, Device>
 }
 
 type DetectionView = 'alerts' | 'suppressions' | 'threshold'
@@ -107,6 +113,7 @@ const SOURCE_CONFIG: Record<AlertSource, { label: string; color: string; bgColor
     rule:   { label: 'Rule',   color: '#0284c7', bgColor: 'rgba(2,132,199,0.1)'  },
     fusion: { label: 'Fusion', color: '#0f766e', bgColor: 'rgba(15,118,110,0.1)' },
     tcp_anomaly: { label: 'TCP flags', color: '#b45309', bgColor: 'rgba(180,83,9,0.1)' },
+    device: { label: 'New device', color: '#2563eb', bgColor: 'rgba(37,99,235,0.1)' },
 }
 
 const SEVERITY_CONFIG: Record<AlertSeverity, PriorityInfo> = {
@@ -198,7 +205,7 @@ const Notification: React.FC<NotificationProps> = ({ message, type, onClose }) =
     )
 }
 
-const AlertDetails: React.FC<AlertDetailsProps> = ({ log, onClose, showNotification, onMarkFalsePositive }) => {
+const AlertDetails: React.FC<AlertDetailsProps> = ({ log, onClose, showNotification, onMarkFalsePositive, deviceByIp }) => {
     const { actualTheme } = useTheme()
     const isDark = actualTheme === 'dark'
     const priorityInfo = SEVERITY_CONFIG[log.severity]
@@ -319,6 +326,20 @@ const AlertDetails: React.FC<AlertDetailsProps> = ({ log, onClose, showNotificat
                                 {sourceInfo.label}
                             </span>
                         </div>
+                        {[
+                            { label: 'Source device', device: deviceByIp.get(log.src_ip) },
+                            { label: 'Destination device', device: deviceByIp.get(log.dst_ip) },
+                        ].filter(({ device }) => device !== undefined).map(({ label, device }) => (
+                            <div key={label} className="flex justify-between items-center gap-3">
+                                <span className={`text-xs font-medium ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>{label}</span>
+                                <span className={`text-xs text-right ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
+                                    <span className="font-mono">{device!.mac}</span>
+                                    <span className={isDark ? 'text-slate-500' : 'text-slate-400'}>
+                                        {' '}({device!.randomized ? 'randomized MAC' : device!.vendor ?? 'unknown vendor'})
+                                    </span>
+                                </span>
+                            </div>
+                        ))}
                         <div className="flex justify-between items-center">
                             <span className={`text-xs font-medium ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Is Attack</span>
                             <span className={`text-xs font-semibold ${log.is_attack ? 'text-amber-400' : 'text-emerald-400'}`}>
@@ -521,10 +542,19 @@ const AlertItem: React.FC<AlertItemProps> = ({ log, index, onClick }) => {
                         </div>
                     </div>
                     <div className={`text-sm mb-2 ${isDark ? 'text-gray-300' : 'text-gray-900'}`}>
-                        <span>{log.src_ip}:{log.src_port} </span>
-                        <FontAwesomeIcon icon={faArrowRight} className={isDark ? 'text-gray-500' : 'text-gray-400'} />
-                        <span> {log.dst_ip}:{log.dst_port}</span>
-                        <span className="ml-1 text-xs opacity-70">({getProtocolName(log.protocol)})</span>
+                        {log.source === 'device' ? (
+                            // A notice about one host, not a flow.
+                            <span>{log.src_ip} <span className="opacity-70">{log.rule_msg}</span></span>
+                        ) : (
+                            <>
+                                <span>{log.src_ip}:{log.src_port} </span>
+                                <FontAwesomeIcon icon={faArrowRight} className={isDark ? 'text-gray-500' : 'text-gray-400'} />
+                                <span> {log.dst_ip}:{log.dst_port}</span>
+                            </>
+                        )}
+                        {log.source !== 'device' && (
+                            <span className="ml-1 text-xs opacity-70">({getProtocolName(log.protocol)})</span>
+                        )}
                     </div>
                     <div className="flex items-center justify-between">
                         <span
@@ -622,6 +652,24 @@ const Detection: NextPageWithLayout = () => {
                 setSuppressionsLoading(false)
             },
         )
+    }, [])
+
+    // MAC / vendor for the alert details. Refreshed slowly: a device's IP
+    // changes rarely, and a miss only hides one line.
+    const [deviceByIp, setDeviceByIp] = useState<Map<string, Device>>(new Map())
+    useEffect(() => {
+        const load = () => fetchData(
+            urls.devices,
+            (text) => {
+                try {
+                    const list = JSON.parse(text) as DeviceList
+                    setDeviceByIp(new Map(list.devices.map(d => [d.current_ip, d])))
+                } catch { /* keep the previous map */ }
+            },
+        )
+        load()
+        const id = setInterval(load, DEVICES_POLL_MS)
+        return () => clearInterval(id)
     }, [])
 
     // Loaded up front as well, since the false-positive dialog needs the
@@ -872,6 +920,8 @@ const Detection: NextPageWithLayout = () => {
                                       activeClassName="bg-teal-600 text-white shadow-sm" activeHoverClassName="hover:bg-teal-700">Fusion</FilterButton>
                         <FilterButton isActive={sourceFilter === 'tcp_anomaly'} onClick={() => { setSourceFilter('tcp_anomaly'); setSelectedLogIndex(null) }}
                                       activeClassName="bg-amber-700 text-white shadow-sm" activeHoverClassName="hover:bg-amber-800">TCP flags</FilterButton>
+                        <FilterButton isActive={sourceFilter === 'device'} onClick={() => { setSourceFilter('device'); setSelectedLogIndex(null) }}
+                                      activeClassName="bg-blue-600 text-white shadow-sm" activeHoverClassName="hover:bg-blue-700">New device</FilterButton>
                     </div>
 
                     {lastUpdateTime && (
@@ -941,6 +991,7 @@ const Detection: NextPageWithLayout = () => {
                                 onClose={handleCloseDetails}
                                 showNotification={showNotification}
                                 onMarkFalsePositive={handleMarkFalsePositive}
+                                deviceByIp={deviceByIp}
                             />
                         </motion.div>
                     )}
