@@ -91,5 +91,6 @@ export const websocketUrl = {
 
     systemHealth: `${websocketProtocol}://${host}/health/websocket/metrics`,
     detectionAlert: `${websocketProtocol}://${host}/detection/websocket/alert`,
+    notifications: `${websocketProtocol}://${host}/notifications/websocket`,
     logs: `${websocketProtocol}://${host}/logs/websocket`,
 } as const;

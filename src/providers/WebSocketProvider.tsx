@@ -13,6 +13,7 @@ interface WebSocketContextType {
     getIPv4FlowStream: (direction: string, flow_direction: string, timeType: string) => any;
     getIPv6FlowStream: (direction: string, flow_direction: string, timeType: string) => any;
     getSystemHealthStream: () => any;
+    getNotificationStream: () => any;
     getLatestFlowData: (protocol: 'ipv4' | 'ipv6', direction: string, flow_direction: string, timeType: string) => any;
     getLatestSystemHealth: () => any;
 }
@@ -24,14 +25,16 @@ export const WebsocketContext = createContext<WebSocketContextType>({
     getIPv4FlowStream: () => null,
     getIPv6FlowStream: () => null,
     getSystemHealthStream: () => null,
+    getNotificationStream: () => null,
     getLatestFlowData: () => null,
     getLatestSystemHealth: () => null,
 })
 
-// Every stream the provider keeps open: detection alerts, system health, and
-// flow stats for each IP version x direction x flow direction x time range.
+// Every stream the provider keeps open: detection alerts, system health, new
+// notifications, and flow stats for each IP version x direction x flow
+// direction x time range.
 const ALL_WS_URLS: string[] = (() => {
-    const list: string[] = [websocketUrl.detectionAlert, websocketUrl.systemHealth]
+    const list: string[] = [websocketUrl.detectionAlert, websocketUrl.systemHealth, websocketUrl.notifications]
     for (const direction of ['ingress', 'egress']) {
         for (const flowDirection of ['source', 'destination']) {
             for (const timeType of ['1min', '10min', '1hour']) {
@@ -220,6 +223,10 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         return getWebSocketStream(url)
     }, [])
 
+    const getNotificationStream = useCallback(() => {
+        return getWebSocketStream(websocketUrl.notifications)
+    }, [])
+
     const getSystemHealthStream = useCallback(() => {
         return getWebSocketStream(websocketUrl.systemHealth)
     }, [])
@@ -234,6 +241,7 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             getIPv4FlowStream,
             getIPv6FlowStream,
             getSystemHealthStream,
+            getNotificationStream,
             getLatestFlowData,
             getLatestSystemHealth,
         }}>

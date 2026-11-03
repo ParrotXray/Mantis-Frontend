@@ -6,7 +6,9 @@ import { useAuth } from '../contexts/AuthContext'
 import { WebsocketContext } from './WebSocketProvider'
 import { AppNotification, NotificationList } from '../types/NotificationTypes'
 
-const POLL_MS = 15_000
+// New notifications arrive over /notifications/websocket; the poll only keeps
+// the read state in step with the account's other browsers and heals gaps.
+const POLL_MS = 60_000
 const FETCH_LIMIT = 200
 // While Detection is open, alerts are being looked at; tell the backend at
 // most this often instead of on every alert.
@@ -44,7 +46,7 @@ export const useNotifications = () => useContext(NotificationContext)
 export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const { token } = useAuth()
     const router = useRouter()
-    const { getDetectionAlertStream } = useContext(WebsocketContext)
+    const { getDetectionAlertStream, getNotificationStream } = useContext(WebsocketContext)
     const [notifications, setNotifications] = useState<AppNotification[]>([])
     const [readId, setReadId] = useState(0)
     const [alertsSeenAt, setAlertsSeenAt] = useState<number | null>(null)
@@ -81,6 +83,29 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         const timer = setInterval(refresh, POLL_MS)
         return () => clearInterval(timer)
     }, [token, refresh])
+
+    // Pushed as soon as the backend stores them. The stream replays its last
+    // message on subscribe, so merge by id rather than prepend blindly.
+    useEffect(() => {
+        if (!token || !getNotificationStream) return
+        const stream = getNotificationStream()
+        if (!stream) return
+        const sub = stream.subscribe({
+            next: (raw: any) => {
+                if (!raw) return
+                try {
+                    const n = (typeof raw === 'string' ? JSON.parse(raw) : raw) as AppNotification
+                    if (typeof n?.id !== 'number') return
+                    setNotifications(list => list.some(x => x.id === n.id)
+                        ? list
+                        : [n, ...list].sort((a, b) => b.id - a.id).slice(0, FETCH_LIMIT))
+                } catch {
+                    // not a notification payload
+                }
+            },
+        })
+        return () => sub.unsubscribe()
+    }, [token, getNotificationStream])
 
     const markAlertsSeen = useCallback(() => {
         const now = Math.floor(Date.now() / 1000)
