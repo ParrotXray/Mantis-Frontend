@@ -30,6 +30,9 @@ import SuppressionRules from '../components/SuppressionRules'
 import ThresholdPanel from '../components/ThresholdPanel'
 import { NextPageWithLayout } from '../types/NextPageWithLayout'
 import { SuppressionList } from '../types/SuppressionTypes'
+import { Device, DeviceList } from '../types/DeviceTypes'
+
+const DEVICES_POLL_MS = 60_000
 
 // Mirrors backend AlertSource. tcp_anomaly: XDP TCP flag checks.
 type AlertSource = 'ml' | 'rule' | 'fusion' | 'tcp_anomaly'
@@ -75,6 +78,8 @@ interface AlertDetailsProps {
     onClose: () => void
     showNotification: (message: string, type: 'success' | 'error' | 'warning' | 'info') => void
     onMarkFalsePositive: (log: UnifiedAlert) => void
+    // Internal devices by current IP, from GET /devices.
+    deviceByIp: Map<string, Device>
 }
 
 type DetectionView = 'alerts' | 'suppressions' | 'threshold'
@@ -198,7 +203,7 @@ const Notification: React.FC<NotificationProps> = ({ message, type, onClose }) =
     )
 }
 
-const AlertDetails: React.FC<AlertDetailsProps> = ({ log, onClose, showNotification, onMarkFalsePositive }) => {
+const AlertDetails: React.FC<AlertDetailsProps> = ({ log, onClose, showNotification, onMarkFalsePositive, deviceByIp }) => {
     const { actualTheme } = useTheme()
     const isDark = actualTheme === 'dark'
     const priorityInfo = SEVERITY_CONFIG[log.severity]
@@ -319,6 +324,20 @@ const AlertDetails: React.FC<AlertDetailsProps> = ({ log, onClose, showNotificat
                                 {sourceInfo.label}
                             </span>
                         </div>
+                        {[
+                            { label: 'Source device', device: deviceByIp.get(log.src_ip) },
+                            { label: 'Destination device', device: deviceByIp.get(log.dst_ip) },
+                        ].filter(({ device }) => device !== undefined).map(({ label, device }) => (
+                            <div key={label} className="flex justify-between items-center gap-3">
+                                <span className={`text-xs font-medium ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>{label}</span>
+                                <span className={`text-xs text-right ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
+                                    <span className="font-mono">{device!.mac}</span>
+                                    <span className={isDark ? 'text-slate-500' : 'text-slate-400'}>
+                                        {' '}({device!.randomized ? 'randomized MAC' : device!.vendor ?? 'unknown vendor'})
+                                    </span>
+                                </span>
+                            </div>
+                        ))}
                         <div className="flex justify-between items-center">
                             <span className={`text-xs font-medium ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Is Attack</span>
                             <span className={`text-xs font-semibold ${log.is_attack ? 'text-amber-400' : 'text-emerald-400'}`}>
@@ -622,6 +641,24 @@ const Detection: NextPageWithLayout = () => {
                 setSuppressionsLoading(false)
             },
         )
+    }, [])
+
+    // MAC / vendor for the alert details. Refreshed slowly: a device's IP
+    // changes rarely, and a miss only hides one line.
+    const [deviceByIp, setDeviceByIp] = useState<Map<string, Device>>(new Map())
+    useEffect(() => {
+        const load = () => fetchData(
+            urls.devices,
+            (text) => {
+                try {
+                    const list = JSON.parse(text) as DeviceList
+                    setDeviceByIp(new Map(list.devices.map(d => [d.current_ip, d])))
+                } catch { /* keep the previous map */ }
+            },
+        )
+        load()
+        const id = setInterval(load, DEVICES_POLL_MS)
+        return () => clearInterval(id)
     }, [])
 
     // Loaded up front as well, since the false-positive dialog needs the
@@ -941,6 +978,7 @@ const Detection: NextPageWithLayout = () => {
                                 onClose={handleCloseDetails}
                                 showNotification={showNotification}
                                 onMarkFalsePositive={handleMarkFalsePositive}
+                                deviceByIp={deviceByIp}
                             />
                         </motion.div>
                     )}
