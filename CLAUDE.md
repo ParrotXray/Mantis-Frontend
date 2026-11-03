@@ -26,17 +26,17 @@ All backend endpoints are configured in `src/config.ts`. The target host default
 
 ### Data flow: WebSockets + RxJS
 
-`WebSocketProvider` (`src/providers/WebSocketProvider.tsx`) is the central hub. Once a token exists (it reads `useAuth().token`) it eagerly opens **all** WebSocket connections at once — 24 flow-stats streams (2 IP versions × 2 directions × 2 flow types × 3 time ranges) plus one system-health stream and one detection-alert stream. Each connection is wrapped in a RxJS `BehaviorSubject` and exposed as a shared observable via `getIPv4FlowStream()`, `getIPv6FlowStream()`, `getDetectionAlertStream()`, and `getSystemHealthStream()`.
+`WebSocketProvider` (`src/providers/WebSocketProvider.tsx`) is the central hub. Once a token exists (it reads `useAuth().token`) it eagerly opens **all** WebSocket connections at once — 24 flow-stats streams (2 IP versions × 2 directions × 2 flow types × 3 time ranges) plus one system-health stream, one detection-alert stream and one notification stream (27). Each connection is wrapped in a RxJS `BehaviorSubject` and exposed as a shared observable via `getIPv4FlowStream()`, `getIPv6FlowStream()`, `getDetectionAlertStream()`, `getSystemHealthStream()` and `getNotificationStream()`.
 
 Pages subscribe to the relevant streams using RxJS operators (`combineLatest`, `map`, `catchError`). Closing the provider unsubscribes observables but intentionally **does not close** the underlying WebSocket connections (they are shared).
 
 It connects only with a token because `/login` and `/setup` also render inside it: without a token every socket
 is rejected, and the reconnect backoff (up to 30s) used to delay the post-login connect, so a first login showed
-fewer than 26 streams until a reload. A token change (login, logout) tears everything down and reconnects
+fewer than all streams until a reload. A token change (login, logout) tears everything down and reconnects
 immediately with the new token. The connected count is the size of the set of currently open URLs, so sockets
 that close without ever opening cannot pull it below the real number; a socket replaced or torn down on purpose
 does not schedule a reconnect. On the first connect after login the provider renders a full-page spinner
-instead of its children until all 26 streams are open and `bootTime` is loaded, capped at 10s so a partly down
+instead of its children until every stream is open and `bootTime` is loaded, capped at 10s so a partly down
 backend still lets the UI through; later disconnects do not bring the spinner back.
 
 `bootTime` — fetched via HTTP after login and held in `WebSocketProvider` — is required for interpreting flow timestamps, which are nanoseconds since system boot. Pages read it via `useContext(WebsocketContext).bootTime`.
@@ -52,7 +52,7 @@ ErrorBoundary
       AccessControlProvider  → cached fetch layer for IP allow/block lists
         RestartProvider      → shared POST /system/restart trigger + poll status
           IsolationProvider  → network isolation state (15s poll)
-            NotificationProvider → notifications (15s poll) + unseen alert count
+            NotificationProvider → notifications (WS push, 60s poll) + unseen alert count
               getLayout(<Page>)  → per-page Layout wrapper, applied here so Sidebar persists
 ```
 
@@ -133,12 +133,14 @@ TCP anomaly alerts as ML ones, with a false-positive button that cannot apply to
 ### Notifications
 
 `NotificationProvider` (`src/providers/NotificationProvider.tsx`, inside `IsolationProvider`) polls
-`GET /notifications/list` (`urls.notifications.list`, types in `src/types/NotificationTypes.tsx`) every 15s once
-logged in. Read state is per account on the backend: the response carries `read_id` (highest id read; unread =
+`GET /notifications/list` (`urls.notifications.list`, types in `src/types/NotificationTypes.tsx`) once logged in and
+every 60s after. New notifications arrive at once over `/notifications/websocket` (`getNotificationStream()`, merged by
+id since the stream replays its last message on subscribe); the poll keeps the read state in step with the account's
+other browsers and fills any gap. Read state is per account on the backend: the response carries `read_id` (highest id read; unread =
 higher ids) and `alerts_seen_at`, and `POST /notifications/read` (`urls.notifications.read`) advances them, so every
 browser the account uses agrees. Updates apply locally at once and the server only moves forward. The provider keeps
 the timestamps of attack alerts from the existing alert stream, and `newAlertCount` is those after
-`alerts_seen_at`: when another browser of the account opens Detection, this one's count clears at its next poll.
+`alerts_seen_at`: when another browser of the account opens Detection, this one's count clears at its next poll (up to 60s).
 While Detection is open, alerts count as seen, synced to the backend at most every 30s. Until the first response
 nothing is counted, since the stream replays its last alert on subscribe.
 
@@ -152,7 +154,8 @@ alerts.
 
 `src/pages/devices.tsx` lists the backend's device inventory (`GET /devices/list`, `urls.devices`, types in
 `src/types/DeviceTypes.tsx`), polled every 30s: IP with an online dot (seen in the last 5 min) and a `new` badge
-(first seen in 24h), MAC, vendor or "Randomized MAC", older IPs, first / last seen. Columns sort on click, and the
+(first seen in 24h), MAC, vendor or "Randomized MAC", first / last seen. Clicking a row opens a detail row with the
+full timestamps and every IP the MAC has used, most recent first (with a NAT hint when there are many). Columns sort on click, and the
 search matches IP, MAC (`-` or `:`) or vendor. A banner shows while the backend is still learning a fresh inventory.
 The API is `/devices/list`, not `/devices`, because the page itself lives at `/devices` on the same origin.
 The Detection page also loads the inventory (every 60s) to show the MAC and vendor of an alert's source or

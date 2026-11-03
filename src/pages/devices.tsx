@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import Head from 'next/head'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faLaptop, faMagnifyingGlass, faSyncAlt } from '@fortawesome/free-solid-svg-icons'
+import { faChevronDown, faChevronRight, faLaptop, faMagnifyingGlass, faSyncAlt } from '@fortawesome/free-solid-svg-icons'
 import { useTheme } from '../providers/ThemeProvider'
 import { fetchData } from '../utils/connectionUtils'
 import { urls } from '../utils/apiManager'
@@ -49,6 +49,14 @@ const DevicesPage: NextPageWithLayout = () => {
     const [error, setError] = useState<string | null>(null)
     const [isLoading, setIsLoading] = useState(false)
     const [query, setQuery] = useState('')
+    // MACs whose detail row is open.
+    const [expanded, setExpanded] = useState<Set<string>>(new Set())
+    const toggleExpanded = (mac: string) => setExpanded(prev => {
+        const next = new Set(prev)
+        if (next.has(mac)) next.delete(mac)
+        else next.add(mac)
+        return next
+    })
     const [sortKey, setSortKey] = useState<SortKey>('last_seen')
 
     const load = useCallback(() => {
@@ -166,10 +174,10 @@ const DevicesPage: NextPageWithLayout = () => {
                             <table className="w-full">
                                 <thead className={isDark ? 'bg-[#131929]' : 'bg-slate-50'}>
                                     <tr>
+                                        <th className={`${headCls} w-6`}></th>
                                         {sortHead('ip', 'IP')}
                                         {sortHead('mac', 'MAC')}
                                         {sortHead('vendor', 'Vendor')}
-                                        <th className={headCls}>Other IPs</th>
                                         {sortHead('first_seen', 'First seen')}
                                         {sortHead('last_seen', 'Last seen')}
                                     </tr>
@@ -178,26 +186,76 @@ const DevicesPage: NextPageWithLayout = () => {
                                     {devices.map(d => {
                                         const isOnline = now - d.last_seen <= ONLINE_SECS
                                         const isNew = now - d.first_seen <= DAY_SECS
-                                        const others = d.ips.filter(ip => ip !== d.current_ip)
+                                        const isExpanded = expanded.has(d.mac)
+                                        // Most recent first.
+                                        const history = [...d.ips].reverse()
                                         return (
-                                            <tr key={d.mac}>
-                                                <td className={`${cellCls} font-mono whitespace-nowrap`}>
-                                                    <span className={`inline-block w-1.5 h-1.5 rounded-full mr-2 align-middle ${isOnline ? 'bg-emerald-400' : isDark ? 'bg-slate-600' : 'bg-slate-300'}`} />
-                                                    {d.current_ip}
-                                                    {isNew && badge('new', isDark ? 'bg-sky-500/15 text-sky-300' : 'bg-sky-100 text-sky-700')}
-                                                </td>
-                                                <td className={`${cellCls} font-mono whitespace-nowrap`}>{d.mac}</td>
-                                                <td className={cellCls}>
-                                                    {d.randomized
-                                                        ? <span className={mutedCls}>Randomized MAC</span>
-                                                        : d.vendor ?? <span className={mutedCls}>Unknown</span>}
-                                                </td>
-                                                <td className={`${cellCls} font-mono`}>
-                                                    {others.length > 0 ? others.join(', ') : <span className={mutedCls}>—</span>}
-                                                </td>
-                                                <td className={`${cellCls} whitespace-nowrap`} title={formatTime(d.first_seen)}>{formatRelative(d.first_seen, now)}</td>
-                                                <td className={`${cellCls} whitespace-nowrap`} title={formatTime(d.last_seen)}>{formatRelative(d.last_seen, now)}</td>
-                                            </tr>
+                                            <React.Fragment key={d.mac}>
+                                                <tr
+                                                    onClick={() => toggleExpanded(d.mac)}
+                                                    aria-expanded={isExpanded}
+                                                    className={`cursor-pointer ${isDark ? 'hover:bg-slate-700/20' : 'hover:bg-slate-50'}`}
+                                                >
+                                                    <td className={`${cellCls} ${mutedCls}`}>
+                                                        <FontAwesomeIcon icon={isExpanded ? faChevronDown : faChevronRight} className="text-[10px]" />
+                                                    </td>
+                                                    <td className={`${cellCls} font-mono whitespace-nowrap`}>
+                                                        <span className={`inline-block w-1.5 h-1.5 rounded-full mr-2 align-middle ${isOnline ? 'bg-emerald-400' : isDark ? 'bg-slate-600' : 'bg-slate-300'}`} />
+                                                        {d.current_ip}
+                                                        {isNew && badge('new', isDark ? 'bg-sky-500/15 text-sky-300' : 'bg-sky-100 text-sky-700')}
+                                                    </td>
+                                                    <td className={`${cellCls} font-mono whitespace-nowrap`}>{d.mac}</td>
+                                                    <td className={cellCls}>
+                                                        {d.randomized
+                                                            ? <span className={mutedCls}>Randomized MAC</span>
+                                                            : d.vendor ?? <span className={mutedCls}>Unknown</span>}
+                                                    </td>
+                                                    <td className={`${cellCls} whitespace-nowrap`} title={formatTime(d.first_seen)}>{formatRelative(d.first_seen, now)}</td>
+                                                    <td className={`${cellCls} whitespace-nowrap`} title={formatTime(d.last_seen)}>{formatRelative(d.last_seen, now)}</td>
+                                                </tr>
+                                                {isExpanded && (
+                                                    <tr className={isDark ? 'bg-[#131929]' : 'bg-slate-50'}>
+                                                        <td></td>
+                                                        <td colSpan={5} className="px-3 py-3">
+                                                            <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] gap-4 text-xs">
+                                                                <dl className="space-y-1.5">
+                                                                    {[
+                                                                        ['MAC', <span key="m" className="font-mono">{d.mac}</span>],
+                                                                        ['Vendor', d.randomized ? 'Randomized MAC (no vendor; may change over time)' : d.vendor ?? 'Unknown'],
+                                                                        ['First seen', formatTime(d.first_seen)],
+                                                                        ['Last seen', `${formatTime(d.last_seen)} (${formatRelative(d.last_seen, now)})`],
+                                                                    ].map(([label, value]) => (
+                                                                        <div key={label as string} className="flex gap-2">
+                                                                            <dt className={`w-20 flex-shrink-0 ${mutedCls}`}>{label}</dt>
+                                                                            <dd className={isDark ? 'text-slate-300' : 'text-slate-700'}>{value}</dd>
+                                                                        </div>
+                                                                    ))}
+                                                                </dl>
+                                                                <div>
+                                                                    <p className={`mb-1.5 ${mutedCls}`}>
+                                                                        IP addresses ({history.length}, most recent first)
+                                                                    </p>
+                                                                    <ul className="flex flex-wrap gap-1.5">
+                                                                        {history.map(ip => (
+                                                                            <li key={ip}
+                                                                                className={`px-2 py-0.5 rounded font-mono ${ip === d.current_ip
+                                                                                    ? 'bg-[#4ab5cc]/15 text-[#4ab5cc]'
+                                                                                    : isDark ? 'bg-slate-700/50 text-slate-300' : 'bg-white border border-slate-200 text-slate-600'}`}>
+                                                                                {ip}{ip === d.current_ip ? ' (current)' : ''}
+                                                                            </li>
+                                                                        ))}
+                                                                    </ul>
+                                                                    {history.length >= 8 && (
+                                                                        <p className={`mt-2 text-[11px] ${mutedCls}`}>
+                                                                            Many addresses on one MAC can mean a NAT device (an AP or router not in bridge mode) sits behind Mantis, hiding the devices behind it.
+                                                                        </p>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                )}
+                                            </React.Fragment>
                                         )
                                     })}
                                 </tbody>
