@@ -152,8 +152,8 @@ alerts.
 
 `src/pages/devices.tsx` lists the backend's device inventory (`GET /devices/list`, `urls.devices`, types in
 `src/types/DeviceTypes.tsx`), polled every 30s: IP with an online dot (seen in the last 5 min) and a `new` badge
-(first seen in 24h), MAC, vendor or "Randomized MAC", older IPs (the 2 most recent, the rest behind a `+N` toggle
-and in the cell's tooltip), first / last seen. Columns sort on click, and the
+(first seen in 24h), MAC, vendor or "Randomized MAC", first / last seen. Clicking a row opens a detail row with the
+full timestamps and every IP the MAC has used, most recent first (with a NAT hint when there are many). Columns sort on click, and the
 search matches IP, MAC (`-` or `:`) or vendor. A banner shows while the backend is still learning a fresh inventory.
 The API is `/devices/list`, not `/devices`, because the page itself lives at `/devices` on the same origin.
 The Detection page also loads the inventory (every 60s) to show the MAC and vendor of an alert's source or
