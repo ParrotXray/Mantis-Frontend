@@ -34,10 +34,9 @@ import { Device, DeviceList } from '../types/DeviceTypes'
 
 const DEVICES_POLL_MS = 60_000
 
-// Mirrors backend AlertSource. tcp_anomaly: XDP TCP flag checks; device: a
-// MAC address first seen on the internal network (a notice, not an attack).
-type AlertSource = 'ml' | 'rule' | 'fusion' | 'tcp_anomaly' | 'device'
-const ALERT_SOURCES: AlertSource[] = ['ml', 'rule', 'fusion', 'tcp_anomaly', 'device']
+// Mirrors backend AlertSource. tcp_anomaly: XDP TCP flag checks.
+type AlertSource = 'ml' | 'rule' | 'fusion' | 'tcp_anomaly'
+const ALERT_SOURCES: AlertSource[] = ['ml', 'rule', 'fusion', 'tcp_anomaly']
 type AlertSeverity = 'high' | 'critical'
 
 interface UnifiedAlert {
@@ -113,7 +112,6 @@ const SOURCE_CONFIG: Record<AlertSource, { label: string; color: string; bgColor
     rule:   { label: 'Rule',   color: '#0284c7', bgColor: 'rgba(2,132,199,0.1)'  },
     fusion: { label: 'Fusion', color: '#0f766e', bgColor: 'rgba(15,118,110,0.1)' },
     tcp_anomaly: { label: 'TCP flags', color: '#b45309', bgColor: 'rgba(180,83,9,0.1)' },
-    device: { label: 'New device', color: '#2563eb', bgColor: 'rgba(37,99,235,0.1)' },
 }
 
 const SEVERITY_CONFIG: Record<AlertSeverity, PriorityInfo> = {
@@ -542,19 +540,10 @@ const AlertItem: React.FC<AlertItemProps> = ({ log, index, onClick }) => {
                         </div>
                     </div>
                     <div className={`text-sm mb-2 ${isDark ? 'text-gray-300' : 'text-gray-900'}`}>
-                        {log.source === 'device' ? (
-                            // A notice about one host, not a flow.
-                            <span>{log.src_ip} <span className="opacity-70">{log.rule_msg}</span></span>
-                        ) : (
-                            <>
-                                <span>{log.src_ip}:{log.src_port} </span>
-                                <FontAwesomeIcon icon={faArrowRight} className={isDark ? 'text-gray-500' : 'text-gray-400'} />
-                                <span> {log.dst_ip}:{log.dst_port}</span>
-                            </>
-                        )}
-                        {log.source !== 'device' && (
-                            <span className="ml-1 text-xs opacity-70">({getProtocolName(log.protocol)})</span>
-                        )}
+                        <span>{log.src_ip}:{log.src_port} </span>
+                        <FontAwesomeIcon icon={faArrowRight} className={isDark ? 'text-gray-500' : 'text-gray-400'} />
+                        <span> {log.dst_ip}:{log.dst_port}</span>
+                        <span className="ml-1 text-xs opacity-70">({getProtocolName(log.protocol)})</span>
                     </div>
                     <div className="flex items-center justify-between">
                         <span
@@ -920,8 +909,6 @@ const Detection: NextPageWithLayout = () => {
                                       activeClassName="bg-teal-600 text-white shadow-sm" activeHoverClassName="hover:bg-teal-700">Fusion</FilterButton>
                         <FilterButton isActive={sourceFilter === 'tcp_anomaly'} onClick={() => { setSourceFilter('tcp_anomaly'); setSelectedLogIndex(null) }}
                                       activeClassName="bg-amber-700 text-white shadow-sm" activeHoverClassName="hover:bg-amber-800">TCP flags</FilterButton>
-                        <FilterButton isActive={sourceFilter === 'device'} onClick={() => { setSourceFilter('device'); setSelectedLogIndex(null) }}
-                                      activeClassName="bg-blue-600 text-white shadow-sm" activeHoverClassName="hover:bg-blue-700">New device</FilterButton>
                     </div>
 
                     {lastUpdateTime && (

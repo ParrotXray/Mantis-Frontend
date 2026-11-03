@@ -51,7 +51,9 @@ ErrorBoundary
     WebSocketProvider  → all WS streams + bootTime
       AccessControlProvider  → cached fetch layer for IP allow/block lists
         RestartProvider      → shared POST /system/restart trigger + poll status
-          getLayout(<Page>)  → per-page Layout wrapper, applied here so Sidebar persists
+          IsolationProvider  → network isolation state (15s poll)
+            NotificationProvider → notifications (15s poll) + unseen alert count
+              getLayout(<Page>)  → per-page Layout wrapper, applied here so Sidebar persists
 ```
 
 ### Persistent layout (`getLayout`)
@@ -124,10 +126,24 @@ since the topbar button is reachable from every page, not just after a config sa
 
 ### Alert sources
 
-The Detection page knows every backend `AlertSource`: `ml`, `rule`, `fusion`, `tcp_anomaly` (XDP TCP flag
-checks) and `device` (a MAC first seen on the internal network; a notice, `is_attack: false`, its row reads
-`ip  mac (vendor)`). `parseAlertData` drops an alert with an unknown source instead of filing it under `ml`, which
-used to show TCP anomaly alerts as ML ones, with a false-positive button that cannot apply to them.
+The Detection page knows every backend `AlertSource`: `ml`, `rule`, `fusion` and `tcp_anomaly` (XDP TCP flag
+checks). `parseAlertData` drops an alert with an unknown source instead of filing it under `ml`, which used to show
+TCP anomaly alerts as ML ones, with a false-positive button that cannot apply to them.
+
+### Notifications
+
+`NotificationProvider` (`src/providers/NotificationProvider.tsx`, inside `IsolationProvider`) polls
+`GET /notifications/list` (`urls.notifications`, types in `src/types/NotificationTypes.tsx`) every 15s once logged
+in. Read state is per browser in localStorage: `mantis_notifications_read_id` (highest id read; unread = higher
+ids) and `mantis_alerts_seen_at`. It also counts attack alerts from the existing alert stream that arrive while the
+Detection page is not open (`newAlertCount`); opening Detection resets it. A browser that never opened Detection
+starts that clock at first load, since the stream replays its last alert on subscribe.
+
+`NotificationBell` (topbar, left of the restart button) shows a red dot when either count is non-zero. Its dropdown
+has an "N new threat alerts" row linking to Detection, the latest 8 notifications (unread tinted, with a dot, each
+linking to its `link`), Mark all read and View all. `src/pages/notifications.tsx` lists everything fetched, with
+filters by category (system, devices) and level (warning, critical). New devices are notifications, not threat
+alerts.
 
 ### Devices
 

@@ -59,6 +59,7 @@ export const urls = {
     detectionThreshold: `${httpProtocol}://${host}/detection/threshold`,
 
     devices: `${httpProtocol}://${host}/devices/list`,
+    notifications: `${httpProtocol}://${host}/notifications/list`,
 
     suppressions: {
         list: `${httpProtocol}://${host}/detection/suppressions`,

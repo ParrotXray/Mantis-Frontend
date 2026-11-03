@@ -5,6 +5,7 @@ import { WebSocketProvider } from '../providers/WebSocketProvider'
 import { AccessControlProvider } from '../providers/AccessControlProvider'
 import { RestartProvider } from '../providers/RestartProvider'
 import { IsolationProvider } from '../providers/IsolationProvider'
+import { NotificationProvider } from '../providers/NotificationProvider'
 import { AuthProvider, RouteGuard } from '../contexts/AuthContext'
 import ErrorDialog from '../components/ErrorDialog'
 import { NextPageWithLayout } from '../types/NextPageWithLayout'
@@ -28,7 +29,9 @@ export default function App({ Component, pageProps }: AppPropsWithLayout) {
               <AccessControlProvider>
                 <RestartProvider>
                   <IsolationProvider>
-                    {getLayout(<Component {...pageProps} />)}
+                    <NotificationProvider>
+                      {getLayout(<Component {...pageProps} />)}
+                    </NotificationProvider>
                   </IsolationProvider>
                 </RestartProvider>
               </AccessControlProvider>
