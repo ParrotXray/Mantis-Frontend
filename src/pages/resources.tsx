@@ -1,5 +1,6 @@
 import React, { useCallback, useState } from 'react'
 import Head from 'next/head'
+import { motion } from 'framer-motion'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
     faFileCsv,
@@ -24,9 +25,16 @@ const ResourceCard: React.FC<{
     description: string
     isDark: boolean
     disabledNote?: string
+    // Position on the page, for the staggered entrance.
+    index?: number
     children?: React.ReactNode
-}> = ({ icon, title, description, isDark, disabledNote, children }) => (
-    <div className={`rounded-xl border overflow-hidden ${isDark ? 'bg-[#0c1a24] border-slate-800' : 'bg-white border-slate-200'}`}>
+}> = ({ icon, title, description, isDark, disabledNote, index = 0, children }) => (
+    <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: index * 0.1 }}
+        className={`rounded-xl border overflow-hidden ${isDark ? 'bg-[#0c1a24] border-slate-800' : 'bg-white border-slate-200'}`}
+    >
         <div className={`flex items-center gap-2.5 px-4 py-3 border-b ${isDark ? 'border-slate-800' : 'border-slate-200'}`}>
             <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(74,181,204,0.15)' }}>
                 <FontAwesomeIcon icon={icon} className="text-xs" style={{ color: ACCENT }} />
@@ -43,7 +51,7 @@ const ResourceCard: React.FC<{
                 children
             )}
         </div>
-    </div>
+    </motion.div>
 )
 
 const ResourcesPage: NextPageWithLayout = () => {
@@ -101,6 +109,7 @@ const ResourcesPage: NextPageWithLayout = () => {
                 <ResourceCard
                     icon={faFileCsv}
                     title="Traffic CSV Records"
+                    index={0}
                     description="All flows, always logged to CSV regardless of ML/whitelist state"
                     isDark={isDark}
                 >
@@ -125,6 +134,7 @@ const ResourcesPage: NextPageWithLayout = () => {
                 <ResourceCard
                     icon={faShieldHalved}
                     title="Threat History"
+                    index={1}
                     description="Detected ML / rule / fusion / TCP anomaly alerts, persisted by date"
                     isDark={isDark}
                 >
@@ -170,6 +180,7 @@ const ResourcesPage: NextPageWithLayout = () => {
                 <ResourceCard
                     icon={faBrain}
                     title="ML Model"
+                    index={2}
                     description="Autoencoder model used for anomaly detection"
                     isDark={isDark}
                     disabledNote="Model management (upload/swap the ONNX model, inspect inference_config.json) is not implemented yet."
@@ -178,6 +189,7 @@ const ResourcesPage: NextPageWithLayout = () => {
                 <ResourceCard
                     icon={faGlobe}
                     title="GeoIP Database"
+                    index={3}
                     description="MaxMind database used to geolocate flow source/destination IPs"
                     isDark={isDark}
                     disabledNote="GeoIP database management (upload/refresh the .mmdb file) is not implemented yet."

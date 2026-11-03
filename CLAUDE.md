@@ -81,6 +81,12 @@ the innermost content differs; `getLayout` supplies the wrapper once, after the 
 
 Tailwind CSS v4. Dark/light mode is managed entirely through `ThemeProvider`; components read `isDark = actualTheme === 'dark'` and apply conditional class strings inline. There are no CSS modules.
 
+Every page animates its content in with framer-motion, in the same pattern: header blocks and banners fade
+down from `y: -10`, cards fade up from `y: 20` with a 0.1s stagger, and table rows / list items fade in with a
+`Math.min(index * 0.01, 0.5)` delay. Rows are keyed by a stable id, so a poll that refreshes the data does not
+replay the animation; only newly mounted rows (a pushed notification, a new device) animate. Content that
+swaps in place (a Settings tab, a selected rule file) is keyed or mounted per item, so the swap plays it too.
+
 ### Session timeout
 
 `SessionTimeout` (`src/components/SessionTimeout.tsx`, mounted next to `RouteGuard` inside `AuthProvider`) signs

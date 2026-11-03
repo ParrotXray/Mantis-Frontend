@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react'
 import Head from 'next/head'
+import { motion } from 'framer-motion'
 import Link from 'next/link'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faBell, faSyncAlt } from '@fortawesome/free-solid-svg-icons'
@@ -40,7 +41,11 @@ const NotificationsPage: NextPageWithLayout = () => {
             </Head>
 
             <div className="max-w-4xl mx-auto flex flex-col gap-4">
-                <div className={`rounded-xl border overflow-hidden ${isDark ? 'bg-[#0e1e2c] border-slate-700/40' : 'bg-white border-slate-200'}`}>
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className={`rounded-xl border overflow-hidden ${isDark ? 'bg-[#0e1e2c] border-slate-700/40' : 'bg-white border-slate-200'}`}
+                >
                     <div className={`px-5 py-3 border-b flex flex-wrap items-center gap-3 ${isDark ? 'border-slate-700/40' : 'border-slate-200'}`}>
                         <div className="flex items-center gap-2">
                             <div className="w-6 h-6 rounded-md bg-[#4ab5cc]/15 flex items-center justify-center">
@@ -80,10 +85,15 @@ const NotificationsPage: NextPageWithLayout = () => {
                         </div>
                     ) : (
                         <ul className={`divide-y ${isDark ? 'divide-slate-700/40' : 'divide-slate-100'}`}>
-                            {shown.map(n => {
+                            {shown.map((n, index) => {
                                 const unread = n.id > readId
                                 return (
-                                    <li key={n.id} className={`flex gap-3 px-5 py-3 ${unread ? (isDark ? 'bg-[#4ab5cc]/5' : 'bg-sky-50/60') : ''}`}>
+                                    <motion.li
+                                        key={n.id}
+                                        initial={{ opacity: 0, y: -4 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ delay: Math.min(index * 0.02, 0.5) }}
+                                        className={`flex gap-3 px-5 py-3 ${unread ? (isDark ? 'bg-[#4ab5cc]/5' : 'bg-sky-50/60') : ''}`}>
                                         <FontAwesomeIcon icon={notificationIcon(n)} className="text-sm mt-0.5" style={{ color: LEVEL_STYLE[n.level].color }} />
                                         <div className="flex-1 min-w-0">
                                             <div className="flex items-center gap-2">
@@ -99,12 +109,12 @@ const NotificationsPage: NextPageWithLayout = () => {
                                                 <Link href={n.link} className="text-[11px] text-[#4ab5cc] hover:underline no-underline">Open</Link>
                                             )}
                                         </div>
-                                    </li>
+                                    </motion.li>
                                 )
                             })}
                         </ul>
                     )}
-                </div>
+                </motion.div>
             </div>
         </>
     )

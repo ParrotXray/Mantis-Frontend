@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import Head from 'next/head'
+import { motion } from 'framer-motion'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faChevronDown, faChevronRight, faLaptop, faMagnifyingGlass, faSyncAlt } from '@fortawesome/free-solid-svg-icons'
 import { useTheme } from '../providers/ThemeProvider'
@@ -109,26 +110,45 @@ const DevicesPage: NextPageWithLayout = () => {
             </Head>
 
             <div className="flex flex-col gap-4">
-                <div className="grid grid-cols-3 gap-3">
+                <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="grid grid-cols-3 gap-3"
+                >
                     {[
                         { label: 'Devices', value: total },
                         { label: `Online (${ONLINE_SECS / 60} min)`, value: online },
                         { label: 'First seen in 24h', value: newToday },
-                    ].map(({ label, value }) => (
-                        <div key={label} className={`rounded-xl border p-3 ${isDark ? 'bg-[#0e1e2c] border-slate-700/40' : 'bg-white border-slate-200'}`}>
+                    ].map(({ label, value }, index) => (
+                        <motion.div
+                            key={label}
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: index * 0.1 }}
+                            className={`rounded-xl border p-3 ${isDark ? 'bg-[#0e1e2c] border-slate-700/40' : 'bg-white border-slate-200'}`}
+                        >
                             <p className={`text-xs mb-1 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{label}</p>
                             <p className={`text-lg font-semibold ${isDark ? 'text-white' : 'text-slate-900'}`}>{value}</p>
-                        </div>
+                        </motion.div>
                     ))}
-                </div>
+                </motion.div>
 
                 {data?.learning_until && (
-                    <div className={`rounded-lg px-4 py-2 text-xs ${isDark ? 'bg-sky-500/10 text-sky-300' : 'bg-sky-50 text-sky-700'}`}>
+                    <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className={`rounded-lg px-4 py-2 text-xs ${isDark ? 'bg-sky-500/10 text-sky-300' : 'bg-sky-50 text-sky-700'}`}
+                    >
                         Learning the existing devices: new-device alerts start in about {Math.max(1, Math.ceil((data.learning_until - now) / 60))} min.
-                    </div>
+                    </motion.div>
                 )}
 
-                <div className={`rounded-xl border overflow-hidden ${isDark ? 'bg-[#0e1e2c] border-slate-700/40' : 'bg-white border-slate-200'}`}>
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2 }}
+                    className={`rounded-xl border overflow-hidden ${isDark ? 'bg-[#0e1e2c] border-slate-700/40' : 'bg-white border-slate-200'}`}
+                >
                     <div className={`px-5 py-3 border-b flex flex-wrap items-center gap-3 ${isDark ? 'border-slate-700/40' : 'border-slate-200'}`}>
                         <div className="flex items-center gap-2">
                             <div className="w-6 h-6 rounded-md bg-[#4ab5cc]/15 flex items-center justify-center">
@@ -183,7 +203,7 @@ const DevicesPage: NextPageWithLayout = () => {
                                     </tr>
                                 </thead>
                                 <tbody className={`divide-y ${isDark ? 'divide-slate-700/40' : 'divide-slate-100'}`}>
-                                    {devices.map(d => {
+                                    {devices.map((d, index) => {
                                         const isOnline = now - d.last_seen <= ONLINE_SECS
                                         const isNew = now - d.first_seen <= DAY_SECS
                                         const isExpanded = expanded.has(d.mac)
@@ -191,7 +211,10 @@ const DevicesPage: NextPageWithLayout = () => {
                                         const history = [...d.ips].reverse()
                                         return (
                                             <React.Fragment key={d.mac}>
-                                                <tr
+                                                <motion.tr
+                                                    initial={{ opacity: 0 }}
+                                                    animate={{ opacity: 1 }}
+                                                    transition={{ delay: Math.min(index * 0.01, 0.5) }}
                                                     onClick={() => toggleExpanded(d.mac)}
                                                     aria-expanded={isExpanded}
                                                     className={`cursor-pointer ${isDark ? 'hover:bg-slate-700/20' : 'hover:bg-slate-50'}`}
@@ -212,9 +235,14 @@ const DevicesPage: NextPageWithLayout = () => {
                                                     </td>
                                                     <td className={`${cellCls} whitespace-nowrap`} title={formatTime(d.first_seen)}>{formatRelative(d.first_seen, now)}</td>
                                                     <td className={`${cellCls} whitespace-nowrap`} title={formatTime(d.last_seen)}>{formatRelative(d.last_seen, now)}</td>
-                                                </tr>
+                                                </motion.tr>
                                                 {isExpanded && (
-                                                    <tr className={isDark ? 'bg-[#131929]' : 'bg-slate-50'}>
+                                                    <motion.tr
+                                                        initial={{ opacity: 0 }}
+                                                        animate={{ opacity: 1 }}
+                                                        transition={{ duration: 0.15 }}
+                                                        className={isDark ? 'bg-[#131929]' : 'bg-slate-50'}
+                                                    >
                                                         <td></td>
                                                         <td colSpan={5} className="px-3 py-3">
                                                             <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] gap-4 text-xs">
@@ -253,7 +281,7 @@ const DevicesPage: NextPageWithLayout = () => {
                                                                 </div>
                                                             </div>
                                                         </td>
-                                                    </tr>
+                                                    </motion.tr>
                                                 )}
                                             </React.Fragment>
                                         )
@@ -262,7 +290,7 @@ const DevicesPage: NextPageWithLayout = () => {
                             </table>
                         </div>
                     )}
-                </div>
+                </motion.div>
             </div>
         </>
     )
