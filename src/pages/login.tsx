@@ -6,6 +6,12 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faUser, faLock, faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons'
 import { useAuth } from '../contexts/AuthContext'
 import { useTheme } from '../providers/ThemeProvider'
+import { LogoutReasonKey } from '../../config'
+
+const LOGOUT_REASON_TEXT: Record<string, string> = {
+  idle: 'You were signed out after a period of inactivity.',
+  expired: 'Your session expired. Please sign in again.',
+}
 
 const LoginPage: React.FC = () => {
   const { login, isAuthenticated } = useAuth()
@@ -18,6 +24,20 @@ const LoginPage: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
+  const [notice, setNotice] = useState<string | null>(null)
+
+  // Shown once: the reason is removed as soon as it is read, so a reload shows a plain login.
+  React.useEffect(() => {
+    try {
+      const reason = sessionStorage.getItem(LogoutReasonKey)
+      if (reason) {
+        sessionStorage.removeItem(LogoutReasonKey)
+        setNotice(LOGOUT_REASON_TEXT[reason] ?? null)
+      }
+    } catch {
+      // Storage unavailable: no notice.
+    }
+  }, [])
 
   React.useEffect(() => {
     if (isAuthenticated) {
@@ -161,6 +181,20 @@ const LoginPage: React.FC = () => {
                   </button>
                 </div>
               </div>
+
+              {/* Signed-out notice */}
+              {notice && !error && (
+                <div
+                  role="status"
+                  className={`px-3.5 py-2.5 rounded-lg text-xs ${
+                    isDark
+                      ? 'bg-amber-900/20 border border-amber-700/40 text-amber-400'
+                      : 'bg-amber-50 border border-amber-200 text-amber-700'
+                  }`}
+                >
+                  {notice}
+                </div>
+              )}
 
               {/* Error */}
               {error && (
