@@ -2,7 +2,7 @@ import React, { createContext, useState, useCallback, useEffect, useContext } fr
 import { useRouter } from 'next/router'
 import { setAuthToken } from '../utils/authStore'
 import { urls } from '../utils/apiManager'
-import { TokenKey } from '../../config'
+import { TokenKey, LastActivityKey } from '../../config'
 
 export interface UserInfo {
   id: string
@@ -70,6 +70,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, [])
 
   const issueToken = useCallback(async (rawToken: string) => {
+    // A fresh login starts the idle clock now, not from a stale value left by an earlier session.
+    localStorage.setItem(LastActivityKey, String(Date.now()))
     localStorage.setItem(TokenKey, rawToken)
     const valid = await applyToken(rawToken)
     if (!valid) throw new Error('Token validation failed')
@@ -100,6 +102,23 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
     init()
   }, [])
+
+  // Keep every tab of this browser on the same session: a logout (manual, idle or expired) in one
+  // tab signs the others out, and a login in one signs the others in.
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.key !== TokenKey) return
+      if (e.newValue) {
+        applyToken(e.newValue).then(valid => { if (!valid) clearAuth() })
+      } else {
+        setAuthToken(null)
+        setToken(null)
+        setUser(null)
+      }
+    }
+    window.addEventListener('storage', onStorage)
+    return () => window.removeEventListener('storage', onStorage)
+  }, [applyToken, clearAuth])
 
   const login = useCallback(async (username: string, password: string) => {
     const res = await fetch(urls.auth.login, {

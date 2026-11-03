@@ -8,6 +8,7 @@ import { IsolationProvider } from '../providers/IsolationProvider'
 import { NotificationProvider } from '../providers/NotificationProvider'
 import { AuthProvider, RouteGuard } from '../contexts/AuthContext'
 import ErrorDialog from '../components/ErrorDialog'
+import SessionTimeout from '../components/SessionTimeout'
 import { NextPageWithLayout } from '../types/NextPageWithLayout'
 import '../styles/globals.css'
 
@@ -37,6 +38,7 @@ export default function App({ Component, pageProps }: AppPropsWithLayout) {
               </AccessControlProvider>
             </WebSocketProvider>
           </RouteGuard>
+          <SessionTimeout />
         </AuthProvider>
       </ThemeProvider>
     </ErrorBoundary>

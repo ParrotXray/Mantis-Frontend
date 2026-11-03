@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
+import { motion } from 'framer-motion'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
     faFileShield,
@@ -204,19 +205,19 @@ const RulesPage: NextPageWithLayout = () => {
     return (
         <div className="flex flex-col gap-4 h-full">
             {restartStatus === 'waiting' && (
-                <div className={`flex items-center gap-2 rounded-xl border px-4 py-3 text-sm ${isDark ? 'bg-sky-500/10 border-sky-500/30 text-sky-400' : 'bg-sky-50 border-sky-200 text-sky-600'}`}>
+                <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className={`flex items-center gap-2 rounded-xl border px-4 py-3 text-sm ${isDark ? 'bg-sky-500/10 border-sky-500/30 text-sky-400' : 'bg-sky-50 border-sky-200 text-sky-600'}`}>
                     <FontAwesomeIcon icon={faSpinner} spin />
                     Restarting Mantis... this may take a few seconds.
-                </div>
+                </motion.div>
             )}
             {restartStatus === 'error' && (
-                <div className={`flex items-center justify-between gap-2 rounded-xl border px-4 py-3 text-sm ${isDark ? 'bg-red-500/10 border-red-500/30 text-red-400' : 'bg-red-50 border-red-200 text-red-600'}`}>
+                <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className={`flex items-center justify-between gap-2 rounded-xl border px-4 py-3 text-sm ${isDark ? 'bg-red-500/10 border-red-500/30 text-red-400' : 'bg-red-50 border-red-200 text-red-600'}`}>
                     <span className="flex items-center gap-2"><FontAwesomeIcon icon={faExclamationTriangle} />{restartError}</span>
                     <button onClick={triggerRestart} className="underline flex-shrink-0">Try again</button>
-                </div>
+                </motion.div>
             )}
             {savedNotice && restartStatus === 'idle' && (
-                <div className={`flex items-center justify-between gap-2 rounded-xl border px-4 py-3 text-sm ${isDark ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' : 'bg-emerald-50 border-emerald-200 text-emerald-600'}`}>
+                <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className={`flex items-center justify-between gap-2 rounded-xl border px-4 py-3 text-sm ${isDark ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' : 'bg-emerald-50 border-emerald-200 text-emerald-600'}`}>
                     <span className="flex items-center gap-2"><FontAwesomeIcon icon={faCircleCheck} />Rule changes saved. Restart Mantis for Suricata to pick them up.</span>
                     <button
                         onClick={triggerRestart}
@@ -226,11 +227,15 @@ const RulesPage: NextPageWithLayout = () => {
                         <FontAwesomeIcon icon={faPowerOff} />
                         Restart now
                     </button>
-                </div>
+                </motion.div>
             )}
 
             <div className="flex gap-4 flex-1 min-h-0">
-                <div className={`w-72 flex-shrink-0 flex flex-col rounded-xl border overflow-hidden ${isDark ? 'bg-[#0c1a24] border-slate-800' : 'bg-white border-slate-200'}`}>
+                <motion.div
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    className={`w-72 flex-shrink-0 flex flex-col rounded-xl border overflow-hidden ${isDark ? 'bg-[#0c1a24] border-slate-800' : 'bg-white border-slate-200'}`}
+                >
                     <div className={`p-3 border-b flex gap-2 ${isDark ? 'border-slate-800' : 'border-slate-200'}`}>
                         <input
                             type="text"
@@ -258,9 +263,12 @@ const RulesPage: NextPageWithLayout = () => {
                         ) : files.length === 0 ? (
                             <p className={`p-3 text-xs italic ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>No rule files yet.</p>
                         ) : (
-                            files.map((f) => (
-                                <button
+                            files.map((f, index) => (
+                                <motion.button
                                     key={f.filename}
+                                    initial={{ opacity: 0, x: -8 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    transition={{ delay: Math.min(index * 0.03, 0.5) }}
                                     onClick={() => handleSelect(f.filename)}
                                     className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-left border-b transition-colors ${isDark ? 'border-slate-800/60' : 'border-slate-100'} ${
                                         selected === f.filename ? (isDark ? 'bg-slate-800/60' : 'bg-slate-100') : (isDark ? 'hover:bg-slate-800/30' : 'hover:bg-slate-50')
@@ -280,13 +288,18 @@ const RulesPage: NextPageWithLayout = () => {
                                     {!f.enabled && (
                                         <span className={`text-[10px] font-semibold uppercase flex-shrink-0 ${isDark ? 'text-slate-600' : 'text-slate-400'}`}>off</span>
                                     )}
-                                </button>
+                                </motion.button>
                             ))
                         )}
                     </div>
-                </div>
+                </motion.div>
 
-                <div className={`flex-1 min-w-0 flex flex-col rounded-xl border overflow-hidden ${isDark ? 'bg-[#0c1a24] border-slate-800' : 'bg-white border-slate-200'}`}>
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.1 }}
+                    className={`flex-1 min-w-0 flex flex-col rounded-xl border overflow-hidden ${isDark ? 'bg-[#0c1a24] border-slate-800' : 'bg-white border-slate-200'}`}
+                >
                     {!selected ? (
                         <div className={`flex-1 flex items-center justify-center text-sm ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
                             Select a rule file, or create a new one.
@@ -294,7 +307,14 @@ const RulesPage: NextPageWithLayout = () => {
                     ) : detailLoading || !detail ? (
                         <div className="flex-1 flex items-center justify-center"><FontAwesomeIcon icon={faSpinner} spin style={{ color: ACCENT }} /></div>
                     ) : (
-                        <>
+                        // Keyed by file, so switching files fades the new one in.
+                        <motion.div
+                            key={detail.filename}
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ duration: 0.2 }}
+                            className="flex-1 min-h-0 flex flex-col"
+                        >
                             <div className={`flex items-center gap-2 px-4 py-3 border-b flex-wrap ${isDark ? 'border-slate-800' : 'border-slate-200'}`}>
                                 <h2 className={`text-sm font-semibold ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>{detail.filename}</h2>
                                 <span
@@ -368,8 +388,13 @@ const RulesPage: NextPageWithLayout = () => {
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {detail.rules.filter((r) => r.sid !== null).map((r) => (
-                                                <tr key={r.line_number} className={`border-t ${isDark ? 'border-slate-800/60' : 'border-slate-100'} ${!r.enabled ? 'opacity-50' : ''}`}>
+                                            {detail.rules.filter((r) => r.sid !== null).map((r, index) => (
+                                                <motion.tr
+                                                    key={r.line_number}
+                                                    initial={{ opacity: 0 }}
+                                                    animate={{ opacity: 1 }}
+                                                    transition={{ delay: Math.min(index * 0.01, 0.5) }}
+                                                    className={`border-t ${isDark ? 'border-slate-800/60' : 'border-slate-100'} ${!r.enabled ? 'opacity-50' : ''}`}>
                                                     <td className="px-4 py-2">
                                                         <ToggleSwitch
                                                             value={r.enabled}
@@ -383,7 +408,7 @@ const RulesPage: NextPageWithLayout = () => {
                                                     </td>
                                                     <td className={`px-2 py-2 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{r.action ?? ''}</td>
                                                     <td className={`px-2 py-2 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{r.proto ?? ''}</td>
-                                                </tr>
+                                                </motion.tr>
                                             ))}
                                             {detail.rules.filter((r) => r.sid !== null).length === 0 && (
                                                 <tr><td colSpan={5} className={`px-4 py-8 text-center text-xs italic ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>No rules in this file.</td></tr>
@@ -420,9 +445,9 @@ const RulesPage: NextPageWithLayout = () => {
                                     </button>
                                 </div>
                             )}
-                        </>
+                        </motion.div>
                     )}
-                </div>
+                </motion.div>
             </div>
         </div>
     )

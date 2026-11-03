@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react'
+import { motion } from 'framer-motion'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
     faSliders,
@@ -231,8 +232,12 @@ const SectionCard: React.FC<{
 }> = ({ section, isDark, risk, disabled, disabledNote, dirty, children }) => {
     const riskStyle = risk ? RISK_STYLES[risk.level] : null
 
+    // Each tab renders its own card, so switching tabs mounts a new one and plays this.
     return (
-        <div
+        <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.25 }}
             className={`rounded-xl border overflow-hidden ${isDark ? 'bg-[#0c1a24] border-slate-800' : 'bg-white border-slate-200'}`}
         >
             <div className={`flex items-center gap-2.5 px-4 py-3 border-b ${isDark ? 'border-slate-800' : 'border-slate-200'}`}>
@@ -261,7 +266,7 @@ const SectionCard: React.FC<{
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">{children}</div>
                 )}
             </div>
-        </div>
+        </motion.div>
     )
 }
 
@@ -391,22 +396,22 @@ const SettingsPage: NextPageWithLayout = () => {
     return (
             <div className="max-w-5xl mx-auto flex flex-col gap-4">
                 {restartStatus === 'waiting' && (
-                    <div className={`flex items-center gap-2 rounded-xl border px-4 py-3 text-sm ${isDark ? 'bg-sky-500/10 border-sky-500/30 text-sky-400' : 'bg-sky-50 border-sky-200 text-sky-600'}`}>
+                    <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className={`flex items-center gap-2 rounded-xl border px-4 py-3 text-sm ${isDark ? 'bg-sky-500/10 border-sky-500/30 text-sky-400' : 'bg-sky-50 border-sky-200 text-sky-600'}`}>
                         <FontAwesomeIcon icon={faSpinner} spin />
                         Restarting Mantis... this may take a few seconds.
-                    </div>
+                    </motion.div>
                 )}
                 {restartStatus === 'error' && (
-                    <div className={`flex items-center justify-between gap-2 rounded-xl border px-4 py-3 text-sm ${isDark ? 'bg-red-500/10 border-red-500/30 text-red-400' : 'bg-red-50 border-red-200 text-red-600'}`}>
+                    <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className={`flex items-center justify-between gap-2 rounded-xl border px-4 py-3 text-sm ${isDark ? 'bg-red-500/10 border-red-500/30 text-red-400' : 'bg-red-50 border-red-200 text-red-600'}`}>
                         <span className="flex items-center gap-2">
                             <FontAwesomeIcon icon={faExclamationTriangle} />
                             {restartError}
                         </span>
                         <button onClick={triggerRestart} className="underline flex-shrink-0">Try again</button>
-                    </div>
+                    </motion.div>
                 )}
                 {savedNotice && restartStatus === 'idle' && (
-                    <div className={`flex items-center justify-between gap-2 rounded-xl border px-4 py-3 text-sm ${isDark ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' : 'bg-emerald-50 border-emerald-200 text-emerald-600'}`}>
+                    <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className={`flex items-center justify-between gap-2 rounded-xl border px-4 py-3 text-sm ${isDark ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' : 'bg-emerald-50 border-emerald-200 text-emerald-600'}`}>
                         <span className="flex items-center gap-2">
                             <FontAwesomeIcon icon={faCircleCheck} />
                             Configuration saved to config.toml. Restart Mantis for these changes to take effect.
@@ -419,16 +424,20 @@ const SettingsPage: NextPageWithLayout = () => {
                             <FontAwesomeIcon icon={faPowerOff} />
                             Restart now
                         </button>
-                    </div>
+                    </motion.div>
                 )}
                 {saveError && (
-                    <div className={`flex items-center gap-2 rounded-xl border px-4 py-3 text-sm ${isDark ? 'bg-red-500/10 border-red-500/30 text-red-400' : 'bg-red-50 border-red-200 text-red-600'}`}>
+                    <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className={`flex items-center gap-2 rounded-xl border px-4 py-3 text-sm ${isDark ? 'bg-red-500/10 border-red-500/30 text-red-400' : 'bg-red-50 border-red-200 text-red-600'}`}>
                         <FontAwesomeIcon icon={faExclamationTriangle} />
                         {saveError}
-                    </div>
+                    </motion.div>
                 )}
 
-                <div className="flex flex-wrap gap-2">
+                <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="flex flex-wrap gap-2"
+                >
                     {TABS.map((tab) => {
                         const active = activeTab === tab
                         return (
@@ -452,7 +461,7 @@ const SettingsPage: NextPageWithLayout = () => {
                             </button>
                         )
                     })}
-                </div>
+                </motion.div>
 
                 {activeTab === 'general' && (
                 <SectionCard section="general" isDark={isDark} risk={riskFor('general')} dirty={dirty.has('general')}>
@@ -666,7 +675,12 @@ const SettingsPage: NextPageWithLayout = () => {
                 </SectionCard>
                 )}
 
-                <div className="flex items-center justify-end gap-3 pb-6">
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.2 }}
+                    className="flex items-center justify-end gap-3 pb-6"
+                >
                     <button
                         onClick={load}
                         disabled={saving}
@@ -686,7 +700,7 @@ const SettingsPage: NextPageWithLayout = () => {
                         {saving && <FontAwesomeIcon icon={faSpinner} spin />}
                         Save changes
                     </button>
-                </div>
+                </motion.div>
             </div>
     )
 }
