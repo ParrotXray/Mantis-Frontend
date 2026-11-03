@@ -13,6 +13,8 @@ const POLL_MS = 30_000
 const DAY_SECS = 24 * 60 * 60
 // Seen within this long counts as online.
 const ONLINE_SECS = 5 * 60
+// Earlier IPs shown before collapsing the rest into "+N".
+const OTHER_IPS_SHOWN = 2
 
 type SortKey = 'last_seen' | 'first_seen' | 'ip' | 'mac' | 'vendor'
 
@@ -49,6 +51,14 @@ const DevicesPage: NextPageWithLayout = () => {
     const [error, setError] = useState<string | null>(null)
     const [isLoading, setIsLoading] = useState(false)
     const [query, setQuery] = useState('')
+    // MACs whose full list of earlier IPs is expanded.
+    const [expanded, setExpanded] = useState<Set<string>>(new Set())
+    const toggleExpanded = (mac: string) => setExpanded(prev => {
+        const next = new Set(prev)
+        if (next.has(mac)) next.delete(mac)
+        else next.add(mac)
+        return next
+    })
     const [sortKey, setSortKey] = useState<SortKey>('last_seen')
 
     const load = useCallback(() => {
@@ -178,7 +188,11 @@ const DevicesPage: NextPageWithLayout = () => {
                                     {devices.map(d => {
                                         const isOnline = now - d.last_seen <= ONLINE_SECS
                                         const isNew = now - d.first_seen <= DAY_SECS
-                                        const others = d.ips.filter(ip => ip !== d.current_ip)
+                                        // Most recent first, so the collapsed view shows the latest ones.
+                                        const others = d.ips.filter(ip => ip !== d.current_ip).reverse()
+                                        const isExpanded = expanded.has(d.mac)
+                                        const shownIps = isExpanded ? others : others.slice(0, OTHER_IPS_SHOWN)
+                                        const hidden = others.length - shownIps.length
                                         return (
                                             <tr key={d.mac}>
                                                 <td className={`${cellCls} font-mono whitespace-nowrap`}>
@@ -193,7 +207,19 @@ const DevicesPage: NextPageWithLayout = () => {
                                                         : d.vendor ?? <span className={mutedCls}>Unknown</span>}
                                                 </td>
                                                 <td className={`${cellCls} font-mono`}>
-                                                    {others.length > 0 ? others.join(', ') : <span className={mutedCls}>—</span>}
+                                                    {others.length === 0 ? <span className={mutedCls}>—</span> : (
+                                                        <span title={others.join('\n')}>
+                                                            {shownIps.join(', ')}
+                                                            {(hidden > 0 || isExpanded) && others.length > OTHER_IPS_SHOWN && (
+                                                                <button
+                                                                    onClick={() => toggleExpanded(d.mac)}
+                                                                    className={`ml-1.5 px-1.5 py-0.5 rounded text-[10px] font-sans font-medium ${isDark ? 'bg-slate-700/60 text-slate-300 hover:bg-slate-600/60' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+                                                                >
+                                                                    {isExpanded ? 'less' : `+${hidden}`}
+                                                                </button>
+                                                            )}
+                                                        </span>
+                                                    )}
                                                 </td>
                                                 <td className={`${cellCls} whitespace-nowrap`} title={formatTime(d.first_seen)}>{formatRelative(d.first_seen, now)}</td>
                                                 <td className={`${cellCls} whitespace-nowrap`} title={formatTime(d.last_seen)}>{formatRelative(d.last_seen, now)}</td>
