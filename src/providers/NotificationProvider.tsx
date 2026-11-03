@@ -1,6 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/router'
-import { fetchData } from '../utils/connectionUtils'
+import { fetchData, postData } from '../utils/connectionUtils'
 import { urls } from '../utils/apiManager'
 import { useAuth } from '../contexts/AuthContext'
 import { WebsocketContext } from './WebSocketProvider'
@@ -8,32 +8,18 @@ import { AppNotification, NotificationList } from '../types/NotificationTypes'
 
 const POLL_MS = 15_000
 const FETCH_LIMIT = 200
-// Read state is per browser: the highest notification id seen, and the time
-// alerts were last looked at.
-const READ_ID_KEY = 'mantis_notifications_read_id'
-const ALERTS_SEEN_KEY = 'mantis_alerts_seen_at'
-
-const readNumber = (key: string): number => {
-    try {
-        return Number(localStorage.getItem(key) ?? 0) || 0
-    } catch {
-        return 0
-    }
-}
-
-const writeNumber = (key: string, value: number) => {
-    try {
-        localStorage.setItem(key, String(value))
-    } catch {
-        // private mode or blocked storage: read state just does not persist
-    }
-}
+// While Detection is open, alerts are being looked at; tell the backend at
+// most this often instead of on every alert.
+const SEEN_SYNC_MS = 30_000
+// New-alert timestamps kept to recompute the count when another browser of
+// the same account marks alerts seen.
+const MAX_TRACKED_ALERTS = 1000
 
 interface NotificationContextType {
     notifications: AppNotification[]
     readId: number
     unreadCount: number
-    // Threat alerts received since alerts were last looked at.
+    // Threat alerts this account has not looked at since alerts_seen_at.
     newAlertCount: number
     markAllRead: () => void
     markAlertsSeen: () => void
@@ -52,33 +38,31 @@ export const NotificationContext = createContext<NotificationContextType>({
 
 export const useNotifications = () => useContext(NotificationContext)
 
+// Read state is per account on the backend (GET /notifications/list carries it,
+// POST /notifications/read advances it), so every browser the account uses
+// agrees. Local updates are applied at once and the server only moves forward.
 export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const { token } = useAuth()
     const router = useRouter()
     const { getDetectionAlertStream } = useContext(WebsocketContext)
     const [notifications, setNotifications] = useState<AppNotification[]>([])
     const [readId, setReadId] = useState(0)
-    const [newAlertCount, setNewAlertCount] = useState(0)
-    const alertsSeenAtRef = useRef(0)
+    const [alertsSeenAt, setAlertsSeenAt] = useState<number | null>(null)
+    const [alertTimes, setAlertTimes] = useState<number[]>([])
     const onDetectionRef = useRef(false)
-
-    useEffect(() => {
-        setReadId(readNumber(READ_ID_KEY))
-        // A browser that never opened Detection starts counting from now, so
-        // the alert the stream replays on subscribe is not reported as new.
-        const seen = readNumber(ALERTS_SEEN_KEY)
-        alertsSeenAtRef.current = seen || Math.floor(Date.now() / 1000)
-        if (!seen) writeNumber(ALERTS_SEEN_KEY, alertsSeenAtRef.current)
-    }, [])
+    const lastSeenSyncRef = useRef(0)
 
     const refresh = useCallback(() => {
         fetchData(
-            `${urls.notifications}?limit=${FETCH_LIMIT}`,
+            `${urls.notifications.list}?limit=${FETCH_LIMIT}`,
             (text) => {
                 try {
-                    setNotifications((JSON.parse(text) as NotificationList).notifications)
+                    const data = JSON.parse(text) as NotificationList
+                    setNotifications(data.notifications)
+                    setReadId(r => Math.max(r, data.read_id))
+                    setAlertsSeenAt(s => Math.max(s ?? 0, data.alerts_seen_at))
                 } catch {
-                    // keep the last list
+                    // keep the last state
                 }
             },
             () => {},
@@ -88,6 +72,9 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     useEffect(() => {
         if (!token) {
             setNotifications([])
+            setReadId(0)
+            setAlertsSeenAt(null)
+            setAlertTimes([])
             return
         }
         refresh()
@@ -97,18 +84,22 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
     const markAlertsSeen = useCallback(() => {
         const now = Math.floor(Date.now() / 1000)
-        alertsSeenAtRef.current = now
-        writeNumber(ALERTS_SEEN_KEY, now)
-        setNewAlertCount(0)
+        setAlertsSeenAt(s => Math.max(s ?? 0, now))
+        if (Date.now() - lastSeenSyncRef.current < SEEN_SYNC_MS) return
+        lastSeenSyncRef.current = Date.now()
+        postData(urls.notifications.read, { alerts_seen_at: now }, undefined, () => {})
     }, [])
 
-    // Alerts are already streamed to every page; count the attack ones that
-    // arrive while the Detection page is not open.
     useEffect(() => {
         onDetectionRef.current = router.pathname.startsWith('/detection')
-        if (onDetectionRef.current) markAlertsSeen()
-    }, [router.pathname, markAlertsSeen])
+        if (onDetectionRef.current && token) {
+            lastSeenSyncRef.current = 0
+            markAlertsSeen()
+        }
+    }, [router.pathname, token, markAlertsSeen])
 
+    // Alerts are already streamed to every page; remember when attack alerts
+    // arrive so the count follows alerts_seen_at, whichever browser moved it.
     useEffect(() => {
         if (!token || !getDetectionAlertStream) return
         const stream = getDetectionAlertStream()
@@ -121,9 +112,10 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
                     if (!alert?.is_attack) return
                     if (onDetectionRef.current) {
                         markAlertsSeen()
-                    } else if ((alert.timestamp ?? 0) > alertsSeenAtRef.current) {
-                        setNewAlertCount(c => c + 1)
+                        return
                     }
+                    const ts = Number(alert.timestamp) || Math.floor(Date.now() / 1000)
+                    setAlertTimes(times => [...times, ts].slice(-MAX_TRACKED_ALERTS))
                 } catch {
                     // not an alert payload
                 }
@@ -135,10 +127,13 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     const markAllRead = useCallback(() => {
         const top = notifications.reduce((max, n) => Math.max(max, n.id), readId)
         setReadId(top)
-        writeNumber(READ_ID_KEY, top)
+        postData(urls.notifications.read, { read_id: top }, undefined, () => {})
     }, [notifications, readId])
 
     const unreadCount = notifications.filter(n => n.id > readId).length
+    // Until the first response arrives the account's seen time is unknown;
+    // count nothing rather than the alert the stream replays on subscribe.
+    const newAlertCount = alertsSeenAt === null ? 0 : alertTimes.filter(t => t > alertsSeenAt).length
 
     return (
         <NotificationContext.Provider

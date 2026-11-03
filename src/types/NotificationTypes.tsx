@@ -19,4 +19,9 @@ export interface AppNotification {
 export interface NotificationList {
     // Newest first.
     notifications: AppNotification[]
+    // The signed-in account's read state (shared by all its browsers).
+    // Highest notification id read.
+    read_id: number
+    // Unix seconds; attack alerts after this are new.
+    alerts_seen_at: number
 }

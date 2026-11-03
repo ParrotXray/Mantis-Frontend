@@ -133,11 +133,14 @@ TCP anomaly alerts as ML ones, with a false-positive button that cannot apply to
 ### Notifications
 
 `NotificationProvider` (`src/providers/NotificationProvider.tsx`, inside `IsolationProvider`) polls
-`GET /notifications/list` (`urls.notifications`, types in `src/types/NotificationTypes.tsx`) every 15s once logged
-in. Read state is per browser in localStorage: `mantis_notifications_read_id` (highest id read; unread = higher
-ids) and `mantis_alerts_seen_at`. It also counts attack alerts from the existing alert stream that arrive while the
-Detection page is not open (`newAlertCount`); opening Detection resets it. A browser that never opened Detection
-starts that clock at first load, since the stream replays its last alert on subscribe.
+`GET /notifications/list` (`urls.notifications.list`, types in `src/types/NotificationTypes.tsx`) every 15s once
+logged in. Read state is per account on the backend: the response carries `read_id` (highest id read; unread =
+higher ids) and `alerts_seen_at`, and `POST /notifications/read` (`urls.notifications.read`) advances them, so every
+browser the account uses agrees. Updates apply locally at once and the server only moves forward. The provider keeps
+the timestamps of attack alerts from the existing alert stream, and `newAlertCount` is those after
+`alerts_seen_at`: when another browser of the account opens Detection, this one's count clears at its next poll.
+While Detection is open, alerts count as seen, synced to the backend at most every 30s. Until the first response
+nothing is counted, since the stream replays its last alert on subscribe.
 
 `NotificationBell` (topbar, left of the restart button) shows a red dot when either count is non-zero. Its dropdown
 has an "N new threat alerts" row linking to Detection, the latest 8 notifications (unread tinted, with a dot, each
