@@ -11,6 +11,7 @@ import { LogoutReasonKey } from '../../config'
 const LOGOUT_REASON_TEXT: Record<string, string> = {
   idle: 'You were signed out after a period of inactivity.',
   expired: 'Your session expired. Please sign in again.',
+  revoked: 'Your session was ended on the server. Please sign in again.',
 }
 
 const LoginPage: React.FC = () => {

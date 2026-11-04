@@ -5,13 +5,19 @@ import { faClock } from '@fortawesome/free-solid-svg-icons'
 import { useAuth } from '../contexts/AuthContext'
 import { useTheme } from '../providers/ThemeProvider'
 import { IDLE_TIMEOUT_MS, IDLE_WARNING_MS, LastActivityKey, LogoutReasonKey } from '../../config'
+import { urls } from '../utils/apiManager'
 
-export type LogoutReason = 'idle' | 'expired'
+export type LogoutReason = 'idle' | 'expired' | 'revoked'
 
 const ACTIVITY_EVENTS = ['mousedown', 'mousemove', 'keydown', 'wheel', 'scroll', 'touchstart'] as const
 // Shared activity is written at most this often, so mousemove does not hammer localStorage.
 const WRITE_THROTTLE_MS = 5_000
 const TICK_MS = 1_000
+// User input is reported to the backend's idle clock at most this often. The backend allows 60s of
+// grace on top of the timeout, so this lag never signs out a user who is still working.
+const HEARTBEAT_MS = 30_000
+// How often to check that the backend still accepts the session (it may have been ended from there).
+const SESSION_CHECK_MS = 60_000
 
 const readStoredActivity = (): number => {
     try {
@@ -48,18 +54,21 @@ const formatCountdown = (ms: number) => {
 }
 
 /**
- * Signs the user out after IDLE_TIMEOUT_MS without input in any tab of this browser, warning
- * IDLE_WARNING_MS beforehand, and when the JWT itself expires. Background traffic (WebSockets,
- * polling) never counts as activity.
+ * Signs the user out after the backend's idle timeout (`idle_timeout_secs` from /auth/me, or
+ * IDLE_TIMEOUT_MS from an older backend) without input in any tab of this browser, warning
+ * beforehand, and when the JWT itself expires. Background traffic (WebSockets, polling) never
+ * counts as activity. Input is reported to POST /auth/activity, so the backend ends the session on
+ * the same clock, and a session the backend ended (401) signs this browser out too.
  */
 const SessionTimeout: React.FC = () => {
-    const { token, logout } = useAuth()
+    const { token, user, logout } = useAuth()
     const router = useRouter()
     const { actualTheme } = useTheme()
     const isDark = actualTheme === 'dark'
 
     const lastActivityRef = useRef(0)
     const lastWriteRef = useRef(0)
+    const lastBeatRef = useRef(0)
     const warningRef = useRef(false)
     const [remaining, setRemaining] = useState<number | null>(null)
 
@@ -75,6 +84,12 @@ const SessionTimeout: React.FC = () => {
         router.replace('/login')
     }, [logout, router])
 
+    // 401 means the backend no longer accepts the session (ended there, idle, or restarted with
+    // its sessions gone); other failures (network, restart in progress) are ignored.
+    const checkResponse = useCallback((res: Response) => {
+        if (res.status === 401) expire('revoked')
+    }, [expire])
+
     const recordActivity = useCallback((force = false) => {
         const now = Date.now()
         lastActivityRef.current = now
@@ -82,7 +97,13 @@ const SessionTimeout: React.FC = () => {
             lastWriteRef.current = now
             writeStoredActivity(now)
         }
-    }, [])
+        if (token && (force || now - lastBeatRef.current >= HEARTBEAT_MS)) {
+            lastBeatRef.current = now
+            fetch(urls.auth.activity, { method: 'POST', headers: { Authorization: `Bearer ${token}` } })
+                .then(checkResponse)
+                .catch(() => {})
+        }
+    }, [token, checkResponse])
 
     useEffect(() => {
         if (!token) {
@@ -94,7 +115,12 @@ const SessionTimeout: React.FC = () => {
         // A restored session resumes the shared idle clock, so a browser left closed past the
         // timeout signs out on its next load. Login writes the current time before the token is set.
         lastActivityRef.current = readStoredActivity() || Date.now()
+        lastBeatRef.current = 0
         const expiresAt = tokenExpiry(token)
+        // 0 from the backend turns the idle sign-out off; the token's own expiry still applies.
+        const idleMs = user?.idle_timeout_secs !== undefined ? user.idle_timeout_secs * 1000 : IDLE_TIMEOUT_MS
+        const warningMs = Math.min(IDLE_WARNING_MS, idleMs / 4)
+        let lastCheck = Date.now()
 
         const onActivity = () => {
             // While the warning is up, only its button keeps the session, so a stray mouse
@@ -109,13 +135,20 @@ const SessionTimeout: React.FC = () => {
                 expire('expired')
                 return
             }
+            if (now - lastCheck >= SESSION_CHECK_MS) {
+                lastCheck = now
+                fetch(urls.auth.me, { headers: { Authorization: `Bearer ${token}` } })
+                    .then(checkResponse)
+                    .catch(() => {})
+            }
+            if (idleMs <= 0) return
             // Input in another tab moves the shared value forward.
             const last = Math.max(lastActivityRef.current, readStoredActivity())
             lastActivityRef.current = last
-            const left = last + IDLE_TIMEOUT_MS - now
+            const left = last + idleMs - now
             if (left <= 0) {
                 expire('idle')
-            } else if (left <= IDLE_WARNING_MS) {
+            } else if (left <= warningMs) {
                 warningRef.current = true
                 setRemaining(left)
             } else if (warningRef.current) {
@@ -130,7 +163,7 @@ const SessionTimeout: React.FC = () => {
             clearInterval(id)
             ACTIVITY_EVENTS.forEach(ev => window.removeEventListener(ev, onActivity))
         }
-    }, [token, expire, recordActivity])
+    }, [token, user, expire, recordActivity, checkResponse])
 
     const stay = useCallback(() => {
         warningRef.current = false

@@ -8,6 +8,9 @@ export interface UserInfo {
   id: string
   username: string
   role: string
+  // Session limits from the backend; absent on backends without server-side sessions.
+  idle_timeout_secs?: number
+  expires_at?: number
 }
 
 interface AuthContextType {

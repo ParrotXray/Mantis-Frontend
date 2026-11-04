@@ -283,7 +283,7 @@ const SettingsPage: NextPageWithLayout = () => {
 
     // home_net is kept as the raw text and split on save, so typing a comma
     // to start the next entry is not undone by a re-parse.
-    const [general, setGeneral] = useState({ http_server_bind_port: 8080, refresh_interval: 5, home_net: '' })
+    const [general, setGeneral] = useState({ http_server_bind_port: 8080, refresh_interval: 5, home_net: '', session_idle_timeout_mins: 30 })
     const [nic, setNic] = useState<NICConfig | null>(null)
     const [cpuAffinity, setCpuAffinity] = useState<CPUAffinityConfig | null>(null)
     const [ml, setMl] = useState<MLConfig | null>(null)
@@ -314,6 +314,7 @@ const SettingsPage: NextPageWithLayout = () => {
                     http_server_bind_port: parsed.config.http_server_bind_port,
                     refresh_interval: parsed.config.refresh_interval,
                     home_net: (parsed.config.home_net ?? []).join(', '),
+                    session_idle_timeout_mins: parsed.config.session_idle_timeout_mins ?? 30,
                 })
                 setNic(parsed.config.nic)
                 setCpuAffinity(parsed.config.cpu_affinity)
@@ -354,6 +355,7 @@ const SettingsPage: NextPageWithLayout = () => {
             body.http_server_bind_port = general.http_server_bind_port
             body.refresh_interval = general.refresh_interval
             body.home_net = general.home_net.split(',').map((s) => s.trim()).filter(Boolean)
+            body.session_idle_timeout_mins = general.session_idle_timeout_mins
         }
         if (dirty.has('nic')) body.nic = nic
         if (dirty.has('cpu_affinity')) body.cpu_affinity = cpuAffinity
@@ -478,6 +480,14 @@ const SettingsPage: NextPageWithLayout = () => {
                         isDark={isDark}
                         description="Statistics refresh interval, in seconds"
                         onChange={(v) => { setGeneral((g) => ({ ...g, refresh_interval: v })); markDirty('general') }}
+                    />
+                    <NumField
+                        label="Session idle timeout (min)"
+                        value={general.session_idle_timeout_mins}
+                        isDark={isDark}
+                        hint="0 = off, max 1440"
+                        description="Sign web UI sessions out after this many minutes without keyboard, mouse or touch input. Enforced by the backend too, so the token stops working, not only the page. Background polling and live streams do not count as activity. The token's absolute lifetime ([Config.auth].token_ttl_secs) applies either way."
+                        onChange={(v) => { setGeneral((g) => ({ ...g, session_idle_timeout_mins: v })); markDirty('general') }}
                     />
                     <Field label="Home net (comma-separated CIDRs)" isDark={isDark}
                         hint="Required while Suricata is enabled"

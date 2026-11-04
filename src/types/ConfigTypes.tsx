@@ -63,6 +63,8 @@ export interface ConfigView {
     refresh_interval: number
     // Protected network; used by the ML aggregator and as Suricata's HOME_NET.
     home_net: string[]
+    // Idle sign-out, in minutes; 0 = off. Missing on backends older than server-side sessions.
+    session_idle_timeout_mins?: number
     nic: NICConfig
     cpu_affinity: CPUAffinityConfig
     ml: MLConfig
@@ -81,6 +83,7 @@ export interface ConfigUpdate {
     http_server_bind_port?: number
     refresh_interval?: number
     home_net?: string[]
+    session_idle_timeout_mins?: number
     nic?: NICConfig
     cpu_affinity?: CPUAffinityConfig
     ml?: MLConfig

@@ -90,10 +90,20 @@ swaps in place (a Settings tab, a selected rule file) is keyed or mounted per it
 ### Session timeout
 
 `SessionTimeout` (`src/components/SessionTimeout.tsx`, mounted next to `RouteGuard` inside `AuthProvider`) signs
-the user out after `IDLE_TIMEOUT_MS` (30 min, `config.ts`) without keyboard, mouse, wheel, scroll or touch input,
-and when the JWT's own `exp` passes. WebSocket and polling traffic never count as activity. `IDLE_WARNING_MS` (60s)
-before the idle sign-out it shows a "Still there?" dialog with a countdown; while it is up only its "Stay signed
-in" button keeps the session, so a stray mouse movement does not dismiss it unseen.
+the user out after the backend's idle timeout without keyboard, mouse, wheel, scroll or touch input, and when the
+JWT's own `exp` passes. The timeout is `idle_timeout_secs` from `GET /auth/me` (`[Config].session_idle_timeout_mins`,
+editable on the Settings page's General tab; 0 turns idle sign-out off); a backend without the field falls back to
+`IDLE_TIMEOUT_MS` (30 min, `config.ts`). WebSocket and polling traffic never count as activity. Before the idle
+sign-out (`IDLE_WARNING_MS`, 60s, or a quarter of a shorter timeout) it shows a "Still there?" dialog with a
+countdown; while it is up only its "Stay signed in" button keeps the session, so a stray mouse movement does not
+dismiss it unseen.
+
+The backend enforces the same timeout on its side: tokens are backed by server-side sessions, so a signed-out or
+idle token stops working, not only the page. Input is reported to `POST /auth/activity` at most every 30s (and at
+once on "Stay signed in"); the backend allows 60s of grace for that lag, so the browser always signs out first.
+Logout calls `POST /auth/logout`, which ends the session. Every 60s the component also calls `GET /auth/me`, which
+does not count as activity; a 401 there or from `/auth/activity` means the backend ended the session, and the
+browser signs out with the `revoked` reason.
 
 The idle clock is shared by every tab of the browser through `localStorage` (`LastActivityKey`, written at most
 every 5s), so working in one tab keeps the others signed in. It survives closing the browser: reopening after the

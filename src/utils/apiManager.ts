@@ -21,6 +21,7 @@ export const urls = {
         login: `${httpProtocol}://${host}/auth/login`,
         me: `${httpProtocol}://${host}/auth/me`,
         logout: `${httpProtocol}://${host}/auth/logout`,
+        activity: `${httpProtocol}://${host}/auth/activity`,
     },
 
     access_control: (
