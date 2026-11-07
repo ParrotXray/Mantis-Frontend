@@ -50,9 +50,7 @@ export interface SuricataConfig {
     worker_cpu_set: [number, number]
     management_cpu: number
     capture_ring_slots: number
-    capture_slot_size: number
     event_ring_slots: number
-    event_slot_size: number
     suppress: string[]
 }
 

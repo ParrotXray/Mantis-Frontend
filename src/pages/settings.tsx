@@ -745,20 +745,12 @@ const SettingsPage: NextPageWithLayout = () => {
                                 onChange={(v) => { setSuricata({ ...suricata, management_cpu: v }); markDirty('suricata') }} />
                             <NumField label="Capture ring slots" value={suricata.capture_ring_slots} {...check('suricata.capture_ring_slots')} isDark={isDark}
                                
-                                description="Slot count for each of the ingress/egress shared-memory rings fed to the mantis-capture Suricata plugin. Must be a power of two."
+                                description="Slot count for each of the ingress/egress shared-memory rings fed to the mantis-capture Suricata plugin. Must be a power of two. Each slot is NIC frame size bytes, so a whole frame always fits."
                                 onChange={(v) => { setSuricata({ ...suricata, capture_ring_slots: v }); markDirty('suricata') }} />
-                            <NumField label="Capture slot size" value={suricata.capture_slot_size} {...check('suricata.capture_slot_size')} isDark={isDark}
-                                hint="Bytes per slot"
-                                description="Bytes per ring slot, including the 4-byte length prefix. Frames longer than this are truncated."
-                                onChange={(v) => { setSuricata({ ...suricata, capture_slot_size: v }); markDirty('suricata') }} />
                             <NumField label="Event ring slots" value={suricata.event_ring_slots} {...check('suricata.event_ring_slots')} isDark={isDark}
                                
-                                description="Slot count of the shared-memory ring that carries Suricata EVE alerts back to Mantis. Must be a power of two."
+                                description="Slot count of the shared-memory ring that carries Suricata EVE alerts back to Mantis. Must be a power of two. Each slot is a fixed 16 KiB."
                                 onChange={(v) => { setSuricata({ ...suricata, event_ring_slots: v }); markDirty('suricata') }} />
-                            <NumField label="Event slot size" value={suricata.event_slot_size} {...check('suricata.event_slot_size')} isDark={isDark}
-                                hint="Bytes per slot"
-                                description="Bytes per EVE ring slot, including the 4-byte length prefix. Longer EVE records are truncated."
-                                onChange={(v) => { setSuricata({ ...suricata, event_slot_size: v }); markDirty('suricata') }} />
                             <TextAreaField label="Suppress list" value={suricata.suppress.join('\n')} isDark={isDark}
                                 wide
                                 hint={'One Suricata suppress line per row, e.g. "suppress gen_id 1, sig_id 2001234, track by_src, ip 192.168.1.0/24"'}
